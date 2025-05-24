@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Constants {
   // API Endpoints
-  static const String apiBaseUrl = 'https://api.nestery.com';
+  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? 'https://api.nestery.com';
   
   // Routes
   static const String splashRoute = '/';
@@ -104,4 +105,13 @@ class Constants {
     'Bar',
     'Breakfast',
   ];
+  
+  // Google Maps
+  static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+  
+  // Stripe
+  static String get stripePublishableKey => dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
+  
+  // Analytics
+  static bool get analyticsEnabled => dotenv.env['ANALYTICS_ENABLED']?.toLowerCase() == 'true';
 }

@@ -1,182 +1,204 @@
-# Nestery Mobile Application
+# Nestery - Hotel Booking Platform
 
-## Project Overview
+![Nestery Logo](https://example.com/nestery-logo.png)
 
-This package contains the complete implementation of the Nestery mobile application as specified in the Functional Requirements Specification (FRS). The application is a comprehensive hotel booking platform that integrates with external APIs (Booking.com, OYO, Google Maps) and provides advanced features such as price prediction, personalized recommendations, and a loyalty program.
+Nestery is a comprehensive hotel booking platform that integrates with multiple external APIs (Booking.com, OYO, Google Maps) to provide users with a wide selection of accommodations. The application features a Flutter mobile client and a NestJS backend, offering advanced features such as price prediction, personalized recommendations, and a loyalty program.
 
-## Package Contents
+## Repository Structure
 
-### Backend (NestJS/TypeScript)
-- Complete NestJS application with TypeScript
-- Authentication module with JWT
-- User management module
-- Properties module with search functionality
-- Bookings module with loyalty integration
-- External API integrations
-- Advanced features (price prediction, recommendations, loyalty program)
-- Unit tests
-- Deployment configuration (Docker, Nginx)
-- API documentation
+This repository contains the complete implementation of the Nestery application:
 
-### Frontend (Flutter)
-- Complete Flutter application
-- Authentication screens
-- Home screen with featured properties and trending destinations
-- Search screen with filters
-- Property details screen
-- Booking screens
-- Profile screens with loyalty status
-- Unit and widget tests
+```
+nesteryrelease/
+├── nestery-backend/     # NestJS backend application
+├── nestery-flutter/     # Flutter mobile client
+├── ARCHITECTURE.md      # System architecture documentation
+├── DATA_DICTIONARY.md   # Database schema documentation
+├── DEPLOYMENT_GUIDE.md  # Deployment instructions
+└── USER_JOURNEY_FEATURE_MAP.md  # Feature mapping to user journeys
+```
+
+## Features
+
+- **User Authentication**: Secure registration and login system with JWT
+- **Property Search**: Advanced search with filters for location, dates, price, and amenities
+- **External API Integration**: Seamless integration with Booking.com, OYO, and Google Maps
+- **Booking Management**: Complete booking flow with confirmation and history
+- **Loyalty Program**: Points system with tiered membership and rewards
+- **Price Prediction**: AI-powered price trend analysis and booking recommendations
+- **Personalized Recommendations**: Custom property suggestions based on user preferences
+- **Social Sharing**: Property sharing and referral program
+
+## Technology Stack
+
+### Backend
+- **Framework**: NestJS (TypeScript)
+- **Database**: PostgreSQL
+- **ORM**: TypeORM
+- **Authentication**: JWT
+- **API Documentation**: OpenAPI/Swagger
+- **Containerization**: Docker
+
+### Frontend
+- **Framework**: Flutter (Dart)
+- **State Management**: Riverpod
+- **HTTP Client**: Dio
+- **Local Storage**: flutter_secure_storage, shared_preferences
+- **Maps Integration**: Google Maps Flutter
 
 ## Getting Started
 
 ### Backend Setup
 
 1. Navigate to the backend directory:
-```bash
-cd nestery-backend
-```
+   ```bash
+   cd nestery-backend
+   ```
 
-2. Create a `.env` file based on the `.env.example` template:
-```bash
-cp .env.example .env
-```
+2. Create a `.env` file based on the example:
+   ```bash
+   cp .env.example .env
+   ```
 
 3. Update the environment variables in the `.env` file with your actual values.
 
 4. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 5. Run database migrations:
-```bash
-npm run migration:run
-```
+   ```bash
+   npm run migration:run
+   ```
 
 6. Start the development server:
-```bash
-npm run start:dev
-```
+   ```bash
+   npm run start:dev
+   ```
 
-### Frontend Setup
+The API will be available at `http://localhost:3000/api`.
+The Swagger documentation will be available at `http://localhost:3000/api/docs`.
+
+### Flutter Client Setup
 
 1. Navigate to the Flutter directory:
-```bash
-cd nestery-flutter
-```
+   ```bash
+   cd nestery-flutter
+   ```
 
-2. Install dependencies:
-```bash
-flutter pub get
-```
+2. Create a `.env` file based on the example:
+   ```bash
+   cp .env.example .env
+   ```
 
-3. Update the API base URL in `lib/utils/constants.dart` to point to your backend server.
+3. Update the environment variables in the `.env` file with your actual values.
 
-4. Run the application:
-```bash
-flutter run
-```
+4. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
 
-## Deployment
-
-### Backend Deployment
-
-The backend can be deployed using Docker and Docker Compose:
-
-1. Build and start the containers:
-```bash
-docker-compose up -d
-```
-
-2. The API will be available at `http://localhost:3000` or at the configured domain if using Nginx.
-
-### Frontend Deployment
-
-The Flutter application can be built for various platforms:
-
-#### Android
-```bash
-flutter build apk --release
-```
-
-#### iOS
-```bash
-flutter build ios --release
-```
-
-#### Web
-```bash
-flutter build web --release
-```
+5. Run the application:
+   ```bash
+   flutter run
+   ```
 
 ## API Documentation
 
-Comprehensive API documentation is available in the `API_DOCUMENTATION.md` file in the backend directory. This includes details on all endpoints, request/response formats, authentication, and error handling.
+The backend API is documented using OpenAPI/Swagger. You can access the documentation at `http://localhost:3000/api/docs` when running the backend locally.
+
+For a static version of the API documentation, see the `openapi.yaml` file in the backend directory or the `API_DOCUMENTATION.md` file.
+
+## Database Schema
+
+The application uses a PostgreSQL database with the following main entities:
+- Users
+- Properties
+- Bookings
+- LoyaltyPoints
+- Recommendations
+
+For detailed schema information, see the [Data Dictionary](DATA_DICTIONARY.md).
 
 ## Architecture
 
-### Backend Architecture
+The application follows a client-server architecture with a clear separation of concerns. For detailed architecture information, see the [Architecture Documentation](ARCHITECTURE.md).
 
-The backend follows a modular architecture with clear separation of concerns:
+## Deployment
 
-- **Controllers**: Handle HTTP requests and responses
-- **Services**: Contain business logic
-- **Repositories**: Handle data access
-- **DTOs**: Define data transfer objects for validation
-- **Entities**: Define database models
-- **Modules**: Group related functionality
+For detailed deployment instructions, see the [Deployment Guide](DEPLOYMENT_GUIDE.md).
 
-### Frontend Architecture
+## User Journeys and Features
 
-The Flutter application follows a clean architecture approach:
+For a mapping of user journeys to specific features and their implementation, see the [User Journey Feature Map](USER_JOURNEY_FEATURE_MAP.md).
 
-- **Models**: Define data structures
-- **Providers**: Handle state management
-- **Screens**: Define UI screens
-- **Widgets**: Reusable UI components
-- **Utils**: Utility functions and constants
-- **Services**: Handle API communication
+## Development
 
-## Testing
+### Backend Development
 
-### Backend Testing
-
-Run backend tests with:
 ```bash
+# Run in development mode
+npm run start:dev
+
+# Run tests
 npm run test
+
+# Run linting
+npm run lint
+
+# Build for production
+npm run build
 ```
 
-### Frontend Testing
+### Flutter Development
 
-Run Flutter tests with:
 ```bash
+# Run in development mode
+flutter run
+
+# Run tests
 flutter test
+
+# Build Android APK
+flutter build apk --release
+
+# Build iOS app
+flutter build ios --release
 ```
 
-## Security Considerations
+## Security
 
-- All user passwords are hashed using bcrypt
-- JWT tokens are used for authentication
-- HTTPS is configured for production
-- Input validation is implemented for all endpoints
-- CORS policy is configured
-- Rate limiting is implemented
-- Protection against common vulnerabilities (XSS, CSRF, SQL Injection)
+The application implements several security measures:
+- JWT-based authentication
+- Password hashing with bcrypt
+- HTTPS for all communications
+- Input validation on all API endpoints
+- CORS policy configuration
+- Rate limiting to prevent abuse
 
-## Performance Optimizations
+## Performance Optimization
 
 - Database indexing for frequently queried fields
 - Query optimization for complex searches
 - Caching strategy for external API responses
 - Pagination for list endpoints
 - Lazy loading of images in the frontend
-- Efficient list rendering in the frontend
 
-## Validation
+## Contributing
 
-All code and artifacts have been validated against the FRS and development plan. The validation results are available in the `validation_results.md` file.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Contact
 
-For any questions or support, please contact the development team at dev@nestery.com.
+Development Team - dev@nestery.com
+
+Project Link: [https://github.com/abhishek9871/nesteryrelease](https://github.com/abhishek9871/nesteryrelease)

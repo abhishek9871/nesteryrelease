@@ -1,0 +1,1387 @@
+openapi: 3.0.0
+info:
+  title: Nestery API
+  description: API for the Nestery hotel booking platform
+  version: 1.0.0
+  contact:
+    name: Nestery Development Team
+    email: dev@nestery.com
+servers:
+  - url: https://api.nestery.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Local development server
+tags:
+  - name: Auth
+    description: Authentication operations
+  - name: Users
+    description: User management operations
+  - name: Properties
+    description: Property management operations
+  - name: Bookings
+    description: Booking management operations
+  - name: Loyalty
+    description: Loyalty program operations
+  - name: Recommendations
+    description: Personalized recommendations
+  - name: Price Prediction
+    description: Price prediction and analysis
+  - name: Social Sharing
+    description: Social sharing and referrals
+  - name: Integrations
+    description: External API integrations
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Create a new user account with the provided information
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      description: Authenticate a user with email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: User successfully logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      description: Get a new access token using a refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenDto'
+      responses:
+        '200':
+          description: Token successfully refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Get the profile of the authenticated user
+      operationId: getUserProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update the profile of the authenticated user
+      operationId: updateUserProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserDto'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /properties:
+    get:
+      tags:
+        - Properties
+      summary: Search properties
+      description: Search for properties based on various criteria
+      operationId: searchProperties
+      parameters:
+        - name: city
+          in: query
+          description: City name
+          schema:
+            type: string
+        - name: country
+          in: query
+          description: Country name
+          schema:
+            type: string
+        - name: checkIn
+          in: query
+          description: Check-in date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: checkOut
+          in: query
+          description: Check-out date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: guests
+          in: query
+          description: Number of guests
+          schema:
+            type: integer
+            minimum: 1
+        - name: priceMin
+          in: query
+          description: Minimum price
+          schema:
+            type: number
+        - name: priceMax
+          in: query
+          description: Maximum price
+          schema:
+            type: number
+        - name: propertyType
+          in: query
+          description: Property type
+          schema:
+            type: string
+            enum: [hotel, apartment, resort, villa, hostel, guesthouse]
+        - name: amenities
+          in: query
+          description: Comma-separated list of amenities
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Properties retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PropertyResponse'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /properties/{id}:
+    get:
+      tags:
+        - Properties
+      summary: Get property details
+      description: Get detailed information about a specific property
+      operationId: getPropertyDetails
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Property ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Property details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyDetailResponse'
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /bookings:
+    post:
+      tags:
+        - Bookings
+      summary: Create booking
+      description: Create a new booking for a property
+      operationId: createBooking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingDto'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Bookings
+      summary: Get user bookings
+      description: Get all bookings for the authenticated user
+      operationId: getUserBookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Booking status
+          schema:
+            type: string
+            enum: [upcoming, completed, cancelled]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookingResponse'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /bookings/{id}:
+    get:
+      tags:
+        - Bookings
+      summary: Get booking details
+      description: Get detailed information about a specific booking
+      operationId: getBookingDetails
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Booking ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Bookings
+      summary: Update booking
+      description: Update a booking (e.g., cancel, modify dates)
+      operationId: updateBooking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Booking ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingDto'
+      responses:
+        '200':
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loyalty/points:
+    get:
+      tags:
+        - Loyalty
+      summary: Get loyalty points
+      description: Get the loyalty points and tier of the authenticated user
+      operationId: getLoyaltyPoints
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Loyalty points retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loyalty/redeem:
+    post:
+      tags:
+        - Loyalty
+      summary: Redeem loyalty points
+      description: Redeem loyalty points for rewards
+      operationId: redeemLoyaltyPoints
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemPointsDto'
+      responses:
+        '200':
+          description: Points redeemed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemResponse'
+        '400':
+          description: Invalid input or insufficient points
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recommendations:
+    get:
+      tags:
+        - Recommendations
+      summary: Get personalized recommendations
+      description: Get personalized property recommendations for the authenticated user
+      operationId: getRecommendations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of recommendations to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+      responses:
+        '200':
+          description: Recommendations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PropertyResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /price-prediction:
+    post:
+      tags:
+        - Price Prediction
+      summary: Get price prediction
+      description: Get price prediction for a property based on dates and other factors
+      operationId: getPricePrediction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricePredictionDto'
+      responses:
+        '200':
+          description: Price prediction retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricePredictionResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /social-sharing/referral:
+    post:
+      tags:
+        - Social Sharing
+      summary: Generate referral link
+      description: Generate a referral link for the authenticated user
+      operationId: generateReferralLink
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Referral link generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /social-sharing/share:
+    post:
+      tags:
+        - Social Sharing
+      summary: Share property
+      description: Share a property on social media
+      operationId: shareProperty
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SharePropertyDto'
+      responses:
+        '200':
+          description: Property shared successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterDto:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: Password123!
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phoneNumber:
+          type: string
+          example: '+1234567890'
+
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: Password123!
+
+    RefreshTokenDto:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    UpdateUserDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phoneNumber:
+          type: string
+          example: '+1234567890'
+        profilePicture:
+          type: string
+          format: uri
+          example: https://example.com/profile.jpg
+        preferences:
+          type: object
+          properties:
+            currency:
+              type: string
+              example: USD
+            language:
+              type: string
+              example: en
+            notifications:
+              type: boolean
+              example: true
+
+    CreateBookingDto:
+      type: object
+      required:
+        - propertyId
+        - checkInDate
+        - checkOutDate
+        - numberOfGuests
+        - totalPrice
+      properties:
+        propertyId:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        checkInDate:
+          type: string
+          format: date
+          example: 2025-06-15
+        checkOutDate:
+          type: string
+          format: date
+          example: 2025-06-20
+        numberOfGuests:
+          type: integer
+          minimum: 1
+          example: 2
+        totalPrice:
+          type: number
+          example: 499.99
+        specialRequests:
+          type: string
+          example: Late check-in, non-smoking room
+        paymentMethod:
+          type: string
+          enum: [credit_card, paypal, points]
+          example: credit_card
+        paymentDetails:
+          type: object
+          properties:
+            cardToken:
+              type: string
+              example: tok_visa
+
+    UpdateBookingDto:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [confirmed, cancelled]
+          example: cancelled
+        checkInDate:
+          type: string
+          format: date
+          example: 2025-06-16
+        checkOutDate:
+          type: string
+          format: date
+          example: 2025-06-21
+        numberOfGuests:
+          type: integer
+          minimum: 1
+          example: 3
+        specialRequests:
+          type: string
+          example: Early check-in requested
+
+    PricePredictionDto:
+      type: object
+      required:
+        - propertyId
+        - checkInDate
+        - checkOutDate
+        - numberOfGuests
+      properties:
+        propertyId:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        checkInDate:
+          type: string
+          format: date
+          example: 2025-06-15
+        checkOutDate:
+          type: string
+          format: date
+          example: 2025-06-20
+        numberOfGuests:
+          type: integer
+          minimum: 1
+          example: 2
+        flexibleDates:
+          type: boolean
+          example: true
+        dateRange:
+          type: integer
+          description: Number of days to check before and after the selected dates
+          example: 3
+
+    RedeemPointsDto:
+      type: object
+      required:
+        - rewardId
+        - pointsAmount
+      properties:
+        rewardId:
+          type: string
+          example: reward_123
+        pointsAmount:
+          type: integer
+          minimum: 1
+          example: 500
+
+    SharePropertyDto:
+      type: object
+      required:
+        - propertyId
+        - platform
+      properties:
+        propertyId:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        platform:
+          type: string
+          enum: [facebook, twitter, whatsapp, email]
+          example: facebook
+        message:
+          type: string
+          example: Check out this amazing hotel I found!
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phoneNumber:
+          type: string
+          example: '+1234567890'
+        profilePicture:
+          type: string
+          format: uri
+          example: https://example.com/profile.jpg
+        role:
+          type: string
+          enum: [user, admin]
+          example: user
+        preferences:
+          type: object
+          properties:
+            currency:
+              type: string
+              example: USD
+            language:
+              type: string
+              example: en
+            notifications:
+              type: boolean
+              example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    PropertyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        name:
+          type: string
+          example: Luxury Ocean View Resort
+        description:
+          type: string
+          example: A beautiful resort with ocean views
+        address:
+          type: string
+          example: 123 Beach Road
+        city:
+          type: string
+          example: Miami
+        state:
+          type: string
+          example: Florida
+        country:
+          type: string
+          example: USA
+        zipCode:
+          type: string
+          example: '33139'
+        latitude:
+          type: number
+          format: float
+          example: 25.7617
+        longitude:
+          type: number
+          format: float
+          example: -80.1918
+        propertyType:
+          type: string
+          enum: [hotel, apartment, resort, villa, hostel, guesthouse]
+          example: resort
+        starRating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        basePrice:
+          type: number
+          example: 199.99
+        currency:
+          type: string
+          example: USD
+        maxGuests:
+          type: integer
+          example: 4
+        bedrooms:
+          type: integer
+          example: 2
+        bathrooms:
+          type: integer
+          example: 2
+        amenities:
+          type: array
+          items:
+            type: string
+          example: [wifi, pool, parking, air_conditioning]
+        thumbnailImage:
+          type: string
+          format: uri
+          example: https://example.com/property_thumb.jpg
+        sourceType:
+          type: string
+          enum: [internal, booking, oyo]
+          example: internal
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.8
+        reviewCount:
+          type: integer
+          example: 120
+
+    PropertyDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/PropertyResponse'
+        - type: object
+          properties:
+            images:
+              type: array
+              items:
+                type: string
+                format: uri
+              example: [https://example.com/property1.jpg, https://example.com/property2.jpg]
+            policies:
+              type: object
+              properties:
+                checkIn:
+                  type: string
+                  example: '14:00'
+                checkOut:
+                  type: string
+                  example: '11:00'
+                cancellation:
+                  type: string
+                  example: Free cancellation up to 24 hours before check-in
+            reviews:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: review_123
+                  userId:
+                    type: string
+                    example: user_456
+                  userName:
+                    type: string
+                    example: John D.
+                  rating:
+                    type: number
+                    format: float
+                    minimum: 1
+                    maximum: 5
+                    example: 4.5
+                  comment:
+                    type: string
+                    example: Great place, highly recommend!
+                  date:
+                    type: string
+                    format: date-time
+                    example: 2025-01-10T14:30:00Z
+            availability:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                    example: 2025-06-15
+                  available:
+                    type: boolean
+                    example: true
+                  price:
+                    type: number
+                    example: 199.99
+            nearbyAttractions:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: South Beach
+                  distance:
+                    type: number
+                    format: float
+                    example: 1.5
+                  unit:
+                    type: string
+                    example: km
+
+    BookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        propertyId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        propertyName:
+          type: string
+          example: Luxury Ocean View Resort
+        propertyThumbnail:
+          type: string
+          format: uri
+          example: https://example.com/property_thumb.jpg
+        checkInDate:
+          type: string
+          format: date
+          example: 2025-06-15
+        checkOutDate:
+          type: string
+          format: date
+          example: 2025-06-20
+        numberOfGuests:
+          type: integer
+          example: 2
+        totalPrice:
+          type: number
+          example: 999.95
+        currency:
+          type: string
+          example: USD
+        status:
+          type: string
+          enum: [confirmed, completed, cancelled]
+          example: confirmed
+        confirmationCode:
+          type: string
+          example: NEST12345
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    BookingDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BookingResponse'
+        - type: object
+          properties:
+            property:
+              $ref: '#/components/schemas/PropertyResponse'
+            specialRequests:
+              type: string
+              example: Late check-in, non-smoking room
+            paymentMethod:
+              type: string
+              enum: [credit_card, paypal, points]
+              example: credit_card
+            loyaltyPointsEarned:
+              type: integer
+              example: 100
+            cancellationPolicy:
+              type: string
+              example: Free cancellation until June 13, 2025
+
+    LoyaltyResponse:
+      type: object
+      properties:
+        points:
+          type: integer
+          example: 1250
+        tier:
+          type: string
+          enum: [bronze, silver, gold, platinum]
+          example: silver
+        tierProgress:
+          type: object
+          properties:
+            currentPoints:
+              type: integer
+              example: 1250
+            nextTier:
+              type: string
+              example: gold
+            pointsNeeded:
+              type: integer
+              example: 750
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: transaction_123
+              type:
+                type: string
+                enum: [earned, redeemed]
+                example: earned
+              amount:
+                type: integer
+                example: 100
+              description:
+                type: string
+                example: Booking at Luxury Ocean View Resort
+              date:
+                type: string
+                format: date-time
+                example: 2025-01-15T12:00:00Z
+        availableRewards:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: reward_123
+              name:
+                type: string
+                example: Free Night Stay
+              description:
+                type: string
+                example: Redeem for a free night at select properties
+              pointsCost:
+                type: integer
+                example: 2000
+              validUntil:
+                type: string
+                format: date
+                example: 2025-12-31
+
+    RedeemResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        rewardId:
+          type: string
+          example: reward_123
+        rewardName:
+          type: string
+          example: Free Night Stay
+        pointsUsed:
+          type: integer
+          example: 2000
+        remainingPoints:
+          type: integer
+          example: 250
+        redemptionCode:
+          type: string
+          example: FREESTAY123
+        expiryDate:
+          type: string
+          format: date
+          example: 2025-12-31
+
+    PricePredictionResponse:
+      type: object
+      properties:
+        propertyId:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        propertyName:
+          type: string
+          example: Luxury Ocean View Resort
+        currentPrice:
+          type: number
+          example: 199.99
+        predictedPrices:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: 2025-06-15
+              price:
+                type: number
+                example: 199.99
+              confidence:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                example: 0.85
+        priceAnalysis:
+          type: object
+          properties:
+            trend:
+              type: string
+              enum: [rising, falling, stable]
+              example: rising
+            averagePrice:
+              type: number
+              example: 210.50
+            lowestPrice:
+              type: number
+              example: 189.99
+            lowestPriceDate:
+              type: string
+              format: date
+              example: 2025-06-18
+            recommendation:
+              type: string
+              example: Book now, prices are expected to rise
+
+    ReferralResponse:
+      type: object
+      properties:
+        referralCode:
+          type: string
+          example: JOHN25
+        referralLink:
+          type: string
+          format: uri
+          example: https://nestery.com/refer/JOHN25
+        pointsPerReferral:
+          type: integer
+          example: 500
+        totalReferrals:
+          type: integer
+          example: 3
+        successfulReferrals:
+          type: integer
+          example: 2
+        pointsEarned:
+          type: integer
+          example: 1000
+
+    ShareResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        shareLink:
+          type: string
+          format: uri
+          example: https://nestery.com/share/abc123
+        pointsEarned:
+          type: integer
+          example: 10
+        platform:
+          type: string
+          enum: [facebook, twitter, whatsapp, email]
+          example: facebook
+
+    PaginationMeta:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          example: 100
+        itemsPerPage:
+          type: integer
+          example: 10
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 10
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Invalid input data
+        error:
+          type: string
+          example: Bad Request
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: must be a valid email address

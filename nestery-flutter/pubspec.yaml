@@ -1,0 +1,83 @@
+name: nestery_flutter
+description: Nestery mobile application for hotel booking and management
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  # State management
+  flutter_riverpod: ^2.4.9
+  # Network and API
+  dio: ^5.4.0
+  http: ^1.1.2
+  # Storage and persistence
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+  # Environment configuration
+  flutter_dotenv: ^5.1.0
+  # UI components
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  carousel_slider: ^4.2.1
+  flutter_rating_bar: ^4.0.1
+  # Maps and location
+  google_maps_flutter: ^2.5.3
+  geolocator: ^10.1.0
+  # Date and time
+  intl: ^0.19.0
+  # Analytics and monitoring
+  firebase_core: ^2.24.2
+  firebase_analytics: ^10.8.0
+  firebase_crashlytics: ^3.4.9
+  # Social sharing
+  share_plus: ^7.2.1
+  # Payments
+  flutter_stripe: ^9.5.0+1
+  # Animations
+  lottie: ^2.7.0
+  # Utilities
+  url_launcher: ^6.2.2
+  package_info_plus: ^4.2.0
+  device_info_plus: ^9.1.1
+  connectivity_plus: ^5.0.2
+  path_provider: ^2.1.1
+  uuid: ^4.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  mockito: ^5.4.3
+  build_runner: ^2.4.7
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.6
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - .env
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+
+flutter_native_splash:
+  color: "#1E88E5"
+  image: assets/images/splash_logo.png
+  android: true
+  ios: true
