@@ -1,77 +1,74 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SocialSharingService } from './social-sharing.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Public } from '../../auth/decorators/public.decorator';
 
-/**
- * Controller handling social sharing endpoints
- */
 @ApiTags('social-sharing')
 @Controller('social-sharing')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class SocialSharingController {
   constructor(private readonly socialSharingService: SocialSharingService) {}
 
-  /**
-   * Generate shareable content for a property
-   */
-  @Get('content/:propertyId/:platform')
+  @Get('content/:propertyId')
+  @Public()
   @ApiOperation({ summary: 'Generate shareable content for a property' })
-  @ApiResponse({ status: 200, description: 'Content generated successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Property not found' })
+  @ApiResponse({ status: 200, description: 'Returns shareable content for the specified platform' })
   async generateShareableContent(
     @Param('propertyId') propertyId: string,
-    @Param('platform') platform: string,
+    @Query('platform') platform: string,
   ) {
     return this.socialSharingService.generateShareableContent(propertyId, platform);
   }
 
-  /**
-   * Share property to social media
-   */
-  @Post('share')
-  @ApiOperation({ summary: 'Share property to social media' })
-  @ApiResponse({ status: 200, description: 'Shared successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Property not found' })
-  async shareToSocialMedia(
-    @Req() req: any,
-    @Body() shareDto: { propertyId: string; platform: string },
+  @Post('track')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Track social share event' })
+  @ApiResponse({ status: 200, description: 'Returns tracking confirmation' })
+  async trackSocialShare(
+    @Body() params: {
+      userId: string;
+      propertyId: string;
+      platform: string;
+      shareUrl: string;
+    },
   ) {
-    return this.socialSharingService.shareToSocialMedia(
-      shareDto.propertyId,
-      shareDto.platform,
-      req.user.id,
-    );
+    return this.socialSharingService.trackSocialShare(params);
   }
 
-  /**
-   * Generate referral link for current user
-   */
-  @Get('referral-link')
-  @ApiOperation({ summary: 'Generate referral link for current user' })
-  @ApiResponse({ status: 200, description: 'Referral link generated successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async generateReferralLink(@Req() req: any) {
-    return this.socialSharingService.generateReferralLink(req.user.id);
+  @Get('referral/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get referral link for a user' })
+  @ApiResponse({ status: 200, description: 'Returns referral link and rewards information' })
+  async getReferralLink(
+    @Param('userId') userId: string,
+  ) {
+    return this.socialSharingService.getReferralLink(userId);
   }
 
-  /**
-   * Track referral conversion
-   */
-  @Post('track-referral')
-  @ApiOperation({ summary: 'Track referral conversion' })
-  @ApiResponse({ status: 200, description: 'Referral tracked successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  async trackReferralConversion(
-    @Body() referralDto: { referralCode: string; newUserId: string },
+  @Post('referral/process')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Process referral signup' })
+  @ApiResponse({ status: 200, description: 'Returns referral processing result' })
+  async processReferralSignup(
+    @Body() params: {
+      referralCode: string;
+      newUserId: string;
+    },
   ) {
-    return this.socialSharingService.trackReferralConversion(
-      referralDto.referralCode,
-      referralDto.newUserId,
-    );
+    return this.socialSharingService.processReferralSignup(params.referralCode, params.newUserId);
+  }
+
+  @Get('stats/:propertyId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get sharing statistics for a property' })
+  @ApiResponse({ status: 200, description: 'Returns sharing statistics' })
+  async getPropertySharingStats(
+    @Param('propertyId') propertyId: string,
+  ) {
+    return this.socialSharingService.getPropertySharingStats(propertyId);
   }
 }

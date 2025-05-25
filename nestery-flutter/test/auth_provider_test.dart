@@ -1,99 +1,260 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mockito/mockito.dart';
-import 'package:nestery_flutter/models/user.dart';
+import 'package:mockito/annotations.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
+import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/data/repositories/user_repository.dart';
 
-// Mock classes
-class MockAuthService extends Mock {
-  Future<User> login(String email, String password) async {
-    return Future.value(User(
-      id: 'test-user-id',
-      email: email,
-      name: 'Test User',
-      role: 'user',
-      createdAt: DateTime.now(),
-    ));
-  }
-  
-  Future<User> register(String name, String email, String password) async {
-    return Future.value(User(
-      id: 'test-user-id',
-      email: email,
-      name: name,
-      role: 'user',
-      createdAt: DateTime.now(),
-    ));
-  }
-  
-  Future<void> logout() async {
-    return Future.value();
-  }
-}
-
+@GenerateMocks([UserRepository])
 void main() {
-  late AuthProvider authProvider;
-  late MockAuthService mockAuthService;
+  late MockUserRepository mockUserRepository;
+  late ProviderContainer container;
 
   setUp(() {
-    mockAuthService = MockAuthService();
-    authProvider = AuthProvider();
-    // Inject mock service
-    authProvider.authService = mockAuthService;
+    mockUserRepository = MockUserRepository();
+    container = ProviderContainer(
+      overrides: [
+        userRepositoryProvider.overrideWithValue(mockUserRepository),
+      ],
+    );
   });
 
-  group('AuthProvider Tests', () {
-    test('Initial state should be unauthenticated', () {
-      expect(authProvider.isAuthenticated, false);
-      expect(authProvider.user, null);
-      expect(authProvider.token, null);
+  tearDown(() {
+    container.dispose();
+  });
+
+  group('AuthProvider', () {
+    test('initial state is unauthenticated', () {
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, false);
+      expect(authState.user, null);
+      expect(authState.isLoading, false);
+      expect(authState.error, null);
     });
 
-    test('Login should update authentication state', () async {
+    test('login success updates state correctly', () async {
       // Arrange
-      const email = 'test@example.com';
-      const password = 'password123';
+      final testUser = User(
+        id: '1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      );
       
+      when(mockUserRepository.login(
+        email: 'test@example.com',
+        password: 'password123',
+      )).thenAnswer((_) async => testUser);
+
       // Act
-      await authProvider.login(email, password);
-      
+      await container.read(authProvider.notifier).login(
+        email: 'test@example.com',
+        password: 'password123',
+      );
+
       // Assert
-      expect(authProvider.isAuthenticated, true);
-      expect(authProvider.user, isNotNull);
-      expect(authProvider.user!.email, email);
-      expect(authProvider.token, isNotNull);
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, true);
+      expect(authState.user, testUser);
+      expect(authState.isLoading, false);
+      expect(authState.error, null);
     });
 
-    test('Register should create user and update authentication state', () async {
+    test('login failure updates state with error', () async {
       // Arrange
-      const name = 'Test User';
-      const email = 'test@example.com';
-      const password = 'password123';
-      
+      when(mockUserRepository.login(
+        email: 'test@example.com',
+        password: 'wrong_password',
+      )).thenThrow(Exception('Invalid credentials'));
+
       // Act
-      await authProvider.register(name, email, password);
-      
+      await container.read(authProvider.notifier).login(
+        email: 'test@example.com',
+        password: 'wrong_password',
+      );
+
       // Assert
-      expect(authProvider.isAuthenticated, true);
-      expect(authProvider.user, isNotNull);
-      expect(authProvider.user!.name, name);
-      expect(authProvider.user!.email, email);
-      expect(authProvider.token, isNotNull);
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, false);
+      expect(authState.user, null);
+      expect(authState.isLoading, false);
+      expect(authState.error, 'Invalid credentials');
     });
 
-    test('Logout should clear authentication state', () async {
+    test('register success updates state correctly', () async {
+      // Arrange
+      final testUser = User(
+        id: '1',
+        email: 'new@example.com',
+        firstName: 'New',
+        lastName: 'User',
+        role: 'user',
+      );
+      
+      when(mockUserRepository.register(
+        email: 'new@example.com',
+        password: 'password123',
+        firstName: 'New',
+        lastName: 'User',
+      )).thenAnswer((_) async => testUser);
+
+      // Act
+      await container.read(authProvider.notifier).register(
+        email: 'new@example.com',
+        password: 'password123',
+        firstName: 'New',
+        lastName: 'User',
+      );
+
+      // Assert
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, true);
+      expect(authState.user, testUser);
+      expect(authState.isLoading, false);
+      expect(authState.error, null);
+    });
+
+    test('register failure updates state with error', () async {
+      // Arrange
+      when(mockUserRepository.register(
+        email: 'existing@example.com',
+        password: 'password123',
+        firstName: 'Existing',
+        lastName: 'User',
+      )).thenThrow(Exception('Email already exists'));
+
+      // Act
+      await container.read(authProvider.notifier).register(
+        email: 'existing@example.com',
+        password: 'password123',
+        firstName: 'Existing',
+        lastName: 'User',
+      );
+
+      // Assert
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, false);
+      expect(authState.user, null);
+      expect(authState.isLoading, false);
+      expect(authState.error, 'Email already exists');
+    });
+
+    test('logout updates state correctly', () async {
       // Arrange - first login
-      const email = 'test@example.com';
-      const password = 'password123';
-      await authProvider.login(email, password);
-      expect(authProvider.isAuthenticated, true);
+      final testUser = User(
+        id: '1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      );
       
+      when(mockUserRepository.login(
+        email: 'test@example.com',
+        password: 'password123',
+      )).thenAnswer((_) async => testUser);
+
+      await container.read(authProvider.notifier).login(
+        email: 'test@example.com',
+        password: 'password123',
+      );
+
+      // Verify logged in
+      expect(container.read(authProvider).isAuthenticated, true);
+
+      // Arrange for logout
+      when(mockUserRepository.logout()).thenAnswer((_) async => true);
+
       // Act
-      await authProvider.logout();
-      
+      await container.read(authProvider.notifier).logout();
+
       // Assert
-      expect(authProvider.isAuthenticated, false);
-      expect(authProvider.user, null);
-      expect(authProvider.token, null);
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, false);
+      expect(authState.user, null);
+      expect(authState.isLoading, false);
+      expect(authState.error, null);
+    });
+
+    test('checkAuthStatus updates state correctly when token is valid', () async {
+      // Arrange
+      final testUser = User(
+        id: '1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      );
+      
+      when(mockUserRepository.getCurrentUser()).thenAnswer((_) async => testUser);
+
+      // Act
+      await container.read(authProvider.notifier).checkAuthStatus();
+
+      // Assert
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, true);
+      expect(authState.user, testUser);
+      expect(authState.isLoading, false);
+      expect(authState.error, null);
+    });
+
+    test('checkAuthStatus updates state correctly when token is invalid', () async {
+      // Arrange
+      when(mockUserRepository.getCurrentUser()).thenThrow(Exception('Token expired'));
+
+      // Act
+      await container.read(authProvider.notifier).checkAuthStatus();
+
+      // Assert
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, false);
+      expect(authState.user, null);
+      expect(authState.isLoading, false);
+      expect(authState.error, null); // We don't show error for token expiration
+    });
+
+    test('refreshToken updates state correctly on success', () async {
+      // Arrange
+      final testUser = User(
+        id: '1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      );
+      
+      when(mockUserRepository.refreshToken()).thenAnswer((_) async => testUser);
+
+      // Act
+      final result = await container.read(authProvider.notifier).refreshToken();
+
+      // Assert
+      expect(result, true);
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, true);
+      expect(authState.user, testUser);
+      expect(authState.isLoading, false);
+      expect(authState.error, null);
+    });
+
+    test('refreshToken updates state correctly on failure', () async {
+      // Arrange
+      when(mockUserRepository.refreshToken()).thenThrow(Exception('Invalid refresh token'));
+
+      // Act
+      final result = await container.read(authProvider.notifier).refreshToken();
+
+      // Assert
+      expect(result, false);
+      final authState = container.read(authProvider);
+      expect(authState.isAuthenticated, false);
+      expect(authState.user, null);
+      expect(authState.isLoading, false);
+      expect(authState.error, null); // We don't show error for refresh token failure
     });
   });
 }

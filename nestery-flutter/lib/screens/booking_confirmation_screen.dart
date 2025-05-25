@@ -1,398 +1,449 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/models/booking.dart';
+import 'package:nestery_flutter/providers/booking_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
-import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:intl/intl.dart';
-import 'package:confetti/confetti.dart';
+import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
-class BookingConfirmationScreen extends StatefulWidget {
-  final String bookingId;
+class BookingConfirmationScreen extends ConsumerWidget {
+  final Booking booking;
 
   const BookingConfirmationScreen({
     Key? key,
-    required this.bookingId,
+    required this.booking,
   }) : super(key: key);
 
   @override
-  State<BookingConfirmationScreen> createState() => _BookingConfirmationScreenState();
-}
-
-class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
-  bool _isLoading = false;
-  Booking? _booking;
-  late ConfettiController _confettiController;
-
-  @override
-  void initState() {
-    super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    _loadBooking();
-  }
-
-  @override
-  void dispose() {
-    _confettiController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadBooking() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // In a real app, this would be an API call
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Mock booking data
-      _booking = Booking(
-        id: widget.bookingId,
-        userId: 'user123',
-        propertyId: 'prop123',
-        propertyName: 'Luxury Ocean View Suite',
-        propertyThumbnail: 'https://example.com/hotel1_thumb.jpg',
-        checkInDate: DateTime.now().add(const Duration(days: 30)),
-        checkOutDate: DateTime.now().add(const Duration(days: 33)),
-        numberOfGuests: 2,
-        numberOfRooms: 1,
-        totalPrice: 899.97,
-        currency: 'USD',
-        status: 'confirmed',
-        confirmationCode: 'CONF${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
-        loyaltyPointsEarned: 90,
-        isPremiumBooking: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      
-      // Play confetti animation
-      _confettiController.play();
-    } catch (error) {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading booking: ${error.toString()}'),
-          backgroundColor: Constants.errorColor,
-        ),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LoadingOverlay(
-      isLoading: _isLoading,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Booking Confirmation'),
-        ),
-        body: _booking == null
-            ? const Center(child: CircularProgressIndicator())
-            : Stack(
-                alignment: Alignment.topCenter,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final dateFormat = DateFormat('MMM dd, yyyy');
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Booking Confirmation'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              _shareBooking(context);
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Success icon
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Success message
+            Text(
+              'Booking Confirmed!',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your booking has been successfully confirmed.',
+              style: theme.textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            
+            // Booking ID
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
                 children: [
-                  // Confetti animation
-                  ConfettiWidget(
-                    confettiController: _confettiController,
-                    blastDirectionality: BlastDirectionality.explosive,
-                    particleDrag: 0.05,
-                    emissionFrequency: 0.05,
-                    numberOfParticles: 20,
-                    gravity: 0.1,
-                    colors: const [
-                      Colors.green,
-                      Colors.blue,
-                      Colors.pink,
-                      Colors.orange,
-                      Colors.purple,
-                    ],
-                  ),
-                  
-                  // Content
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.all(Constants.mediumPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Success icon
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Constants.successColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_circle,
-                            color: Constants.successColor,
-                            size: 64,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Success message
-                        const Text(
-                          'Booking Confirmed!',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Your booking has been confirmed. Confirmation code: ${_booking!.confirmationCode}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Loyalty points earned
-                        Container(
-                          padding: const EdgeInsets.all(Constants.mediumPadding),
-                          decoration: BoxDecoration(
-                            color: Constants.primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(Constants.mediumRadius),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                color: Constants.primaryColor,
-                                size: 32,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Loyalty Points Earned',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'You earned ${_booking!.loyaltyPointsEarned} points with this booking!',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Booking details card
-                        Container(
-                          padding: const EdgeInsets.all(Constants.mediumPadding),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(Constants.mediumRadius),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Property details
-                              Row(
-                                children: [
-                                  // Property image
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(Constants.smallRadius),
-                                    child: Image.network(
-                                      _booking!.propertyThumbnail,
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          width: 80,
-                                          height: 80,
-                                          color: Colors.grey[300],
-                                          child: const Icon(
-                                            Icons.image_not_supported,
-                                            color: Colors.grey,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  
-                                  // Property name
-                                  Expanded(
-                                    child: Text(
-                                      _booking!.propertyName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              
-                              // Divider
-                              const Divider(),
-                              const SizedBox(height: 16),
-                              
-                              // Booking details
-                              const Text(
-                                'Booking Details',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              
-                              // Check-in and check-out
-                              _buildDetailRow(
-                                'Check-in',
-                                DateFormat('MMM dd, yyyy').format(_booking!.checkInDate),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildDetailRow(
-                                'Check-out',
-                                DateFormat('MMM dd, yyyy').format(_booking!.checkOutDate),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildDetailRow(
-                                'Guests',
-                                _booking!.numberOfGuests.toString(),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildDetailRow(
-                                'Rooms',
-                                _booking!.numberOfRooms.toString(),
-                              ),
-                              const SizedBox(height: 16),
-                              
-                              // Divider
-                              const Divider(),
-                              const SizedBox(height: 16),
-                              
-                              // Payment details
-                              const Text(
-                                'Payment Details',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              
-                              _buildDetailRow(
-                                'Total Amount',
-                                '\$${_booking!.totalPrice.toStringAsFixed(2)}',
-                                valueStyle: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildDetailRow(
-                                'Status',
-                                'Paid',
-                                valueStyle: const TextStyle(
-                                  color: Constants.successColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Actions
-                        Row(
-                          children: [
-                            Expanded(
-                              child: CustomButton(
-                                text: 'View Booking',
-                                onPressed: () {
-                                  Navigator.of(context).pushReplacementNamed(
-                                    Constants.bookingsRoute,
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: CustomButton(
-                                text: 'Back to Home',
-                                onPressed: () {
-                                  Navigator.of(context).pushReplacementNamed(
-                                    Constants.homeRoute,
-                                  );
-                                },
-                                isOutlined: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Share booking
-                        CustomButton(
-                          text: 'Share Booking',
-                          icon: Icons.share,
-                          onPressed: () {
-                            // TODO: Implement share functionality
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Share functionality coming soon'),
-                              ),
-                            );
-                          },
-                          backgroundColor: Colors.grey[200],
-                          textColor: Colors.black87,
-                        ),
-                        const SizedBox(height: 32),
-                      ],
+                  Text(
+                    'Booking ID',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    booking.id,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // QR Code
+                  QrImageView(
+                    data: 'NESTERY_BOOKING:${booking.id}',
+                    version: QrVersions.auto,
+                    size: 200,
+                    backgroundColor: Colors.white,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Show this QR code at check-in',
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Booking details
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: theme.colorScheme.outline,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Booking Details',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(
+                    theme,
+                    'Property',
+                    booking.property.name,
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Location',
+                    '${booking.property.city}, ${booking.property.country}',
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Check-in',
+                    dateFormat.format(booking.checkInDate),
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Check-out',
+                    dateFormat.format(booking.checkOutDate),
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Guests',
+                    '${booking.numberOfGuests} ${booking.numberOfGuests == 1 ? 'guest' : 'guests'}',
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Booking Date',
+                    dateFormat.format(booking.bookingDate),
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Status',
+                    booking.status,
+                    valueColor: _getStatusColor(booking.status),
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Total Amount',
+                    '${booking.property.currency} ${booking.totalAmount.toStringAsFixed(2)}',
+                    isLast: true,
+                    valueColor: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Payment details
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: theme.colorScheme.outline,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Payment Details',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(
+                    theme,
+                    'Payment Method',
+                    _formatPaymentMethod(booking.paymentMethod),
+                  ),
+                  _buildDetailRow(
+                    theme,
+                    'Payment Status',
+                    booking.paymentStatus,
+                    valueColor: _getPaymentStatusColor(booking.paymentStatus),
+                    isLast: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Contact information
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: theme.colorScheme.outline,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Contact Information',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (booking.property.host != null) ...[
+                    _buildDetailRow(
+                      theme,
+                      'Host',
+                      '${booking.property.host!.firstName} ${booking.property.host!.lastName}',
+                    ),
+                    _buildDetailRow(
+                      theme,
+                      'Phone',
+                      booking.property.host!.phone ?? 'Not available',
+                    ),
+                    _buildDetailRow(
+                      theme,
+                      'Email',
+                      booking.property.host!.email ?? 'Not available',
+                      isLast: true,
+                    ),
+                  ] else ...[
+                    _buildDetailRow(
+                      theme,
+                      'Contact',
+                      'Property contact information not available',
+                      isLast: true,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Special requests
+            if (booking.specialRequests != null && booking.specialRequests!.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: theme.colorScheme.outline,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Special Requests',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      booking.specialRequests!,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'View Booking',
+                    onPressed: () {
+                      context.go('/bookings');
+                    },
+                    icon: Icons.visibility,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GradientButton(
+                    text: 'Back to Home',
+                    onPressed: () {
+                      context.go('/home');
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Cancellation policy
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cancellation Policy',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    booking.property.cancellationPolicy ?? 'Standard cancellation policy applies. Please contact support for more information.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
   
-  Widget _buildDetailRow(String label, String value, {TextStyle? valueStyle}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
+  Widget _buildDetailRow(
+    ThemeData theme,
+    String label,
+    String value, {
+    bool isLast = false,
+    Color? valueColor,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: valueStyle,
-        ),
-      ],
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+  }
+  
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
+  }
+  
+  Color _getPaymentStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
+  }
+  
+  String _formatPaymentMethod(String method) {
+    switch (method) {
+      case 'credit_card':
+        return 'Credit Card';
+      case 'paypal':
+        return 'PayPal';
+      case 'apple_pay':
+        return 'Apple Pay';
+      case 'google_pay':
+        return 'Google Pay';
+      default:
+        return method.substring(0, 1).toUpperCase() + method.substring(1).replaceAll('_', ' ');
+    }
+  }
+  
+  void _shareBooking(BuildContext context) {
+    final dateFormat = DateFormat('MMM dd, yyyy');
+    
+    final message = '''
+🏨 Nestery Booking Confirmation
+
+Booking ID: ${booking.id}
+Property: ${booking.property.name}
+Location: ${booking.property.city}, ${booking.property.country}
+Check-in: ${dateFormat.format(booking.checkInDate)}
+Check-out: ${dateFormat.format(booking.checkOutDate)}
+Guests: ${booking.numberOfGuests}
+Total Amount: ${booking.property.currency} ${booking.totalAmount.toStringAsFixed(2)}
+
+Thank you for booking with Nestery!
+''';
+    
+    Share.share(message, subject: 'Nestery Booking Confirmation');
   }
 }

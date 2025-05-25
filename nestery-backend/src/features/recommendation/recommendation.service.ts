@@ -1,17 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../core/logger/logger.service';
-import { ExceptionService } from '../../core/exception/exception.service';
+import { PropertyEntity } from '../../properties/entities/property.entity';
+import { UserEntity } from '../../users/entities/user.entity';
+import { BookingEntity } from '../../bookings/entities/booking.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
-/**
- * Service for providing personalized property recommendations
- */
 @Injectable()
 export class RecommendationService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
-    private readonly exceptionService: ExceptionService,
+    @InjectRepository(PropertyEntity)
+    private readonly propertyRepository: Repository<PropertyEntity>,
+    @InjectRepository(BookingEntity)
+    private readonly bookingRepository: Repository<BookingEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
   ) {
     this.logger.setContext('RecommendationService');
   }
@@ -19,473 +25,323 @@ export class RecommendationService {
   /**
    * Get personalized property recommendations for a user
    */
-  async getPersonalizedRecommendations(userId: string, limit: number = 10): Promise<any[]> {
+  async getRecommendationsForUser(userId: string, limit: number = 10): Promise<PropertyEntity[]> {
     try {
-      this.logger.log(`Getting personalized recommendations for user ${userId}`);
-      
-      // In a real implementation, this would use user history, preferences, and ML models
-      // For this example, we're using a simplified algorithm
-      
-      // Mock user preferences (in a real app, these would come from user history and profile)
-      const userPreferences = await this.getUserPreferences(userId);
-      
-      // Generate recommendations based on preferences
-      const recommendations = this.generateRecommendations(userPreferences, limit);
-      
-      return recommendations;
+      this.logger.debug(`Getting recommendations for user: ${userId}`);
+
+      // Get user's booking history
+      const userBookings = await this.bookingRepository.find({
+        where: { user: { id: userId } },
+        relations: ['property'],
+      });
+
+      // If user has no booking history, return trending properties
+      if (userBookings.length === 0) {
+        this.logger.debug(`No booking history for user ${userId}, returning trending properties`);
+        return this.getTrendingProperties(limit);
+      }
+
+      // Extract user preferences from booking history
+      const userPreferences = this.extractUserPreferences(userBookings);
+
+      // Get properties matching user preferences
+      const recommendedProperties = await this.getPropertiesMatchingPreferences(userPreferences, limit);
+
+      return recommendedProperties;
     } catch (error) {
-      this.logger.error(`Error getting personalized recommendations: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error getting recommendations for user: ${error.message}`, error.stack);
+      // Fallback to trending properties on error
+      return this.getTrendingProperties(limit);
     }
   }
 
   /**
-   * Get similar properties to a given property
+   * Get similar properties to a specific property
    */
-  async getSimilarProperties(propertyId: string, limit: number = 5): Promise<any[]> {
+  async getSimilarProperties(propertyId: string, limit: number = 5): Promise<PropertyEntity[]> {
     try {
-      this.logger.log(`Getting similar properties to ${propertyId}`);
-      
-      // In a real implementation, this would use property attributes and ML models
-      // For this example, we're using a simplified algorithm
-      
-      // Mock property details (in a real app, these would come from the database)
-      const propertyDetails = {
-        id: propertyId,
-        city: 'Miami',
-        propertyType: 'hotel',
-        starRating: 4,
-        amenities: ['pool', 'wifi', 'breakfast'],
-        priceRange: 'medium',
-      };
-      
-      // Generate similar properties based on details
-      const similarProperties = this.generateSimilarProperties(propertyDetails, limit);
-      
+      this.logger.debug(`Getting similar properties to: ${propertyId}`);
+
+      // Get the reference property
+      const property = await this.propertyRepository.findOne({
+        where: { id: propertyId },
+      });
+
+      if (!property) {
+        throw new Error(`Property with ID ${propertyId} not found`);
+      }
+
+      // Find properties with similar characteristics
+      const similarProperties = await this.propertyRepository
+        .createQueryBuilder('property')
+        .where('property.id != :propertyId', { propertyId })
+        .andWhere('property.city = :city', { city: property.city })
+        .andWhere('property.propertyType = :propertyType', { propertyType: property.propertyType })
+        .andWhere('property.price BETWEEN :minPrice AND :maxPrice', {
+          minPrice: property.price * 0.7,
+          maxPrice: property.price * 1.3,
+        })
+        .orderBy('property.rating', 'DESC')
+        .limit(limit)
+        .getMany();
+
       return similarProperties;
     } catch (error) {
-      this.logger.error(`Error getting similar properties: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error getting similar properties: ${error.message}`, error.stack);
+      return [];
     }
   }
 
   /**
-   * Get trending destinations based on user location and preferences
+   * Get trending properties based on recent bookings and ratings
    */
-  async getTrendingDestinations(userId: string, limit: number = 5): Promise<any[]> {
+  async getTrendingProperties(limit: number = 10): Promise<PropertyEntity[]> {
     try {
-      this.logger.log(`Getting trending destinations for user ${userId}`);
-      
-      // In a real implementation, this would use booking trends and user preferences
-      // For this example, we're using a simplified algorithm
-      
-      // Mock user preferences (in a real app, these would come from user history and profile)
-      const userPreferences = await this.getUserPreferences(userId);
-      
-      // Generate trending destinations based on preferences
-      const trendingDestinations = this.generateTrendingDestinations(userPreferences, limit);
-      
-      return trendingDestinations;
+      this.logger.debug(`Getting trending properties`);
+
+      // Get properties with recent bookings and high ratings
+      const trendingProperties = await this.propertyRepository
+        .createQueryBuilder('property')
+        .leftJoin('property.bookings', 'booking')
+        .where('booking.createdAt >= :recentDate', { recentDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }) // Last 30 days
+        .andWhere('property.rating >= :minRating', { minRating: 4.0 })
+        .groupBy('property.id')
+        .orderBy('COUNT(booking.id)', 'DESC')
+        .addOrderBy('property.rating', 'DESC')
+        .limit(limit)
+        .getMany();
+
+      // If not enough trending properties, supplement with highest-rated properties
+      if (trendingProperties.length < limit) {
+        const remainingLimit = limit - trendingProperties.length;
+        const trendingIds = trendingProperties.map(p => p.id);
+
+        const highRatedProperties = await this.propertyRepository
+          .createQueryBuilder('property')
+          .where('property.id NOT IN (:...trendingIds)', { trendingIds: trendingIds.length > 0 ? trendingIds : [''] })
+          .orderBy('property.rating', 'DESC')
+          .limit(remainingLimit)
+          .getMany();
+
+        trendingProperties.push(...highRatedProperties);
+      }
+
+      return trendingProperties;
     } catch (error) {
-      this.logger.error(`Error getting trending destinations: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error getting trending properties: ${error.message}`, error.stack);
+      
+      // Fallback to highest-rated properties on error
+      try {
+        return await this.propertyRepository
+          .createQueryBuilder('property')
+          .orderBy('property.rating', 'DESC')
+          .limit(limit)
+          .getMany();
+      } catch (fallbackError) {
+        this.logger.error(`Fallback error getting highest-rated properties: ${fallbackError.message}`, fallbackError.stack);
+        return [];
+      }
     }
   }
 
   /**
-   * Get user preferences based on history and profile
-   * This is a mock implementation for demonstration purposes
+   * Get properties for a specific destination that are currently popular
    */
-  private async getUserPreferences(userId: string): Promise<any> {
-    // In a real implementation, this would query the database for user history and preferences
-    return {
-      favoriteDestinations: ['Miami', 'New York', 'Los Angeles'],
-      preferredPropertyTypes: ['hotel', 'apartment'],
-      preferredAmenities: ['wifi', 'pool', 'gym'],
-      priceRange: 'medium', // low, medium, high
-      travelPurpose: 'leisure', // business, leisure
-      travelCompanions: 'family', // solo, couple, family, friends
-      previousBookings: [
-        { city: 'Miami', propertyType: 'hotel', starRating: 4 },
-        { city: 'New York', propertyType: 'apartment', starRating: 3 },
-      ],
-    };
-  }
+  async getPopularPropertiesForDestination(destination: string, limit: number = 10): Promise<PropertyEntity[]> {
+    try {
+      this.logger.debug(`Getting popular properties for destination: ${destination}`);
 
-  /**
-   * Generate personalized recommendations based on user preferences
-   * This is a simplified algorithm for demonstration purposes
-   */
-  private generateRecommendations(userPreferences: any, limit: number): any[] {
-    const recommendations = [];
-    
-    // Mock property database (in a real app, these would come from the database)
-    const properties = [
-      {
-        id: '1',
-        name: 'Luxury Ocean View Hotel',
-        city: 'Miami',
-        country: 'USA',
-        propertyType: 'hotel',
-        starRating: 5,
-        basePrice: 299.99,
-        amenities: ['wifi', 'pool', 'gym', 'spa', 'restaurant'],
-        thumbnailImage: 'https://example.com/hotel1.jpg',
-        matchScore: 0.95,
-        matchReasons: ['location', 'amenities', 'property type'],
-      },
-      {
-        id: '2',
-        name: 'Downtown Apartment',
-        city: 'New York',
-        country: 'USA',
-        propertyType: 'apartment',
-        starRating: 4,
-        basePrice: 199.99,
-        amenities: ['wifi', 'gym', 'kitchen'],
-        thumbnailImage: 'https://example.com/apartment1.jpg',
-        matchScore: 0.9,
-        matchReasons: ['location', 'property type'],
-      },
-      {
-        id: '3',
-        name: 'Beachfront Resort',
-        city: 'Los Angeles',
-        country: 'USA',
-        propertyType: 'resort',
-        starRating: 4,
-        basePrice: 249.99,
-        amenities: ['wifi', 'pool', 'beach access', 'restaurant'],
-        thumbnailImage: 'https://example.com/resort1.jpg',
-        matchScore: 0.85,
-        matchReasons: ['location', 'amenities'],
-      },
-      {
-        id: '4',
-        name: 'City Center Hotel',
-        city: 'Chicago',
-        country: 'USA',
-        propertyType: 'hotel',
-        starRating: 3,
-        basePrice: 149.99,
-        amenities: ['wifi', 'restaurant'],
-        thumbnailImage: 'https://example.com/hotel2.jpg',
-        matchScore: 0.7,
-        matchReasons: ['property type'],
-      },
-      {
-        id: '5',
-        name: 'Mountain View Cabin',
-        city: 'Denver',
-        country: 'USA',
-        propertyType: 'cabin',
-        starRating: 4,
-        basePrice: 179.99,
-        amenities: ['wifi', 'fireplace', 'kitchen'],
-        thumbnailImage: 'https://example.com/cabin1.jpg',
-        matchScore: 0.6,
-        matchReasons: ['amenities'],
-      },
-    ];
-    
-    // Filter and score properties based on user preferences
-    const scoredProperties = properties.map(property => {
-      let score = 0;
-      
-      // Score based on favorite destinations
-      if (userPreferences.favoriteDestinations.includes(property.city)) {
-        score += 0.3;
-      }
-      
-      // Score based on preferred property types
-      if (userPreferences.preferredPropertyTypes.includes(property.propertyType)) {
-        score += 0.2;
-      }
-      
-      // Score based on amenities
-      const amenityMatch = property.amenities.filter(amenity => 
-        userPreferences.preferredAmenities.includes(amenity)
-      ).length / userPreferences.preferredAmenities.length;
-      score += amenityMatch * 0.2;
-      
-      // Score based on previous bookings
-      const previousBookingMatch = userPreferences.previousBookings.some(booking => 
-        booking.city === property.city || 
-        booking.propertyType === property.propertyType ||
-        booking.starRating === property.starRating
-      );
-      if (previousBookingMatch) {
-        score += 0.3;
-      }
-      
-      return {
-        ...property,
-        score,
-      };
-    });
-    
-    // Sort by score and take top results
-    const topProperties = scoredProperties
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-    
-    return topProperties;
-  }
+      // Parse destination (could be city or country)
+      const destinationParts = destination.split(',').map(part => part.trim());
+      const city = destinationParts[0];
+      const country = destinationParts.length > 1 ? destinationParts[1] : null;
 
-  /**
-   * Generate similar properties based on property details
-   * This is a simplified algorithm for demonstration purposes
-   */
-  private generateSimilarProperties(propertyDetails: any, limit: number): any[] {
-    // Mock property database (in a real app, these would come from the database)
-    const properties = [
-      {
-        id: '1',
-        name: 'Luxury Ocean View Hotel',
-        city: 'Miami',
-        country: 'USA',
-        propertyType: 'hotel',
-        starRating: 5,
-        basePrice: 299.99,
-        amenities: ['wifi', 'pool', 'gym', 'spa', 'restaurant'],
-        thumbnailImage: 'https://example.com/hotel1.jpg',
-        similarityScore: 0.9,
-        similarityReasons: ['location', 'property type', 'amenities'],
-      },
-      {
-        id: '2',
-        name: 'Beachside Hotel',
-        city: 'Miami',
-        country: 'USA',
-        propertyType: 'hotel',
-        starRating: 4,
-        basePrice: 249.99,
-        amenities: ['wifi', 'pool', 'beach access'],
-        thumbnailImage: 'https://example.com/hotel2.jpg',
-        similarityScore: 0.85,
-        similarityReasons: ['location', 'property type'],
-      },
-      {
-        id: '3',
-        name: 'Downtown Luxury Hotel',
-        city: 'Miami',
-        country: 'USA',
-        propertyType: 'hotel',
-        starRating: 4,
-        basePrice: 229.99,
-        amenities: ['wifi', 'pool', 'gym', 'restaurant'],
-        thumbnailImage: 'https://example.com/hotel3.jpg',
-        similarityScore: 0.8,
-        similarityReasons: ['location', 'property type', 'amenities'],
-      },
-      {
-        id: '4',
-        name: 'Oceanfront Resort',
-        city: 'Fort Lauderdale',
-        country: 'USA',
-        propertyType: 'resort',
-        starRating: 5,
-        basePrice: 319.99,
-        amenities: ['wifi', 'pool', 'spa', 'beach access', 'restaurant'],
-        thumbnailImage: 'https://example.com/resort1.jpg',
-        similarityScore: 0.75,
-        similarityReasons: ['nearby location', 'amenities'],
-      },
-      {
-        id: '5',
-        name: 'Luxury Apartment',
-        city: 'Miami',
-        country: 'USA',
-        propertyType: 'apartment',
-        starRating: 4,
-        basePrice: 199.99,
-        amenities: ['wifi', 'pool', 'gym'],
-        thumbnailImage: 'https://example.com/apartment1.jpg',
-        similarityScore: 0.7,
-        similarityReasons: ['location', 'amenities'],
-      },
-    ];
-    
-    // Filter out the original property
-    const otherProperties = properties.filter(property => property.id !== propertyDetails.id);
-    
-    // Filter and score properties based on similarity
-    const scoredProperties = otherProperties.map(property => {
-      let score = 0;
-      
-      // Score based on city
-      if (property.city === propertyDetails.city) {
-        score += 0.3;
-      } else if (this.isNearbyCities(property.city, propertyDetails.city)) {
-        score += 0.1;
-      }
-      
-      // Score based on property type
-      if (property.propertyType === propertyDetails.propertyType) {
-        score += 0.2;
-      }
-      
-      // Score based on star rating
-      if (property.starRating === propertyDetails.starRating) {
-        score += 0.2;
-      } else if (Math.abs(property.starRating - propertyDetails.starRating) === 1) {
-        score += 0.1;
-      }
-      
-      // Score based on amenities
-      const amenityMatch = property.amenities.filter(amenity => 
-        propertyDetails.amenities.includes(amenity)
-      ).length / propertyDetails.amenities.length;
-      score += amenityMatch * 0.2;
-      
-      // Score based on price range
-      if (this.getPriceRange(property.basePrice) === propertyDetails.priceRange) {
-        score += 0.1;
-      }
-      
-      return {
-        ...property,
-        score,
-      };
-    });
-    
-    // Sort by score and take top results
-    const topProperties = scoredProperties
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-    
-    return topProperties;
-  }
+      // Build query
+      let query = this.propertyRepository
+        .createQueryBuilder('property')
+        .leftJoin('property.bookings', 'booking')
+        .where('property.city = :city', { city });
 
-  /**
-   * Generate trending destinations based on user preferences
-   * This is a simplified algorithm for demonstration purposes
-   */
-  private generateTrendingDestinations(userPreferences: any, limit: number): any[] {
-    // Mock trending destinations (in a real app, these would come from analytics)
-    const trendingDestinations = [
-      {
-        city: 'Miami',
-        country: 'USA',
-        thumbnailImage: 'https://example.com/miami.jpg',
-        trendingScore: 95,
-        averagePrice: 249.99,
-        popularActivities: ['beach', 'nightlife', 'shopping'],
-      },
-      {
-        city: 'Cancun',
-        country: 'Mexico',
-        thumbnailImage: 'https://example.com/cancun.jpg',
-        trendingScore: 92,
-        averagePrice: 199.99,
-        popularActivities: ['beach', 'snorkeling', 'ruins'],
-      },
-      {
-        city: 'Las Vegas',
-        country: 'USA',
-        thumbnailImage: 'https://example.com/lasvegas.jpg',
-        trendingScore: 90,
-        averagePrice: 179.99,
-        popularActivities: ['casinos', 'shows', 'dining'],
-      },
-      {
-        city: 'Orlando',
-        country: 'USA',
-        thumbnailImage: 'https://example.com/orlando.jpg',
-        trendingScore: 88,
-        averagePrice: 159.99,
-        popularActivities: ['theme parks', 'shopping', 'golf'],
-      },
-      {
-        city: 'New York',
-        country: 'USA',
-        thumbnailImage: 'https://example.com/newyork.jpg',
-        trendingScore: 85,
-        averagePrice: 299.99,
-        popularActivities: ['sightseeing', 'shopping', 'dining'],
-      },
-      {
-        city: 'San Francisco',
-        country: 'USA',
-        thumbnailImage: 'https://example.com/sanfrancisco.jpg',
-        trendingScore: 82,
-        averagePrice: 279.99,
-        popularActivities: ['sightseeing', 'dining', 'hiking'],
-      },
-      {
-        city: 'London',
-        country: 'UK',
-        thumbnailImage: 'https://example.com/london.jpg',
-        trendingScore: 80,
-        averagePrice: 289.99,
-        popularActivities: ['sightseeing', 'museums', 'shopping'],
-      },
-    ];
-    
-    // Filter and score destinations based on user preferences
-    const scoredDestinations = trendingDestinations.map(destination => {
-      let score = destination.trendingScore / 100; // Base score from trending
-      
-      // Boost score for favorite destinations
-      if (userPreferences.favoriteDestinations.includes(destination.city)) {
-        score += 0.2;
+      if (country) {
+        query = query.andWhere('property.country = :country', { country });
       }
-      
-      // Adjust score based on price range
-      const destinationPriceRange = this.getPriceRange(destination.averagePrice);
-      if (destinationPriceRange === userPreferences.priceRange) {
-        score += 0.1;
-      } else if (
-        (destinationPriceRange === 'medium' && userPreferences.priceRange === 'high') ||
-        (destinationPriceRange === 'low' && userPreferences.priceRange === 'medium')
-      ) {
-        score += 0.05; // Slight boost for adjacent price ranges
+
+      // Get properties with recent bookings and good ratings
+      const popularProperties = await query
+        .andWhere('booking.createdAt >= :recentDate', { recentDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) }) // Last 90 days
+        .groupBy('property.id')
+        .orderBy('COUNT(booking.id)', 'DESC')
+        .addOrderBy('property.rating', 'DESC')
+        .limit(limit)
+        .getMany();
+
+      // If not enough popular properties, supplement with properties in that destination
+      if (popularProperties.length < limit) {
+        const remainingLimit = limit - popularProperties.length;
+        const popularIds = popularProperties.map(p => p.id);
+
+        let fallbackQuery = this.propertyRepository
+          .createQueryBuilder('property')
+          .where('property.city = :city', { city })
+          .andWhere('property.id NOT IN (:...popularIds)', { popularIds: popularIds.length > 0 ? popularIds : [''] });
+
+        if (country) {
+          fallbackQuery = fallbackQuery.andWhere('property.country = :country', { country });
+        }
+
+        const additionalProperties = await fallbackQuery
+          .orderBy('property.rating', 'DESC')
+          .limit(remainingLimit)
+          .getMany();
+
+        popularProperties.push(...additionalProperties);
       }
-      
-      return {
-        ...destination,
-        score,
-      };
-    });
-    
-    // Sort by score and take top results
-    const topDestinations = scoredDestinations
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-    
-    return topDestinations;
-  }
 
-  /**
-   * Check if two cities are nearby
-   * This is a simplified implementation for demonstration purposes
-   */
-  private isNearbyCities(city1: string, city2: string): boolean {
-    // In a real implementation, this would use geolocation data
-    // For this example, we're using a hardcoded list of nearby cities
-    const nearbyCities = {
-      'Miami': ['Fort Lauderdale', 'West Palm Beach'],
-      'New York': ['Jersey City', 'Newark', 'Brooklyn'],
-      'Los Angeles': ['Santa Monica', 'Beverly Hills', 'Long Beach'],
-      // Add more as needed
-    };
-    
-    return nearbyCities[city1]?.includes(city2) || nearbyCities[city2]?.includes(city1) || false;
-  }
-
-  /**
-   * Get price range category from price
-   */
-  private getPriceRange(price: number): string {
-    if (price < 150) {
-      return 'low';
-    } else if (price < 250) {
-      return 'medium';
-    } else {
-      return 'high';
+      return popularProperties;
+    } catch (error) {
+      this.logger.error(`Error getting popular properties for destination: ${error.message}`, error.stack);
+      return [];
     }
+  }
+
+  /**
+   * Extract user preferences from booking history
+   */
+  private extractUserPreferences(bookings: BookingEntity[]): {
+    cities: { [city: string]: number };
+    countries: { [country: string]: number };
+    propertyTypes: { [type: string]: number };
+    amenities: { [amenity: string]: number };
+    priceRange: { min: number; max: number; avg: number };
+    ratings: number[];
+  } {
+    const preferences = {
+      cities: {},
+      countries: {},
+      propertyTypes: {},
+      amenities: {},
+      priceRange: { min: Infinity, max: 0, avg: 0 },
+      ratings: [],
+    };
+
+    let totalPrice = 0;
+
+    for (const booking of bookings) {
+      const property = booking.property;
+
+      // Count cities
+      preferences.cities[property.city] = (preferences.cities[property.city] || 0) + 1;
+
+      // Count countries
+      preferences.countries[property.country] = (preferences.countries[property.country] || 0) + 1;
+
+      // Count property types
+      if (property.propertyType) {
+        preferences.propertyTypes[property.propertyType] = (preferences.propertyTypes[property.propertyType] || 0) + 1;
+      }
+
+      // Count amenities
+      if (property.amenities && Array.isArray(property.amenities)) {
+        for (const amenity of property.amenities) {
+          preferences.amenities[amenity] = (preferences.amenities[amenity] || 0) + 1;
+        }
+      }
+
+      // Track price range
+      if (property.price) {
+        preferences.priceRange.min = Math.min(preferences.priceRange.min, property.price);
+        preferences.priceRange.max = Math.max(preferences.priceRange.max, property.price);
+        totalPrice += property.price;
+      }
+
+      // Track ratings
+      if (property.rating) {
+        preferences.ratings.push(property.rating);
+      }
+    }
+
+    // Calculate average price
+    preferences.priceRange.avg = totalPrice / bookings.length;
+
+    // Handle case where no prices were found
+    if (preferences.priceRange.min === Infinity) {
+      preferences.priceRange.min = 0;
+    }
+
+    return preferences;
+  }
+
+  /**
+   * Get properties matching user preferences
+   */
+  private async getPropertiesMatchingPreferences(
+    preferences: {
+      cities: { [city: string]: number };
+      countries: { [country: string]: number };
+      propertyTypes: { [type: string]: number };
+      amenities: { [amenity: string]: number };
+      priceRange: { min: number; max: number; avg: number };
+      ratings: number[];
+    },
+    limit: number
+  ): Promise<PropertyEntity[]> {
+    // Get top preferences
+    const topCities = this.getTopKeys(preferences.cities, 3);
+    const topCountries = this.getTopKeys(preferences.countries, 3);
+    const topPropertyTypes = this.getTopKeys(preferences.propertyTypes, 3);
+    const topAmenities = this.getTopKeys(preferences.amenities, 5);
+
+    // Calculate preferred price range (±30% from average)
+    const minPrice = preferences.priceRange.avg * 0.7;
+    const maxPrice = preferences.priceRange.avg * 1.3;
+
+    // Calculate average rating
+    const avgRating = preferences.ratings.length > 0
+      ? preferences.ratings.reduce((sum, rating) => sum + rating, 0) / preferences.ratings.length
+      : 0;
+
+    // Build query to find matching properties
+    let query = this.propertyRepository
+      .createQueryBuilder('property')
+      .where('(property.city IN (:...topCities) OR property.country IN (:...topCountries))', {
+        topCities,
+        topCountries,
+      });
+
+    if (topPropertyTypes.length > 0) {
+      query = query.andWhere('property.propertyType IN (:...topPropertyTypes)', { topPropertyTypes });
+    }
+
+    if (avgRating > 0) {
+      query = query.andWhere('property.rating >= :minRating', { minRating: Math.max(avgRating - 0.5, 0) });
+    }
+
+    if (preferences.priceRange.avg > 0) {
+      query = query.andWhere('property.price BETWEEN :minPrice AND :maxPrice', { minPrice, maxPrice });
+    }
+
+    // This is a simplified approach for amenities; in a real implementation, you would use a more sophisticated query
+    // to match amenities, possibly with a JSON contains operator or a separate amenities table
+    if (topAmenities.length > 0) {
+      query = query.andWhere(`property.amenities @> ARRAY[:...topAmenities]::varchar[]`, { topAmenities });
+    }
+
+    // Get matching properties
+    const matchingProperties = await query
+      .orderBy('property.rating', 'DESC')
+      .limit(limit)
+      .getMany();
+
+    return matchingProperties;
+  }
+
+  /**
+   * Get top keys from a frequency map
+   */
+  private getTopKeys(frequencyMap: { [key: string]: number }, limit: number): string[] {
+    return Object.entries(frequencyMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(entry => entry[0]);
   }
 }

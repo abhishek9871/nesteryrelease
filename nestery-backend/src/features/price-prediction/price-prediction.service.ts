@@ -1,268 +1,310 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../core/logger/logger.service';
-import { ExceptionService } from '../../core/exception/exception.service';
+import { PropertyEntity } from '../../properties/entities/property.entity';
+import { UserEntity } from '../../users/entities/user.entity';
+import { BookingEntity } from '../../bookings/entities/booking.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
-/**
- * Service for predicting price trends and optimal booking times
- */
 @Injectable()
 export class PricePredictionService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
-    private readonly exceptionService: ExceptionService,
+    @InjectRepository(PropertyEntity)
+    private readonly propertyRepository: Repository<PropertyEntity>,
+    @InjectRepository(BookingEntity)
+    private readonly bookingRepository: Repository<BookingEntity>,
   ) {
     this.logger.setContext('PricePredictionService');
   }
 
   /**
-   * Predict price trends for a specific property and date range
+   * Predict price for a property based on various factors
    */
-  async predictPriceTrend(propertyId: string, checkInDate: Date, checkOutDate: Date): Promise<any> {
+  async predictPrice(params: {
+    propertyId?: string;
+    city: string;
+    country: string;
+    checkInDate: Date;
+    checkOutDate: Date;
+    guestCount: number;
+    amenities?: string[];
+    propertyType?: string;
+    rating?: number;
+  }): Promise<{
+    predictedPrice: number;
+    currency: string;
+    confidence: number;
+    priceRange: { min: number; max: number };
+    factors: Array<{ name: string; impact: number }>;
+  }> {
     try {
-      this.logger.log(`Predicting price trend for property ${propertyId} from ${checkInDate} to ${checkOutDate}`);
+      this.logger.debug(`Predicting price for property in ${params.city}, ${params.country}`);
+
+      // Calculate number of nights
+      const nights = this.calculateNights(params.checkInDate, params.checkOutDate);
       
-      // In a real implementation, this would use historical data and ML models
-      // For this example, we're using a simplified algorithm
+      // Get historical price data for similar properties
+      const similarProperties = await this.getSimilarProperties(params);
       
-      // Get current date
-      const currentDate = new Date();
+      // Calculate base price from similar properties
+      const basePrice = this.calculateBasePrice(similarProperties);
       
-      // Calculate days until check-in
-      const daysUntilCheckIn = Math.ceil((checkInDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Apply seasonal adjustments
+      const seasonalFactor = this.calculateSeasonalFactor(params.city, params.country, params.checkInDate);
       
-      // Generate prediction based on days until check-in
-      const prediction = this.generatePricePrediction(daysUntilCheckIn);
+      // Apply demand adjustments
+      const demandFactor = await this.calculateDemandFactor(params.city, params.country, params.checkInDate, params.checkOutDate);
+      
+      // Apply amenities adjustments
+      const amenitiesFactor = this.calculateAmenitiesFactor(params.amenities);
+      
+      // Apply guest count adjustments
+      const guestFactor = this.calculateGuestFactor(params.guestCount);
+      
+      // Calculate final predicted price
+      const predictedPrice = basePrice * seasonalFactor * demandFactor * amenitiesFactor * guestFactor;
+      
+      // Calculate confidence score
+      const confidence = this.calculateConfidence(similarProperties.length, params.checkInDate);
+      
+      // Calculate price range
+      const priceRange = {
+        min: predictedPrice * (1 - (1 - confidence) / 2),
+        max: predictedPrice * (1 + (1 - confidence) / 2),
+      };
+      
+      // Compile factors that influenced the price
+      const factors = [
+        { name: 'Seasonal Demand', impact: seasonalFactor - 1 },
+        { name: 'Market Demand', impact: demandFactor - 1 },
+        { name: 'Amenities', impact: amenitiesFactor - 1 },
+        { name: 'Guest Count', impact: guestFactor - 1 },
+      ];
       
       return {
-        propertyId,
-        checkInDate,
-        checkOutDate,
-        currentDate,
-        daysUntilCheckIn,
-        prediction,
+        predictedPrice: Math.round(predictedPrice),
+        currency: 'USD', // Default currency
+        confidence,
+        priceRange: {
+          min: Math.round(priceRange.min),
+          max: Math.round(priceRange.max),
+        },
+        factors,
       };
     } catch (error) {
-      this.logger.error(`Error predicting price trend: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error predicting price: ${error.message}`, error.stack);
+      throw new Error(`Failed to predict price: ${error.message}`);
     }
   }
 
   /**
-   * Recommend optimal booking time for best price
+   * Get similar properties based on location, type, and amenities
    */
-  async recommendBookingTime(propertyId: string, checkInDate: Date, checkOutDate: Date): Promise<any> {
+  private async getSimilarProperties(params: {
+    propertyId?: string;
+    city: string;
+    country: string;
+    amenities?: string[];
+    propertyType?: string;
+    rating?: number;
+  }): Promise<PropertyEntity[]> {
     try {
-      this.logger.log(`Recommending booking time for property ${propertyId} from ${checkInDate} to ${checkOutDate}`);
+      let query = this.propertyRepository
+        .createQueryBuilder('property')
+        .where('property.city = :city', { city: params.city })
+        .andWhere('property.country = :country', { country: params.country });
       
-      // Get price prediction
-      const pricePrediction = await this.predictPriceTrend(propertyId, checkInDate, checkOutDate);
+      if (params.propertyId) {
+        query = query.andWhere('property.id != :propertyId', { propertyId: params.propertyId });
+      }
       
-      // Determine recommendation based on prediction
-      const recommendation = this.generateBookingRecommendation(pricePrediction);
+      if (params.propertyType) {
+        query = query.andWhere('property.propertyType = :propertyType', { propertyType: params.propertyType });
+      }
       
-      return {
-        ...pricePrediction,
-        recommendation,
-      };
+      if (params.rating) {
+        query = query.andWhere('property.rating >= :minRating', { minRating: params.rating - 0.5 })
+          .andWhere('property.rating <= :maxRating', { maxRating: params.rating + 0.5 });
+      }
+      
+      // Get properties with at least 50% matching amenities if amenities are provided
+      if (params.amenities && params.amenities.length > 0) {
+        const amenitiesCount = params.amenities.length;
+        const minMatchingAmenities = Math.ceil(amenitiesCount * 0.5);
+        
+        // This is a simplified approach; in a real implementation, you would use a more sophisticated query
+        // to match amenities, possibly with a JSON contains operator or a separate amenities table
+        query = query.andWhere(`property.amenities @> ARRAY[:...amenities]::varchar[]`, { amenities: params.amenities });
+      }
+      
+      return await query.limit(20).getMany();
     } catch (error) {
-      this.logger.error(`Error recommending booking time: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error getting similar properties: ${error.message}`, error.stack);
+      return [];
     }
   }
 
   /**
-   * Generate price prediction based on days until check-in
-   * This is a simplified algorithm for demonstration purposes
+   * Calculate base price from similar properties
    */
-  private generatePricePrediction(daysUntilCheckIn: number): any {
-    // Define price trend patterns based on days until check-in
-    if (daysUntilCheckIn > 90) {
-      // Far in advance: prices likely to drop before rising again
-      return {
-        trend: 'decreasing',
-        confidence: 0.7,
-        expectedPriceChange: -5,
-        priceChangeRange: [-10, 0],
-        dataPoints: this.generateMockDataPoints(daysUntilCheckIn, 'decreasing'),
-      };
-    } else if (daysUntilCheckIn > 30) {
-      // Medium term: prices relatively stable
-      return {
-        trend: 'stable',
-        confidence: 0.8,
-        expectedPriceChange: 0,
-        priceChangeRange: [-3, 3],
-        dataPoints: this.generateMockDataPoints(daysUntilCheckIn, 'stable'),
-      };
-    } else if (daysUntilCheckIn > 14) {
-      // Approaching check-in: prices likely to rise
-      return {
-        trend: 'increasing',
-        confidence: 0.75,
-        expectedPriceChange: 8,
-        priceChangeRange: [3, 15],
-        dataPoints: this.generateMockDataPoints(daysUntilCheckIn, 'increasing'),
-      };
-    } else if (daysUntilCheckIn > 3) {
-      // Near check-in: prices rising sharply
-      return {
-        trend: 'sharply_increasing',
-        confidence: 0.85,
-        expectedPriceChange: 15,
-        priceChangeRange: [10, 25],
-        dataPoints: this.generateMockDataPoints(daysUntilCheckIn, 'sharply_increasing'),
-      };
-    } else {
-      // Last minute: prices could go either way (either premium or discount)
-      const isDiscount = Math.random() > 0.7; // 30% chance of last-minute discount
+  private calculateBasePrice(similarProperties: PropertyEntity[]): number {
+    if (similarProperties.length === 0) {
+      return 100; // Default base price if no similar properties found
+    }
+    
+    // Calculate weighted average price based on rating
+    let totalWeight = 0;
+    let weightedSum = 0;
+    
+    for (const property of similarProperties) {
+      const weight = property.rating || 1;
+      totalWeight += weight;
+      weightedSum += property.price * weight;
+    }
+    
+    return weightedSum / totalWeight;
+  }
+
+  /**
+   * Calculate seasonal factor based on location and date
+   */
+  private calculateSeasonalFactor(city: string, country: string, date: Date): number {
+    const month = date.getMonth();
+    
+    // This is a simplified seasonal model; in a real implementation, you would use
+    // a more sophisticated model based on historical data for each location
+    
+    // Example: Higher prices during summer months (June-August) for northern hemisphere
+    if (country === 'US' || country === 'Canada' || country === 'UK' || country === 'France' || country === 'Germany') {
+      if (month >= 5 && month <= 7) { // June-August
+        return 1.2; // 20% increase
+      } else if (month >= 11 || month <= 1) { // December-February
+        return 0.9; // 10% decrease
+      }
+    }
+    
+    // Example: Higher prices during winter months for ski destinations
+    if ((city === 'Aspen' || city === 'Vail' || city === 'Park City') && (month >= 11 || month <= 2)) {
+      return 1.4; // 40% increase
+    }
+    
+    // Example: Higher prices during dry season for tropical destinations
+    if ((country === 'Thailand' || country === 'Indonesia' || country === 'Malaysia') && (month >= 10 || month <= 3)) {
+      return 1.3; // 30% increase
+    }
+    
+    return 1.0; // No seasonal adjustment
+  }
+
+  /**
+   * Calculate demand factor based on bookings for the location and dates
+   */
+  private async calculateDemandFactor(city: string, country: string, checkInDate: Date, checkOutDate: Date): Promise<number> {
+    try {
+      // Get count of bookings for the same city and overlapping dates
+      const bookingsCount = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .innerJoin('booking.property', 'property')
+        .where('property.city = :city', { city })
+        .andWhere('property.country = :country', { country })
+        .andWhere('booking.checkInDate <= :checkOutDate', { checkOutDate })
+        .andWhere('booking.checkOutDate >= :checkInDate', { checkInDate })
+        .getCount();
       
-      if (isDiscount) {
-        return {
-          trend: 'last_minute_discount',
-          confidence: 0.6,
-          expectedPriceChange: -12,
-          priceChangeRange: [-20, -5],
-          dataPoints: this.generateMockDataPoints(daysUntilCheckIn, 'last_minute_discount'),
-        };
+      // Get count of properties in the city
+      const propertiesCount = await this.propertyRepository
+        .createQueryBuilder('property')
+        .where('property.city = :city', { city })
+        .andWhere('property.country = :country', { country })
+        .getCount();
+      
+      if (propertiesCount === 0) {
+        return 1.0;
+      }
+      
+      // Calculate occupancy rate
+      const occupancyRate = bookingsCount / propertiesCount;
+      
+      // Adjust price based on occupancy rate
+      if (occupancyRate > 0.8) {
+        return 1.3; // High demand: 30% increase
+      } else if (occupancyRate > 0.6) {
+        return 1.15; // Medium-high demand: 15% increase
+      } else if (occupancyRate > 0.4) {
+        return 1.0; // Medium demand: no change
+      } else if (occupancyRate > 0.2) {
+        return 0.9; // Medium-low demand: 10% decrease
       } else {
-        return {
-          trend: 'last_minute_premium',
-          confidence: 0.65,
-          expectedPriceChange: 20,
-          priceChangeRange: [15, 30],
-          dataPoints: this.generateMockDataPoints(daysUntilCheckIn, 'last_minute_premium'),
-        };
+        return 0.8; // Low demand: 20% decrease
       }
+    } catch (error) {
+      this.logger.error(`Error calculating demand factor: ${error.message}`, error.stack);
+      return 1.0; // Default to no adjustment on error
     }
   }
 
   /**
-   * Generate booking recommendation based on price prediction
+   * Calculate amenities factor based on available amenities
    */
-  private generateBookingRecommendation(pricePrediction: any): any {
-    const { trend, confidence, expectedPriceChange } = pricePrediction.prediction;
-    
-    // Generate recommendation based on trend
-    switch (trend) {
-      case 'decreasing':
-        return {
-          action: 'wait',
-          reason: 'Prices are expected to decrease in the coming weeks.',
-          optimalBookingTime: 'Wait until 30-45 days before check-in for best rates.',
-          savingsPotential: `Potential savings of approximately ${Math.abs(expectedPriceChange)}%.`,
-          confidence,
-        };
-        
-      case 'stable':
-        return {
-          action: 'book_now',
-          reason: 'Prices are relatively stable, with minimal expected changes.',
-          optimalBookingTime: 'Current time is good for booking, minimal price fluctuations expected.',
-          savingsPotential: 'Minimal savings potential by waiting.',
-          confidence,
-        };
-        
-      case 'increasing':
-        return {
-          action: 'book_soon',
-          reason: 'Prices are expected to increase in the coming weeks.',
-          optimalBookingTime: 'Book within the next 7 days to avoid price increases.',
-          savingsPotential: `Potential additional cost of approximately ${expectedPriceChange}% if delayed.`,
-          confidence,
-        };
-        
-      case 'sharply_increasing':
-        return {
-          action: 'book_immediately',
-          reason: 'Prices are expected to increase significantly very soon.',
-          optimalBookingTime: 'Book immediately to secure current rates.',
-          savingsPotential: `Potential additional cost of approximately ${expectedPriceChange}% if delayed.`,
-          confidence,
-        };
-        
-      case 'last_minute_discount':
-        return {
-          action: 'wait_for_discount',
-          reason: 'There is a chance of last-minute discounts.',
-          optimalBookingTime: 'Consider waiting until 1-2 days before check-in for possible discounts.',
-          savingsPotential: `Potential savings of approximately ${Math.abs(expectedPriceChange)}%, but with higher risk.`,
-          confidence,
-        };
-        
-      case 'last_minute_premium':
-        return {
-          action: 'book_immediately',
-          reason: 'Last-minute bookings are likely to be at premium rates.',
-          optimalBookingTime: 'Book immediately to avoid last-minute premium pricing.',
-          savingsPotential: `Potential additional cost of approximately ${expectedPriceChange}% if delayed.`,
-          confidence,
-        };
-        
-      default:
-        return {
-          action: 'book_now',
-          reason: 'Insufficient data to make a specific recommendation.',
-          optimalBookingTime: 'Current time is as good as any for booking.',
-          savingsPotential: 'Unknown savings potential.',
-          confidence: 0.5,
-        };
+  private calculateAmenitiesFactor(amenities?: string[]): number {
+    if (!amenities || amenities.length === 0) {
+      return 1.0;
     }
+    
+    // Define premium amenities that increase price
+    const premiumAmenities = [
+      'pool', 'spa', 'gym', 'beach access', 'ocean view', 'mountain view',
+      'private balcony', 'jacuzzi', 'sauna', 'concierge', 'room service',
+      'free breakfast', 'free wifi', 'parking', 'pet friendly', 'kitchen',
+    ];
+    
+    // Count matching premium amenities
+    const matchingPremiumCount = amenities.filter(amenity => 
+      premiumAmenities.some(premium => amenity.toLowerCase().includes(premium.toLowerCase()))
+    ).length;
+    
+    // Calculate factor: each premium amenity adds 2% to the price, up to 30%
+    const amenitiesFactor = 1 + Math.min(matchingPremiumCount * 0.02, 0.3);
+    
+    return amenitiesFactor;
   }
 
   /**
-   * Generate mock data points for visualization
-   * In a real implementation, this would use historical data
+   * Calculate guest factor based on number of guests
    */
-  private generateMockDataPoints(daysUntilCheckIn: number, trend: string): any[] {
-    const dataPoints = [];
-    const today = new Date();
-    let basePrice = 100;
-    
-    // Generate data points for the past 30 days and future 30 days
-    for (let i = -30; i <= 30; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      
-      let priceModifier = 0;
-      
-      // Apply trend-based price modifications
-      switch (trend) {
-        case 'decreasing':
-          priceModifier = i > 0 ? -0.2 * i : 0.1 * Math.abs(i);
-          break;
-        case 'stable':
-          priceModifier = Math.sin(i * 0.2) * 3; // Small oscillations
-          break;
-        case 'increasing':
-          priceModifier = i > 0 ? 0.3 * i : -0.1 * Math.abs(i);
-          break;
-        case 'sharply_increasing':
-          priceModifier = i > 0 ? 0.5 * i : -0.1 * Math.abs(i);
-          break;
-        case 'last_minute_discount':
-          priceModifier = i > 0 ? (i < 3 ? -15 : 0.3 * i) : -0.1 * Math.abs(i);
-          break;
-        case 'last_minute_premium':
-          priceModifier = i > 0 ? (i < 3 ? 20 : 0.3 * i) : -0.1 * Math.abs(i);
-          break;
-      }
-      
-      // Add some randomness
-      priceModifier += (Math.random() - 0.5) * 5;
-      
-      const price = basePrice + priceModifier;
-      
-      dataPoints.push({
-        date: date.toISOString().split('T')[0],
-        price: Math.max(price, basePrice * 0.7), // Ensure price doesn't go too low
-        isForecast: i > 0,
-      });
+  private calculateGuestFactor(guestCount: number): number {
+    // First guest is base price
+    if (guestCount <= 1) {
+      return 1.0;
     }
     
-    return dataPoints;
+    // Each additional guest adds 15% to the price, with diminishing returns
+    return 1.0 + (guestCount - 1) * 0.15 * Math.pow(0.9, guestCount - 2);
+  }
+
+  /**
+   * Calculate confidence score for the prediction
+   */
+  private calculateConfidence(similarPropertiesCount: number, checkInDate: Date): number {
+    // More similar properties = higher confidence
+    const propertiesConfidence = Math.min(similarPropertiesCount / 10, 1);
+    
+    // Closer dates = higher confidence
+    const daysUntilCheckIn = Math.max(0, (checkInDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const dateConfidence = Math.max(0, 1 - daysUntilCheckIn / 365);
+    
+    // Combine factors with weights
+    return 0.7 * propertiesConfidence + 0.3 * dateConfidence;
+  }
+
+  /**
+   * Calculate number of nights between two dates
+   */
+  private calculateNights(checkInDate: Date, checkOutDate: Date): number {
+    const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 }

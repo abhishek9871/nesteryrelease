@@ -1,117 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class Constants {
-  // API Endpoints
-  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? 'https://api.nestery.com';
-  
-  // Routes
-  static const String splashRoute = '/';
-  static const String loginRoute = '/login';
-  static const String registerRoute = '/register';
-  static const String homeRoute = '/home';
-  static const String propertyDetailsRoute = '/property-details';
-  static const String bookingRoute = '/booking';
-  static const String bookingConfirmationRoute = '/booking-confirmation';
-  static const String bookingsRoute = '/bookings';
-  static const String profileRoute = '/profile';
-  static const String settingsRoute = '/settings';
-  static const String loyaltyRoute = '/loyalty';
-  static const String searchRoute = '/search';
-  
+class AppConstants {
   // Colors
-  static const Color primaryColor = Color(0xFF1E88E5);
-  static const Color accentColor = Color(0xFF26A69A);
-  static const Color backgroundColor = Colors.white;
-  static const Color errorColor = Colors.red;
-  static const Color successColor = Colors.green;
-  static const Color warningColor = Colors.orange;
-  static const Color textColor = Colors.black87;
-  static const Color secondaryTextColor = Colors.black54;
+  static final Color primaryColor = Color(0xFF1E88E5);
+  static final Color secondaryColor = Color(0xFF26A69A);
+  static final Color accentColor = Color(0xFFFF9800);
+  static final Color errorColor = Color(0xFFE53935);
+  static final Color successColor = Color(0xFF43A047);
+  static final Color warningColor = Color(0xFFFFA000);
+  static final Color infoColor = Color(0xFF039BE5);
   
-  // Text Styles
-  static const TextStyle headingStyle = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: textColor,
-  );
+  // API Constants
+  static late String apiBaseUrl;
+  static late String googleMapsApiKey;
+  static late String stripePublishableKey;
+  static late String environment;
   
-  static const TextStyle subheadingStyle = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: textColor,
-  );
+  // Storage Keys
+  static const String tokenKey = 'auth_token';
+  static const String refreshTokenKey = 'refresh_token';
+  static const String userKey = 'user_data';
+  static const String themeKey = 'app_theme';
+  static const String onboardingKey = 'onboarding_completed';
   
-  static const TextStyle bodyStyle = TextStyle(
-    fontSize: 16,
-    color: textColor,
-  );
+  // API Endpoints
+  static const String loginEndpoint = '/auth/login';
+  static const String registerEndpoint = '/auth/register';
+  static const String refreshTokenEndpoint = '/auth/refresh';
+  static const String propertiesEndpoint = '/properties';
+  static const String bookingsEndpoint = '/bookings';
+  static const String userProfileEndpoint = '/users/profile';
+  static const String loyaltyEndpoint = '/features/loyalty';
+  static const String recommendationsEndpoint = '/features/recommendation';
+  static const String pricePredictionEndpoint = '/features/price-prediction';
+  static const String socialSharingEndpoint = '/features/social-sharing';
   
-  static const TextStyle captionStyle = TextStyle(
-    fontSize: 14,
-    color: secondaryTextColor,
-  );
+  // Pagination
+  static const int defaultPageSize = 10;
+  
+  // Timeouts
+  static const int connectionTimeout = 30000; // 30 seconds
+  static const int receiveTimeout = 30000; // 30 seconds
   
   // Animation Durations
   static const Duration shortAnimationDuration = Duration(milliseconds: 200);
-  static const Duration mediumAnimationDuration = Duration(milliseconds: 400);
+  static const Duration mediumAnimationDuration = Duration(milliseconds: 500);
   static const Duration longAnimationDuration = Duration(milliseconds: 800);
   
-  // Padding and Margins
-  static const double smallPadding = 8.0;
-  static const double mediumPadding = 16.0;
-  static const double largePadding = 24.0;
-  static const double extraLargePadding = 32.0;
+  // Initialize constants from environment variables
+  static void initialize() {
+    apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/api';
+    googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    stripePublishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
+    environment = dotenv.env['ENVIRONMENT'] ?? 'development';
+  }
   
-  // Border Radius
-  static const double smallRadius = 4.0;
-  static const double mediumRadius = 8.0;
-  static const double largeRadius = 12.0;
-  static const double extraLargeRadius = 24.0;
+  // Validation Patterns
+  static final RegExp emailPattern = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
+  static final RegExp passwordPattern = RegExp(
+    r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$',
+  );
+  static final RegExp phonePattern = RegExp(
+    r'^\+?[0-9]{10,15}$',
+  );
   
-  // Image Assets
-  static const String logoImage = 'assets/images/logo.png';
-  static const String placeholderImage = 'assets/images/placeholder.png';
-  static const String errorImage = 'assets/images/error.png';
+  // Validation Messages
+  static const String emailRequired = 'Email is required';
+  static const String emailInvalid = 'Please enter a valid email address';
+  static const String passwordRequired = 'Password is required';
+  static const String passwordInvalid = 'Password must be at least 8 characters with letters and numbers';
+  static const String nameRequired = 'Name is required';
+  static const String phoneInvalid = 'Please enter a valid phone number';
   
-  // Loyalty Tiers
-  static const Map<String, Color> loyaltyTierColors = {
-    'bronze': Color(0xFFCD7F32),
-    'silver': Color(0xFFC0C0C0),
-    'gold': Color(0xFFFFD700),
-    'platinum': Color(0xFFE5E4E2),
-  };
+  // Error Messages
+  static const String networkError = 'Network error. Please check your connection and try again.';
+  static const String serverError = 'Server error. Please try again later.';
+  static const String unauthorizedError = 'Your session has expired. Please login again.';
+  static const String unknownError = 'An unexpected error occurred. Please try again.';
   
-  // Property Types
-  static const List<String> propertyTypes = [
-    'Hotel',
-    'Apartment',
-    'Resort',
-    'Villa',
-    'Hostel',
-    'Guesthouse',
-  ];
+  // Success Messages
+  static const String loginSuccess = 'Login successful';
+  static const String registerSuccess = 'Registration successful';
+  static const String bookingSuccess = 'Booking confirmed successfully';
+  static const String profileUpdateSuccess = 'Profile updated successfully';
   
-  // Common Amenities
-  static const List<String> commonAmenities = [
-    'WiFi',
-    'Pool',
-    'Parking',
-    'Air Conditioning',
-    'Restaurant',
-    'Fitness Center',
-    'Spa',
-    'Room Service',
-    'Bar',
-    'Breakfast',
-  ];
-  
-  // Google Maps
-  static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
-  
-  // Stripe
-  static String get stripePublishableKey => dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
-  
-  // Analytics
-  static bool get analyticsEnabled => dotenv.env['ANALYTICS_ENABLED']?.toLowerCase() == 'true';
+  // Feature Flags
+  static bool get isLoyaltyEnabled => true;
+  static bool get isPricePredictionEnabled => true;
+  static bool get isRecommendationEnabled => true;
+  static bool get isSocialSharingEnabled => true;
 }

@@ -1,59 +1,92 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PricePredictionService } from './price-prediction.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Public } from '../../auth/decorators/public.decorator';
 
-/**
- * Controller handling price prediction endpoints
- */
 @ApiTags('price-prediction')
 @Controller('price-prediction')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class PricePredictionController {
   constructor(private readonly pricePredictionService: PricePredictionService) {}
 
-  /**
-   * Predict price trends for a specific property and date range
-   */
-  @Get('trends/:propertyId')
-  @ApiOperation({ summary: 'Predict price trends for a specific property and date range' })
-  @ApiQuery({ name: 'checkInDate', required: true, type: String, description: 'Check-in date (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'checkOutDate', required: true, type: String, description: 'Check-out date (YYYY-MM-DD)' })
-  @ApiResponse({ status: 200, description: 'Price trends predicted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Property not found' })
-  async predictPriceTrend(
-    @Param('propertyId') propertyId: string,
-    @Query('checkInDate') checkInDate: string,
-    @Query('checkOutDate') checkOutDate: string,
+  @Post('predict')
+  @Public()
+  @ApiOperation({ summary: 'Predict price for a property' })
+  @ApiResponse({ status: 200, description: 'Returns predicted price and factors' })
+  async predictPrice(
+    @Body() params: {
+      propertyId?: string;
+      city: string;
+      country: string;
+      checkInDate: Date;
+      checkOutDate: Date;
+      guestCount: number;
+      amenities?: string[];
+      propertyType?: string;
+      rating?: number;
+    },
   ) {
-    return this.pricePredictionService.predictPriceTrend(
-      propertyId,
-      new Date(checkInDate),
-      new Date(checkOutDate),
-    );
+    return this.pricePredictionService.predictPrice(params);
   }
 
-  /**
-   * Recommend optimal booking time for best price
-   */
-  @Get('recommend-booking-time/:propertyId')
-  @ApiOperation({ summary: 'Recommend optimal booking time for best price' })
-  @ApiQuery({ name: 'checkInDate', required: true, type: String, description: 'Check-in date (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'checkOutDate', required: true, type: String, description: 'Check-out date (YYYY-MM-DD)' })
-  @ApiResponse({ status: 200, description: 'Booking time recommendation generated successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Property not found' })
-  async recommendBookingTime(
-    @Param('propertyId') propertyId: string,
-    @Query('checkInDate') checkInDate: string,
-    @Query('checkOutDate') checkOutDate: string,
+  @Get('trends')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get price trends for a location' })
+  @ApiResponse({ status: 200, description: 'Returns price trends data' })
+  async getPriceTrends(
+    @Query('city') city: string,
+    @Query('country') country: string,
+    @Query('propertyType') propertyType?: string,
   ) {
-    return this.pricePredictionService.recommendBookingTime(
-      propertyId,
-      new Date(checkInDate),
-      new Date(checkOutDate),
-    );
+    // This would call a method to get price trends, which would be implemented in the service
+    // For now, we'll return a mock response
+    return {
+      city,
+      country,
+      propertyType,
+      trends: [
+        { month: 'Jan', avgPrice: 120 },
+        { month: 'Feb', avgPrice: 125 },
+        { month: 'Mar', avgPrice: 130 },
+        { month: 'Apr', avgPrice: 140 },
+        { month: 'May', avgPrice: 150 },
+        { month: 'Jun', avgPrice: 170 },
+        { month: 'Jul', avgPrice: 190 },
+        { month: 'Aug', avgPrice: 195 },
+        { month: 'Sep', avgPrice: 180 },
+        { month: 'Oct', avgPrice: 160 },
+        { month: 'Nov', avgPrice: 140 },
+        { month: 'Dec', avgPrice: 150 },
+      ],
+      peakSeason: ['Jun', 'Jul', 'Aug'],
+      lowSeason: ['Jan', 'Feb', 'Nov'],
+    };
+  }
+
+  @Get('comparison')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Compare prices across different locations' })
+  @ApiResponse({ status: 200, description: 'Returns price comparison data' })
+  async comparePrices(
+    @Query('cities') cities: string,
+    @Query('country') country: string,
+    @Query('propertyType') propertyType?: string,
+  ) {
+    // This would call a method to compare prices, which would be implemented in the service
+    // For now, we'll return a mock response
+    const citiesArray = cities.split(',');
+    
+    return {
+      country,
+      propertyType,
+      comparison: citiesArray.map(city => ({
+        city: city.trim(),
+        avgPrice: Math.floor(Math.random() * 100) + 100,
+        minPrice: Math.floor(Math.random() * 50) + 50,
+        maxPrice: Math.floor(Math.random() * 150) + 150,
+      })),
+    };
   }
 }

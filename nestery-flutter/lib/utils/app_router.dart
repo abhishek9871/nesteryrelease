@@ -1,82 +1,249 @@
 import 'package:flutter/material.dart';
-import 'package:nestery_flutter/screens/home_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nestery_flutter/screens/splash_screen.dart';
 import 'package:nestery_flutter/screens/login_screen.dart';
 import 'package:nestery_flutter/screens/register_screen.dart';
+import 'package:nestery_flutter/screens/home_screen.dart';
 import 'package:nestery_flutter/screens/property_details_screen.dart';
 import 'package:nestery_flutter/screens/booking_screen.dart';
 import 'package:nestery_flutter/screens/booking_confirmation_screen.dart';
 import 'package:nestery_flutter/screens/bookings_screen.dart';
-import 'package:nestery_flutter/screens/profile_screen.dart';
-import 'package:nestery_flutter/screens/settings_screen.dart';
-import 'package:nestery_flutter/screens/loyalty_screen.dart';
 import 'package:nestery_flutter/screens/search_screen.dart';
-import 'package:nestery_flutter/utils/constants.dart';
+import 'package:nestery_flutter/screens/profile_screen.dart';
+import 'package:nestery_flutter/providers/auth_provider.dart';
 
 class AppRouter {
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final _rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-  static Route<dynamic> generateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case Constants.loginRoute:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
-        
-      case Constants.registerRoute:
-        return MaterialPageRoute(builder: (_) => const RegisterScreen());
-        
-      case Constants.homeRoute:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
-        
-      case Constants.propertyDetailsRoute:
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => PropertyDetailsScreen(propertyId: args['propertyId']),
-        );
-        
-      case Constants.bookingRoute:
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => BookingScreen(
-            propertyId: args['propertyId'],
-            checkInDate: args['checkInDate'],
-            checkOutDate: args['checkOutDate'],
+  static final GoRouter router = GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/',
+    debugLogDiagnostics: true,
+    
+    // Redirect logic based on authentication state
+    redirect: (BuildContext context, GoRouterState state) {
+      final authState = ProviderScope.containerOf(context).read(authProvider);
+      final isLoggedIn = authState.isAuthenticated;
+      
+      // Paths that don't require authentication
+      final publicPaths = ['/login', '/register', '/'];
+      
+      // If the user is not logged in and trying to access a protected route
+      if (!isLoggedIn && !publicPaths.contains(state.matchedLocation)) {
+        return '/login';
+      }
+      
+      // If the user is logged in and trying to access login/register
+      if (isLoggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
+        return '/home';
+      }
+      
+      // No redirection needed
+      return null;
+    },
+    
+    // Route configuration
+    routes: [
+      // Splash screen
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      
+      // Authentication routes
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      
+      // Main app shell with bottom navigation
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) {
+          return ScaffoldWithBottomNavBar(child: child);
+        },
+        routes: [
+          // Home tab
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => const HomeScreen(),
+            routes: [
+              // Property details (nested under home)
+              GoRoute(
+                path: 'property/:id',
+                builder: (context, state) {
+                  final propertyId = state.pathParameters['id']!;
+                  return PropertyDetailsScreen(propertyId: propertyId);
+                },
+                routes: [
+                  // Booking flow (nested under property details)
+                  GoRoute(
+                    path: 'book',
+                    builder: (context, state) {
+                      final propertyId = state.pathParameters['id']!;
+                      return BookingScreen(propertyId: propertyId);
+                    },
+                  ),
+                  // Booking confirmation (nested under property details)
+                  GoRoute(
+                    path: 'confirmation/:bookingId',
+                    builder: (context, state) {
+                      final bookingId = state.pathParameters['bookingId']!;
+                      return BookingConfirmationScreen(bookingId: bookingId);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-        );
-        
-      case Constants.bookingConfirmationRoute:
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => BookingConfirmationScreen(bookingId: args['bookingId']),
-        );
-        
-      case Constants.bookingsRoute:
-        return MaterialPageRoute(builder: (_) => const BookingsScreen());
-        
-      case Constants.profileRoute:
-        return MaterialPageRoute(builder: (_) => const ProfileScreen());
-        
-      case Constants.settingsRoute:
-        return MaterialPageRoute(builder: (_) => const SettingsScreen());
-        
-      case Constants.loyaltyRoute:
-        return MaterialPageRoute(builder: (_) => const LoyaltyScreen());
-        
-      case Constants.searchRoute:
-        final args = settings.arguments as Map<String, dynamic>?;
-        return MaterialPageRoute(
-          builder: (_) => SearchScreen(
-            initialQuery: args?['initialQuery'],
-            initialFilters: args?['initialFilters'],
+          
+          // Search tab
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => const SearchScreen(),
+            routes: [
+              // Property details (nested under search)
+              GoRoute(
+                path: 'property/:id',
+                builder: (context, state) {
+                  final propertyId = state.pathParameters['id']!;
+                  return PropertyDetailsScreen(propertyId: propertyId);
+                },
+              ),
+            ],
           ),
-        );
-        
-      default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
+          
+          // Bookings tab
+          GoRoute(
+            path: '/bookings',
+            builder: (context, state) => const BookingsScreen(),
+            routes: [
+              // Booking details (nested under bookings)
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final bookingId = state.pathParameters['id']!;
+                  return BookingConfirmationScreen(bookingId: bookingId);
+                },
+              ),
+            ],
+          ),
+          
+          // Profile tab
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+        ],
+      ),
+    ],
+    
+    // Error handling
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('Page Not Found')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Oops! The page you are looking for does not exist.',
+              style: TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              child: const Text('Go to Home'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// Scaffold with bottom navigation bar for main app shell
+class ScaffoldWithBottomNavBar extends StatelessWidget {
+  final Widget child;
+
+  const ScaffoldWithBottomNavBar({
+    Key? key,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _calculateSelectedIndex(context),
+        onTap: (index) => _onItemTapped(index, context),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
           ),
-        );
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search_outlined),
+            activeIcon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book_outlined),
+            activeIcon: Icon(Icons.book),
+            label: 'Bookings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Calculate the current selected index based on the current route
+  int _calculateSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith('/home')) {
+      return 0;
+    }
+    if (location.startsWith('/search')) {
+      return 1;
+    }
+    if (location.startsWith('/bookings')) {
+      return 2;
+    }
+    if (location.startsWith('/profile')) {
+      return 3;
+    }
+    return 0;
+  }
+
+  // Handle bottom navigation item tap
+  void _onItemTapped(int index, BuildContext context) {
+    switch (index) {
+      case 0:
+        context.go('/home');
+        break;
+      case 1:
+        context.go('/search');
+        break;
+      case 2:
+        context.go('/bookings');
+        break;
+      case 3:
+        context.go('/profile');
+        break;
     }
   }
 }

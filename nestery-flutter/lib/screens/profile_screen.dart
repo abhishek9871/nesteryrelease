@@ -1,76 +1,116 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/models/user.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
+import 'package:nestery_flutter/providers/profile_provider.dart';
+import 'package:nestery_flutter/providers/theme_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
+import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
+import 'package:nestery_flutter/widgets/section_title.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
-  bool _isLoading = false;
+class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  User? _user;
-  int _loyaltyPoints = 0;
-  String _loyaltyTier = 'Silver';
+  final _formKey = GlobalKey<FormState>();
+  
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  
+  File? _profileImage;
+  bool _isEditing = false;
   
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadUserProfile();
+    
+    // Load user profile when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(userProfileProvider.notifier).loadUserProfile();
+    });
   }
   
   @override
   void dispose() {
     _tabController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
-
-  Future<void> _loadUserProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // In a real app, this would be an API call
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Mock user data
-      _user = User(
-        id: 'user123',
-        email: 'john.doe@example.com',
-        name: 'John Doe',
-        phone: '+1 (555) 123-4567',
-        role: 'user',
-        createdAt: DateTime.now().subtract(const Duration(days: 90)),
-      );
-      
-      // Mock loyalty data
-      _loyaltyPoints = 750;
-      _loyaltyTier = 'Gold';
-    } catch (error) {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading profile: ${error.toString()}'),
-          backgroundColor: Constants.errorColor,
-        ),
-      );
-    } finally {
+  
+  void _populateFormFields(User user) {
+    _firstNameController.text = user.firstName;
+    _lastNameController.text = user.lastName;
+    _emailController.text = user.email;
+    _phoneController.text = user.phone ?? '';
+  }
+  
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile != null) {
       setState(() {
-        _isLoading = false;
+        _profileImage = File(pickedFile.path);
       });
     }
   }
-
-  void _logout() {
+  
+  void _toggleEditMode(User user) {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (_isEditing) {
+        _populateFormFields(user);
+      }
+    });
+  }
+  
+  void _saveProfile() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
+    final updatedProfile = {
+      'firstName': _firstNameController.text,
+      'lastName': _lastNameController.text,
+      'phone': _phoneController.text,
+      'profileImage': _profileImage,
+    };
+    
+    ref.read(updateProfileProvider.notifier).updateProfile(updatedProfile).then((success) {
+      if (success) {
+        setState(() {
+          _isEditing = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    });
+  }
+  
+  void _showLogoutConfirmation() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -78,16 +118,21 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Perform logout
-              Provider.of<AuthProvider>(context, listen: false).logout();
-              Navigator.of(context).pushReplacementNamed(Constants.loginRoute);
             },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ref.read(authProvider.notifier).logout().then((_) {
+                context.go('/login');
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
             child: const Text('Logout'),
           ),
         ],
@@ -97,220 +142,566 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return LoadingOverlay(
-      isLoading: _isLoading,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My Profile'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout,
-            ),
-          ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Profile'),
-              Tab(text: 'Loyalty'),
-              Tab(text: 'Settings'),
-            ],
+    final theme = Theme.of(context);
+    final profileState = ref.watch(userProfileProvider);
+    final user = profileState.user;
+    final updateState = ref.watch(updateProfileProvider);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _showLogoutConfirmation,
           ),
-        ),
-        body: _user == null
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _tabController,
+        ],
+      ),
+      body: LoadingOverlay(
+        isLoading: profileState.isLoading || updateState.isLoading,
+        child: user == null && !profileState.isLoading
+            ? _buildErrorState(profileState.error ?? 'Failed to load profile')
+            : Column(
                 children: [
-                  // Profile tab
-                  _buildProfileTab(),
+                  // Profile header
+                  _buildProfileHeader(user, theme),
                   
-                  // Loyalty tab
-                  _buildLoyaltyTab(),
+                  // Tab bar
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: theme.colorScheme.primary,
+                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    indicatorColor: theme.colorScheme.primary,
+                    tabs: const [
+                      Tab(text: 'Profile'),
+                      Tab(text: 'Settings'),
+                      Tab(text: 'Support'),
+                    ],
+                  ),
                   
-                  // Settings tab
-                  _buildSettingsTab(),
+                  // Tab content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // Profile tab
+                        _isEditing
+                            ? _buildEditProfileForm(user, theme)
+                            : _buildProfileDetails(user, theme),
+                        
+                        // Settings tab
+                        _buildSettingsTab(theme),
+                        
+                        // Support tab
+                        _buildSupportTab(theme),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 3,
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
-                break;
-              case 1:
-                Navigator.of(context).pushReplacementNamed(Constants.searchRoute);
-                break;
-              case 2:
-                Navigator.of(context).pushReplacementNamed(Constants.bookingsRoute);
-                break;
-              case 3:
-                // Already on profile screen
-                break;
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
+      ),
+    );
+  }
+  
+  Widget _buildProfileHeader(User? user, ThemeData theme) {
+    if (user == null) return const SizedBox(height: 200);
+    
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.primaryColor,
+            AppConstants.secondaryColor,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Profile image
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.white,
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!)
+                    : user.profilePicture != null
+                        ? NetworkImage(user.profilePicture!)
+                        : null,
+                child: user.profilePicture == null && _profileImage == null
+                    ? Text(
+                        '${user.firstName[0]}${user.lastName[0]}',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: AppConstants.primaryColor,
+                        ),
+                      )
+                    : null,
+              ),
+              if (_isEditing)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // User name
+          Text(
+            '${user.firstName} ${user.lastName}',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search_outlined),
-              activeIcon: Icon(Icons.search),
-              label: 'Search',
+          ),
+          const SizedBox(height: 4),
+          
+          // User email
+          Text(
+            user.email,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withOpacity(0.8),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_border_outlined),
-              activeIcon: Icon(Icons.bookmark),
-              label: 'Bookings',
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildProfileDetails(User? user, ThemeData theme) {
+    if (user == null) return const SizedBox();
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Edit button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CustomButton(
+                text: 'Edit Profile',
+                onPressed: () => _toggleEditMode(user),
+                icon: Icons.edit,
+                height: 40,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Personal information
+          SectionTitle(
+            title: 'Personal Information',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            theme,
+            'First Name',
+            user.firstName,
+          ),
+          _buildInfoItem(
+            theme,
+            'Last Name',
+            user.lastName,
+          ),
+          _buildInfoItem(
+            theme,
+            'Email',
+            user.email,
+          ),
+          _buildInfoItem(
+            theme,
+            'Phone',
+            user.phone ?? 'Not provided',
+            isLast: true,
+          ),
+          const SizedBox(height: 24),
+          
+          // Account information
+          SectionTitle(
+            title: 'Account Information',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            theme,
+            'Member Since',
+            user.createdAt != null
+                ? '${user.createdAt!.month}/${user.createdAt!.day}/${user.createdAt!.year}'
+                : 'Unknown',
+          ),
+          _buildInfoItem(
+            theme,
+            'Account Type',
+            user.role.toUpperCase(),
+          ),
+          _buildInfoItem(
+            theme,
+            'Loyalty Points',
+            '${user.loyaltyPoints ?? 0} points',
+            isLast: true,
+          ),
+          const SizedBox(height: 24),
+          
+          // Preferences
+          SectionTitle(
+            title: 'Preferences',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            theme,
+            'Currency',
+            user.preferredCurrency ?? 'USD',
+          ),
+          _buildInfoItem(
+            theme,
+            'Language',
+            user.preferredLanguage ?? 'English',
+            isLast: true,
+          ),
+          const SizedBox(height: 24),
+          
+          // Stats
+          SectionTitle(
+            title: 'Stats',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  theme,
+                  'Bookings',
+                  '${user.bookingsCount ?? 0}',
+                  Icons.hotel,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  theme,
+                  'Reviews',
+                  '${user.reviewsCount ?? 0}',
+                  Icons.star,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  theme,
+                  'Saved',
+                  '${user.savedPropertiesCount ?? 0}',
+                  Icons.favorite,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildEditProfileForm(User? user, ThemeData theme) {
+    if (user == null) return const SizedBox();
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cancel and save buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CustomButton(
+                  text: 'Cancel',
+                  onPressed: () => _toggleEditMode(user),
+                  backgroundColor: Colors.grey.withOpacity(0.2),
+                  textColor: theme.colorScheme.onSurface,
+                  height: 40,
+                ),
+                GradientButton(
+                  text: 'Save',
+                  onPressed: _saveProfile,
+                  height: 40,
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
+            const SizedBox(height: 24),
+            
+            // Form fields
+            CustomTextField(
+              label: 'First Name',
+              controller: _firstNameController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your first name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Last Name',
+              controller: _lastNameController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your last name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Email',
+              controller: _emailController,
+              enabled: false, // Email cannot be changed
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Phone',
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 24),
+            
+            // Password change section
+            SectionTitle(
+              title: 'Change Password',
+              showSeeAll: false,
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Current Password',
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'New Password',
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Confirm New Password',
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            CustomButton(
+              text: 'Change Password',
+              onPressed: () {
+                // Handle password change
+              },
+              width: double.infinity,
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildProfileTab() {
+  
+  Widget _buildSettingsTab(ThemeData theme) {
+    final isDarkMode = ref.watch(themeProvider);
+    
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(Constants.mediumPadding),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile header
-          Center(
-            child: Column(
-              children: [
-                // Profile image
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Constants.primaryColor.withOpacity(0.1),
-                  child: Text(
-                    _user!.name.substring(0, 1).toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Constants.primaryColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // User name
-                Text(
-                  _user!.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                
-                // Member since
-                Text(
-                  'Member since ${_user!.createdAt.year}',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                
-                // Loyalty tier badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getLoyaltyColor().withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(Constants.smallRadius),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.star,
-                        color: _getLoyaltyColor(),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$_loyaltyTier Member',
-                        style: TextStyle(
-                          color: _getLoyaltyColor(),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Personal information
-          const Text(
-            'Personal Information',
-            style: Constants.subheadingStyle,
+          // Appearance
+          SectionTitle(
+            title: 'Appearance',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
           ),
           const SizedBox(height: 16),
-          
-          // Information card
-          Container(
-            padding: const EdgeInsets.all(Constants.mediumPadding),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildInfoRow(
-                  icon: Icons.email_outlined,
-                  title: 'Email',
-                  value: _user!.email,
-                ),
-                const Divider(height: 24),
-                _buildInfoRow(
-                  icon: Icons.phone_outlined,
-                  title: 'Phone',
-                  value: _user!.phone ?? 'Not provided',
-                ),
-                if (_user!.phone != null) ...[
-                  const Divider(height: 24),
-                  _buildInfoRow(
-                    icon: Icons.location_on_outlined,
-                    title: 'Address',
-                    value: 'Not provided',
-                  ),
-                ],
-              ],
+          _buildSettingItem(
+            theme,
+            'Dark Mode',
+            'Switch between light and dark theme',
+            trailing: Switch(
+              value: isDarkMode,
+              onChanged: (value) {
+                ref.read(themeProvider.notifier).toggleTheme();
+              },
+              activeColor: theme.colorScheme.primary,
             ),
           ),
-          const SizedBox(height: 24),
+          _buildSettingItem(
+            theme,
+            'Text Size',
+            'Adjust the text size',
+            trailing: DropdownButton<String>(
+              value: 'Medium',
+              onChanged: (value) {
+                // Handle text size change
+              },
+              items: ['Small', 'Medium', 'Large'].map((size) {
+                return DropdownMenuItem<String>(
+                  value: size,
+                  child: Text(size),
+                );
+              }).toList(),
+              underline: const SizedBox(),
+            ),
+          ),
           
-          // Edit profile button
-          CustomButton(
-            text: 'Edit Profile',
-            onPressed: () {
-              // TODO: Navigate to edit profile screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Edit profile functionality coming soon'),
-                ),
+          // Notifications
+          SectionTitle(
+            title: 'Notifications',
+            showSeeAll: false,
+            padding: const EdgeInsets.only(top: 24),
+          ),
+          const SizedBox(height: 16),
+          _buildSettingItem(
+            theme,
+            'Push Notifications',
+            'Receive push notifications',
+            trailing: Switch(
+              value: true,
+              onChanged: (value) {
+                // Handle push notifications toggle
+              },
+              activeColor: theme.colorScheme.primary,
+            ),
+          ),
+          _buildSettingItem(
+            theme,
+            'Email Notifications',
+            'Receive email notifications',
+            trailing: Switch(
+              value: true,
+              onChanged: (value) {
+                // Handle email notifications toggle
+              },
+              activeColor: theme.colorScheme.primary,
+            ),
+          ),
+          _buildSettingItem(
+            theme,
+            'Marketing Communications',
+            'Receive marketing emails',
+            trailing: Switch(
+              value: false,
+              onChanged: (value) {
+                // Handle marketing communications toggle
+              },
+              activeColor: theme.colorScheme.primary,
+            ),
+          ),
+          
+          // Privacy
+          SectionTitle(
+            title: 'Privacy',
+            showSeeAll: false,
+            padding: const EdgeInsets.only(top: 24),
+          ),
+          const SizedBox(height: 16),
+          _buildSettingItem(
+            theme,
+            'Location Services',
+            'Allow access to your location',
+            trailing: Switch(
+              value: true,
+              onChanged: (value) {
+                // Handle location services toggle
+              },
+              activeColor: theme.colorScheme.primary,
+            ),
+          ),
+          _buildSettingItem(
+            theme,
+            'Data Collection',
+            'Allow data collection for better experience',
+            trailing: Switch(
+              value: true,
+              onChanged: (value) {
+                // Handle data collection toggle
+              },
+              activeColor: theme.colorScheme.primary,
+            ),
+          ),
+          
+          // App info
+          SectionTitle(
+            title: 'App Info',
+            showSeeAll: false,
+            padding: const EdgeInsets.only(top: 24),
+          ),
+          const SizedBox(height: 16),
+          _buildSettingItem(
+            theme,
+            'Version',
+            '1.0.0',
+          ),
+          _buildSettingItem(
+            theme,
+            'Terms of Service',
+            'Read our terms of service',
+            onTap: () {
+              // Open terms of service
+              launchUrl(Uri.parse('https://nestery.com/terms'));
+            },
+          ),
+          _buildSettingItem(
+            theme,
+            'Privacy Policy',
+            'Read our privacy policy',
+            onTap: () {
+              // Open privacy policy
+              launchUrl(Uri.parse('https://nestery.com/privacy'));
+            },
+          ),
+          _buildSettingItem(
+            theme,
+            'Licenses',
+            'View open source licenses',
+            onTap: () {
+              // Show licenses
+              showLicensePage(
+                context: context,
+                applicationName: 'Nestery',
+                applicationVersion: '1.0.0',
               );
             },
           ),
@@ -318,693 +709,369 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ),
     );
   }
-
-  Widget _buildLoyaltyTab() {
+  
+  Widget _buildSupportTab(ThemeData theme) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(Constants.mediumPadding),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Loyalty points card
-          Container(
-            padding: const EdgeInsets.all(Constants.mediumPadding),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _getLoyaltyColor(),
-                  _getLoyaltyColor().withOpacity(0.7),
-                ],
+          // Help center
+          SectionTitle(
+            title: 'Help Center',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
+          _buildSupportItem(
+            theme,
+            'FAQs',
+            'Find answers to common questions',
+            Icons.help_outline,
+            onTap: () {
+              // Open FAQs
+              launchUrl(Uri.parse('https://nestery.com/faq'));
+            },
+          ),
+          _buildSupportItem(
+            theme,
+            'Contact Support',
+            'Get help from our support team',
+            Icons.support_agent,
+            onTap: () {
+              // Contact support
+              launchUrl(Uri.parse('https://nestery.com/support'));
+            },
+          ),
+          _buildSupportItem(
+            theme,
+            'Report an Issue',
+            'Report a problem with the app',
+            Icons.bug_report,
+            onTap: () {
+              // Report issue
+              launchUrl(Uri.parse('https://nestery.com/report'));
+            },
+          ),
+          
+          // Feedback
+          SectionTitle(
+            title: 'Feedback',
+            showSeeAll: false,
+            padding: const EdgeInsets.only(top: 24),
+          ),
+          const SizedBox(height: 16),
+          _buildSupportItem(
+            theme,
+            'Rate the App',
+            'Share your experience with others',
+            Icons.star_outline,
+            onTap: () {
+              // Rate app
+              launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=com.nestery.app'));
+            },
+          ),
+          _buildSupportItem(
+            theme,
+            'Send Feedback',
+            'Help us improve the app',
+            Icons.feedback_outlined,
+            onTap: () {
+              // Send feedback
+              launchUrl(Uri.parse('https://nestery.com/feedback'));
+            },
+          ),
+          
+          // Share
+          SectionTitle(
+            title: 'Share',
+            showSeeAll: false,
+            padding: const EdgeInsets.only(top: 24),
+          ),
+          const SizedBox(height: 16),
+          _buildSupportItem(
+            theme,
+            'Share the App',
+            'Invite friends to use Nestery',
+            Icons.share,
+            onTap: () {
+              // Share app
+              Share.share(
+                'Check out Nestery, the best app for booking hotels and accommodations! Download it now: https://nestery.com/app',
+                subject: 'Nestery - Hotel Booking App',
+              );
+            },
+          ),
+          _buildSupportItem(
+            theme,
+            'Refer a Friend',
+            'Get rewards for referring friends',
+            Icons.card_giftcard,
+            onTap: () {
+              // Refer a friend
+              launchUrl(Uri.parse('https://nestery.com/refer'));
+            },
+          ),
+          
+          // Social media
+          SectionTitle(
+            title: 'Follow Us',
+            showSeeAll: false,
+            padding: const EdgeInsets.only(top: 24),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildSocialButton(
+                theme,
+                'Facebook',
+                Icons.facebook,
+                Colors.blue,
+                () {
+                  launchUrl(Uri.parse('https://facebook.com/nestery'));
+                },
               ),
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Loyalty Points',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(Constants.smallRadius),
-                      ),
-                      child: Text(
-                        _loyaltyTier,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  '$_loyaltyPoints',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Points available',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Progress to next tier
-                if (_loyaltyTier != 'Platinum') ...[
-                  const Text(
-                    'Progress to next tier',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: _getProgressToNextTier(),
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _getNextTierMessage(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ],
+              _buildSocialButton(
+                theme,
+                'Twitter',
+                Icons.flutter_dash,
+                Colors.lightBlue,
+                () {
+                  launchUrl(Uri.parse('https://twitter.com/nestery'));
+                },
+              ),
+              _buildSocialButton(
+                theme,
+                'Instagram',
+                Icons.camera_alt,
+                Colors.purple,
+                () {
+                  launchUrl(Uri.parse('https://instagram.com/nestery'));
+                },
+              ),
+              _buildSocialButton(
+                theme,
+                'YouTube',
+                Icons.play_arrow,
+                Colors.red,
+                () {
+                  launchUrl(Uri.parse('https://youtube.com/nestery'));
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildInfoItem(
+    ThemeData theme,
+    String label,
+    String value, {
+    bool isLast = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          const SizedBox(height: 24),
-          
-          // Tier benefits
-          const Text(
-            'Your Benefits',
-            style: Constants.subheadingStyle,
-          ),
-          const SizedBox(height: 16),
-          
-          // Benefits list
-          Container(
-            padding: const EdgeInsets.all(Constants.mediumPadding),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: _getLoyaltyBenefits().map((benefit) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _getLoyaltyColor().withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          benefit.icon,
-                          color: _getLoyaltyColor(),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              benefit.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              benefit.description,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // How to earn points
-          const Text(
-            'How to Earn Points',
-            style: Constants.subheadingStyle,
-          ),
-          const SizedBox(height: 16),
-          
-          // Earning methods
-          Container(
-            padding: const EdgeInsets.all(Constants.mediumPadding),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildEarningMethod(
-                  icon: Icons.hotel,
-                  title: 'Book a Stay',
-                  description: 'Earn 10 points for every \$100 spent',
-                ),
-                const Divider(height: 24),
-                _buildEarningMethod(
-                  icon: Icons.star,
-                  title: 'Book Premium Properties',
-                  description: 'Earn 2x points on premium properties',
-                ),
-                const Divider(height: 24),
-                _buildEarningMethod(
-                  icon: Icons.share,
-                  title: 'Refer a Friend',
-                  description: 'Earn 100 points for each friend who books',
-                ),
-                const Divider(height: 24),
-                _buildEarningMethod(
-                  icon: Icons.rate_review,
-                  title: 'Write a Review',
-                  description: 'Earn 20 points for each verified review',
-                ),
-              ],
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildSettingsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(Constants.mediumPadding),
+  
+  Widget _buildStatCard(
+    ThemeData theme,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Account settings
-          const Text(
-            'Account Settings',
-            style: Constants.subheadingStyle,
+          Icon(
+            icon,
+            color: theme.colorScheme.primary,
+            size: 32,
           ),
-          const SizedBox(height: 16),
-          
-          // Settings list
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildSettingItem(
-                  icon: Icons.lock_outline,
-                  title: 'Change Password',
-                  onTap: () {
-                    // TODO: Navigate to change password screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Change password functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notification Settings',
-                  onTap: () {
-                    // TODO: Navigate to notification settings screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notification settings functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.language_outlined,
-                  title: 'Language',
-                  value: 'English',
-                  onTap: () {
-                    // TODO: Navigate to language settings screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Language settings functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.attach_money,
-                  title: 'Currency',
-                  value: 'USD',
-                  onTap: () {
-                    // TODO: Navigate to currency settings screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Currency settings functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 24),
-          
-          // App settings
-          const Text(
-            'App Settings',
-            style: Constants.subheadingStyle,
-          ),
-          const SizedBox(height: 16),
-          
-          // Settings list
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildSettingItem(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'Dark Mode',
-                  trailing: Switch(
-                    value: false,
-                    onChanged: (value) {
-                      // TODO: Implement dark mode
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Dark mode functionality coming soon'),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.location_on_outlined,
-                  title: 'Location Services',
-                  trailing: Switch(
-                    value: true,
-                    onChanged: (value) {
-                      // TODO: Implement location services toggle
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Location services toggle functionality coming soon'),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 24),
-          
-          // Support and about
-          const Text(
-            'Support & About',
-            style: Constants.subheadingStyle,
-          ),
-          const SizedBox(height: 16),
-          
-          // Settings list
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(Constants.mediumRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildSettingItem(
-                  icon: Icons.help_outline,
-                  title: 'Help Center',
-                  onTap: () {
-                    // TODO: Navigate to help center screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Help center functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  onTap: () {
-                    // TODO: Navigate to privacy policy screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Privacy policy functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.description_outlined,
-                  title: 'Terms of Service',
-                  onTap: () {
-                    // TODO: Navigate to terms of service screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Terms of service functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                _buildSettingItem(
-                  icon: Icons.info_outline,
-                  title: 'About',
-                  value: 'Version 1.0.0',
-                  onTap: () {
-                    // TODO: Navigate to about screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('About functionality coming soon'),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Logout button
-          CustomButton(
-            text: 'Logout',
-            onPressed: _logout,
-            backgroundColor: Colors.red,
-          ),
-          const SizedBox(height: 32),
         ],
       ),
     );
   }
-
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Constants.primaryColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: Constants.primaryColor,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEarningMethod({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Constants.primaryColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: Constants.primaryColor,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingItem({
-    required IconData icon,
-    required String title,
-    String? value,
+  
+  Widget _buildSettingItem(
+    ThemeData theme,
+    String title,
+    String subtitle, {
     Widget? trailing,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: Constants.primaryColor,
+      title: Text(
+        title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
       ),
-      title: Text(title),
-      subtitle: value != null ? Text(value) : null,
-      trailing: trailing ?? const Icon(Icons.chevron_right),
+      subtitle: Text(
+        subtitle,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: trailing,
       onTap: onTap,
+      contentPadding: EdgeInsets.zero,
     );
   }
-
-  Color _getLoyaltyColor() {
-    switch (_loyaltyTier) {
-      case 'Bronze':
-        return Colors.brown;
-      case 'Silver':
-        return Colors.blueGrey;
-      case 'Gold':
-        return Colors.amber;
-      case 'Platinum':
-        return Colors.blueAccent;
-      default:
-        return Constants.primaryColor;
-    }
+  
+  Widget _buildSupportItem(
+    ThemeData theme,
+    String title,
+    String subtitle,
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: theme.colorScheme.primary,
+        ),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+    );
   }
-
-  double _getProgressToNextTier() {
-    switch (_loyaltyTier) {
-      case 'Bronze':
-        return _loyaltyPoints / 500; // 500 points to reach Silver
-      case 'Silver':
-        return (_loyaltyPoints - 500) / 500; // 1000 points to reach Gold
-      case 'Gold':
-        return (_loyaltyPoints - 1000) / 1000; // 2000 points to reach Platinum
-      default:
-        return 1.0;
-    }
+  
+  Widget _buildSocialButton(
+    ThemeData theme,
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
   }
-
-  String _getNextTierMessage() {
-    switch (_loyaltyTier) {
-      case 'Bronze':
-        return '${500 - _loyaltyPoints} more points to reach Silver';
-      case 'Silver':
-        return '${1000 - _loyaltyPoints} more points to reach Gold';
-      case 'Gold':
-        return '${2000 - _loyaltyPoints} more points to reach Platinum';
-      default:
-        return 'You have reached the highest tier!';
-    }
-  }
-
-  List<LoyaltyBenefit> _getLoyaltyBenefits() {
-    final List<LoyaltyBenefit> benefits = [];
-    
-    // Basic benefits for all tiers
-    benefits.add(
-      LoyaltyBenefit(
-        icon: Icons.star,
-        title: 'Points on Every Booking',
-        description: 'Earn 10 points for every \$100 spent',
+  
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Error Loading Profile',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                ref.read(userProfileProvider.notifier).loadUserProfile();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
-    
-    // Silver tier and above
-    if (_loyaltyTier == 'Silver' || _loyaltyTier == 'Gold' || _loyaltyTier == 'Platinum') {
-      benefits.add(
-        LoyaltyBenefit(
-          icon: Icons.access_time,
-          title: 'Early Check-in',
-          description: 'Subject to availability',
-        ),
-      );
-    }
-    
-    // Gold tier and above
-    if (_loyaltyTier == 'Gold' || _loyaltyTier == 'Platinum') {
-      benefits.add(
-        LoyaltyBenefit(
-          icon: Icons.upgrade,
-          title: 'Room Upgrades',
-          description: 'Free upgrades when available',
-        ),
-      );
-      benefits.add(
-        LoyaltyBenefit(
-          icon: Icons.local_dining,
-          title: 'Welcome Amenities',
-          description: 'Special welcome gift at check-in',
-        ),
-      );
-    }
-    
-    // Platinum tier only
-    if (_loyaltyTier == 'Platinum') {
-      benefits.add(
-        LoyaltyBenefit(
-          icon: Icons.support_agent,
-          title: 'Dedicated Support',
-          description: 'Priority customer service',
-        ),
-      );
-      benefits.add(
-        LoyaltyBenefit(
-          icon: Icons.free_breakfast,
-          title: 'Free Breakfast',
-          description: 'Complimentary breakfast at select properties',
-        ),
-      );
-    }
-    
-    return benefits;
   }
-}
-
-class LoyaltyBenefit {
-  final IconData icon;
-  final String title;
-  final String description;
-  
-  LoyaltyBenefit({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
 }

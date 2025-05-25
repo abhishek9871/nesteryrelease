@@ -1,42 +1,30 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RecommendationService } from './recommendation.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Public } from '../../auth/decorators/public.decorator';
 
-/**
- * Controller handling recommendation endpoints
- */
 @ApiTags('recommendations')
 @Controller('recommendations')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class RecommendationController {
   constructor(private readonly recommendationService: RecommendationService) {}
 
-  /**
-   * Get personalized property recommendations for the current user
-   */
-  @Get('personalized')
-  @ApiOperation({ summary: 'Get personalized property recommendations for the current user' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of recommendations' })
-  @ApiResponse({ status: 200, description: 'Recommendations retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getPersonalizedRecommendations(
-    @Req() req: any,
+  @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get personalized recommendations for a user' })
+  @ApiResponse({ status: 200, description: 'Returns recommended properties for the user' })
+  async getRecommendationsForUser(
+    @Param('userId') userId: string,
     @Query('limit') limit?: number,
   ) {
-    return this.recommendationService.getPersonalizedRecommendations(req.user.id, limit);
+    return this.recommendationService.getRecommendationsForUser(userId, limit);
   }
 
-  /**
-   * Get similar properties to a given property
-   */
   @Get('similar/:propertyId')
-  @ApiOperation({ summary: 'Get similar properties to a given property' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of similar properties' })
-  @ApiResponse({ status: 200, description: 'Similar properties retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Property not found' })
+  @Public()
+  @ApiOperation({ summary: 'Get similar properties to a specific property' })
+  @ApiResponse({ status: 200, description: 'Returns similar properties' })
   async getSimilarProperties(
     @Param('propertyId') propertyId: string,
     @Query('limit') limit?: number,
@@ -44,18 +32,24 @@ export class RecommendationController {
     return this.recommendationService.getSimilarProperties(propertyId, limit);
   }
 
-  /**
-   * Get trending destinations based on user location and preferences
-   */
-  @Get('trending-destinations')
-  @ApiOperation({ summary: 'Get trending destinations based on user location and preferences' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of destinations' })
-  @ApiResponse({ status: 200, description: 'Trending destinations retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getTrendingDestinations(
-    @Req() req: any,
+  @Get('trending')
+  @Public()
+  @ApiOperation({ summary: 'Get trending properties' })
+  @ApiResponse({ status: 200, description: 'Returns trending properties' })
+  async getTrendingProperties(
     @Query('limit') limit?: number,
   ) {
-    return this.recommendationService.getTrendingDestinations(req.user.id, limit);
+    return this.recommendationService.getTrendingProperties(limit);
+  }
+
+  @Get('destination')
+  @Public()
+  @ApiOperation({ summary: 'Get popular properties for a destination' })
+  @ApiResponse({ status: 200, description: 'Returns popular properties for the destination' })
+  async getPopularPropertiesForDestination(
+    @Query('destination') destination: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.recommendationService.getPopularPropertiesForDestination(destination, limit);
   }
 }

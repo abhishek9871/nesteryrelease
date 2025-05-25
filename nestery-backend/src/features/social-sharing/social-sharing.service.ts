@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
 import { LoggerService } from '../../core/logger/logger.service';
-import { ExceptionService } from '../../core/exception/exception.service';
-import { firstValueFrom } from 'rxjs';
+import { PropertyEntity } from '../../properties/entities/property.entity';
+import { UserEntity } from '../../users/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
-/**
- * Service for social sharing functionality
- */
 @Injectable()
 export class SocialSharingService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly httpService: HttpService,
     private readonly logger: LoggerService,
-    private readonly exceptionService: ExceptionService,
+    @InjectRepository(PropertyEntity)
+    private readonly propertyRepository: Repository<PropertyEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
   ) {
     this.logger.setContext('SocialSharingService');
   }
@@ -22,180 +22,325 @@ export class SocialSharingService {
   /**
    * Generate shareable content for a property
    */
-  async generateShareableContent(propertyId: string, platform: string): Promise<any> {
+  async generateShareableContent(propertyId: string, platform: string): Promise<{
+    title: string;
+    description: string;
+    imageUrl: string;
+    shareUrl: string;
+    hashtags: string[];
+  }> {
     try {
-      this.logger.log(`Generating shareable content for property ${propertyId} on ${platform}`);
-      
-      // In a real implementation, this would fetch property details from the database
-      // For this example, we're using mock data
-      const property = {
-        id: propertyId,
-        name: 'Luxury Ocean View Suite',
-        description: 'Experience luxury living with breathtaking ocean views',
-        city: 'Miami',
-        country: 'USA',
-        starRating: 5,
-        basePrice: 299.99,
-        thumbnailImage: 'https://example.com/property.jpg',
+      this.logger.debug(`Generating shareable content for property ${propertyId} on ${platform}`);
+
+      // Get property details
+      const property = await this.propertyRepository.findOne({
+        where: { id: propertyId },
+      });
+
+      if (!property) {
+        throw new Error(`Property with ID ${propertyId} not found`);
+      }
+
+      // Generate base content
+      const baseContent = {
+        title: `Discover ${property.name} in ${property.city}`,
+        description: this.truncateDescription(property.description, platform),
+        imageUrl: property.thumbnailImage || property.images?.[0] || '',
+        shareUrl: `${this.configService.get<string>('APP_URL')}/properties/${propertyId}?utm_source=${platform}&utm_medium=social&utm_campaign=share`,
+        hashtags: this.generateHashtags(property),
       };
-      
-      // Generate platform-specific content
-      const content = this.formatContentForPlatform(property, platform);
-      
-      return {
-        property: propertyId,
-        platform,
-        content,
-      };
+
+      // Customize content based on platform
+      return this.customizeForPlatform(baseContent, platform, property);
     } catch (error) {
-      this.logger.error(`Error generating shareable content: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error generating shareable content: ${error.message}`, error.stack);
+      throw new Error(`Failed to generate shareable content: ${error.message}`);
     }
   }
 
   /**
-   * Share property to social media
+   * Track social share event
    */
-  async shareToSocialMedia(propertyId: string, platform: string, userId: string): Promise<any> {
+  async trackSocialShare(params: {
+    userId: string;
+    propertyId: string;
+    platform: string;
+    shareUrl: string;
+  }): Promise<{
+    success: boolean;
+    shareId: string;
+  }> {
     try {
-      this.logger.log(`Sharing property ${propertyId} to ${platform} for user ${userId}`);
+      this.logger.debug(`Tracking social share for user ${params.userId}, property ${params.propertyId} on ${params.platform}`);
+
+      // In a real implementation, this would insert a record into a social_shares table
+      // For now, we'll just log it and return a simulated response
       
-      // Generate shareable content
-      const shareableContent = await this.generateShareableContent(propertyId, platform);
-      
-      // In a real implementation, this would use the platform's API to share content
-      // For this example, we're simulating the sharing process
-      const shareResult = await this.simulateShare(shareableContent, platform, userId);
-      
-      // Record sharing activity
-      await this.recordSharingActivity(propertyId, platform, userId);
+      const shareId = `share_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
       return {
         success: true,
-        shareId: shareResult.id,
-        platform,
-        url: shareResult.url,
+        shareId,
       };
     } catch (error) {
-      this.logger.error(`Error sharing to social media: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error tracking social share: ${error.message}`, error.stack);
+      throw new Error(`Failed to track social share: ${error.message}`);
     }
   }
 
   /**
-   * Generate referral link for a user
+   * Get referral link for a user
    */
-  async generateReferralLink(userId: string): Promise<any> {
+  async getReferralLink(userId: string): Promise<{
+    referralCode: string;
+    referralUrl: string;
+    rewards: {
+      referrerReward: string;
+      refereeReward: string;
+    };
+  }> {
     try {
-      this.logger.log(`Generating referral link for user ${userId}`);
-      
-      // Generate unique referral code
-      const referralCode = this.generateReferralCode(userId);
-      
-      // Create referral link
-      const baseUrl = this.configService.get<string>('APP_URL');
-      const referralLink = `${baseUrl}/refer?code=${referralCode}`;
-      
+      this.logger.debug(`Getting referral link for user ${userId}`);
+
+      // Get user details
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      // Generate or retrieve referral code
+      const referralCode = user.referralCode || this.generateReferralCode(user);
+
+      // If user doesn't have a referral code yet, save it
+      if (!user.referralCode) {
+        user.referralCode = referralCode;
+        await this.userRepository.save(user);
+      }
+
       return {
-        userId,
         referralCode,
-        referralLink,
+        referralUrl: `${this.configService.get<string>('APP_URL')}/signup?ref=${referralCode}`,
         rewards: {
-          referrer: '500 loyalty points per successful referral',
-          referee: '10% discount on first booking',
+          referrerReward: '$25 credit after your friend's first booking',
+          refereeReward: '$25 off your first booking',
         },
       };
     } catch (error) {
-      this.logger.error(`Error generating referral link: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error getting referral link: ${error.message}`, error.stack);
+      throw new Error(`Failed to get referral link: ${error.message}`);
     }
   }
 
   /**
-   * Track referral conversion
+   * Process referral signup
    */
-  async trackReferralConversion(referralCode: string, newUserId: string): Promise<any> {
+  async processReferralSignup(referralCode: string, newUserId: string): Promise<{
+    success: boolean;
+    referrerUserId: string;
+    refereeReward: {
+      type: string;
+      value: number;
+      description: string;
+    };
+  }> {
     try {
-      this.logger.log(`Tracking referral conversion for code ${referralCode} and new user ${newUserId}`);
-      
-      // In a real implementation, this would validate the referral code and update the database
-      // For this example, we're simulating the process
-      
-      // Get referrer user ID from referral code
-      const referrerId = this.extractUserIdFromReferralCode(referralCode);
-      
-      // Record referral conversion
-      await this.recordReferralConversion(referrerId, newUserId, referralCode);
-      
+      this.logger.debug(`Processing referral signup with code ${referralCode} for new user ${newUserId}`);
+
+      // Find referrer user by referral code
+      const referrer = await this.userRepository.findOne({
+        where: { referralCode },
+      });
+
+      if (!referrer) {
+        throw new Error(`Invalid referral code: ${referralCode}`);
+      }
+
+      // Check if new user already exists and hasn't been processed for referral yet
+      const newUser = await this.userRepository.findOne({
+        where: { id: newUserId },
+      });
+
+      if (!newUser) {
+        throw new Error(`New user with ID ${newUserId} not found`);
+      }
+
+      if (newUser.referredBy) {
+        throw new Error(`User ${newUserId} has already been processed for referral`);
+      }
+
+      // Update new user with referrer information
+      newUser.referredBy = referrer.id;
+      await this.userRepository.save(newUser);
+
+      // In a real implementation, this would also create reward records for both users
+      // For now, we'll just return the success response
+
       return {
         success: true,
-        referrerId,
-        newUserId,
-        referralCode,
+        referrerUserId: referrer.id,
+        refereeReward: {
+          type: 'credit',
+          value: 25,
+          description: '$25 off your first booking',
+        },
       };
     } catch (error) {
-      this.logger.error(`Error tracking referral conversion: ${error.message}`);
-      this.exceptionService.handleException(error);
-      throw error;
+      this.logger.error(`Error processing referral signup: ${error.message}`, error.stack);
+      throw new Error(`Failed to process referral signup: ${error.message}`);
     }
   }
 
   /**
-   * Format content for specific social media platform
+   * Get sharing statistics for a property
    */
-  private formatContentForPlatform(property: any, platform: string): any {
-    const baseContent = {
-      title: `Check out this amazing property: ${property.name}`,
-      description: property.description,
-      image: property.thumbnailImage,
-      location: `${property.city}, ${property.country}`,
-      price: `$${property.basePrice} per night`,
-      rating: `${property.starRating} stars`,
+  async getPropertySharingStats(propertyId: string): Promise<{
+    totalShares: number;
+    platformBreakdown: { [platform: string]: number };
+    topReferrers: Array<{ userId: string; shares: number }>;
+    conversionRate: number;
+  }> {
+    try {
+      this.logger.debug(`Getting sharing stats for property ${propertyId}`);
+
+      // In a real implementation, this would query a social_shares table
+      // For now, we'll return simulated statistics
+      
+      return {
+        totalShares: Math.floor(Math.random() * 100) + 50,
+        platformBreakdown: {
+          facebook: Math.floor(Math.random() * 40) + 20,
+          twitter: Math.floor(Math.random() * 30) + 10,
+          instagram: Math.floor(Math.random() * 20) + 5,
+          whatsapp: Math.floor(Math.random() * 15) + 5,
+          email: Math.floor(Math.random() * 10) + 5,
+        },
+        topReferrers: [
+          { userId: 'user1', shares: Math.floor(Math.random() * 10) + 5 },
+          { userId: 'user2', shares: Math.floor(Math.random() * 8) + 3 },
+          { userId: 'user3', shares: Math.floor(Math.random() * 5) + 2 },
+        ],
+        conversionRate: Math.random() * 0.1 + 0.05, // 5-15% conversion rate
+      };
+    } catch (error) {
+      this.logger.error(`Error getting property sharing stats: ${error.message}`, error.stack);
+      throw new Error(`Failed to get property sharing stats: ${error.message}`);
+    }
+  }
+
+  /**
+   * Truncate description to appropriate length for platform
+   */
+  private truncateDescription(description: string, platform: string): string {
+    if (!description) return '';
+    
+    const maxLengths = {
+      facebook: 300,
+      twitter: 200,
+      instagram: 250,
+      whatsapp: 200,
+      email: 500,
+      default: 200,
     };
     
-    switch (platform.toLowerCase()) {
+    const maxLength = maxLengths[platform] || maxLengths.default;
+    
+    if (description.length <= maxLength) {
+      return description;
+    }
+    
+    return description.substring(0, maxLength - 3) + '...';
+  }
+
+  /**
+   * Generate hashtags based on property attributes
+   */
+  private generateHashtags(property: PropertyEntity): string[] {
+    const hashtags = ['Nestery', 'Travel'];
+    
+    // Add location hashtags
+    hashtags.push(property.city.replace(/\s+/g, ''));
+    hashtags.push(property.country.replace(/\s+/g, ''));
+    
+    // Add property type hashtag
+    if (property.propertyType) {
+      hashtags.push(property.propertyType.replace(/\s+/g, ''));
+    }
+    
+    // Add amenity hashtags (limited to 2)
+    if (property.amenities && Array.isArray(property.amenities)) {
+      const amenityHashtags = property.amenities
+        .slice(0, 2)
+        .map(amenity => amenity.replace(/\s+/g, ''));
+      
+      hashtags.push(...amenityHashtags);
+    }
+    
+    return hashtags;
+  }
+
+  /**
+   * Customize content for specific platforms
+   */
+  private customizeForPlatform(
+    baseContent: {
+      title: string;
+      description: string;
+      imageUrl: string;
+      shareUrl: string;
+      hashtags: string[];
+    },
+    platform: string,
+    property: PropertyEntity
+  ): {
+    title: string;
+    description: string;
+    imageUrl: string;
+    shareUrl: string;
+    hashtags: string[];
+  } {
+    switch (platform) {
+      case 'twitter':
+        return {
+          ...baseContent,
+          title: `Check out ${property.name} in ${property.city}!`,
+          description: this.truncateDescription(property.description, 'twitter'),
+          hashtags: baseContent.hashtags.slice(0, 3), // Twitter works best with fewer hashtags
+        };
+        
       case 'facebook':
         return {
           ...baseContent,
-          message: `I found this amazing ${property.starRating}-star property in ${property.city} for just $${property.basePrice} per night! #travel #vacation`,
-          hashtags: ['travel', 'vacation', 'luxury', property.city.toLowerCase()],
-          characterLimit: 63206,
-        };
-        
-      case 'twitter':
-      case 'x':
-        return {
-          ...baseContent,
-          message: `Check out this ${property.starRating}⭐ property in ${property.city} for $${property.basePrice}/night! #travel #vacation`,
-          hashtags: ['travel', 'vacation', property.city.toLowerCase()],
-          characterLimit: 280,
+          description: `I found this amazing place in ${property.city}! ${baseContent.description}`,
         };
         
       case 'instagram':
         return {
           ...baseContent,
-          message: `Dreaming of my next vacation at this beautiful ${property.starRating}-star property in ${property.city}! Only $${property.basePrice} per night. #travel #vacation #${property.city.toLowerCase()} #luxurytravel`,
-          hashtags: ['travel', 'vacation', 'luxury', 'wanderlust', property.city.toLowerCase(), 'travelgram'],
-          characterLimit: 2200,
-        };
-        
-      case 'pinterest':
-        return {
-          ...baseContent,
-          message: `${property.name} - ${property.starRating}-star luxury in ${property.city} | $${property.basePrice} per night`,
-          hashtags: ['travel', 'vacation', 'luxury', property.city.toLowerCase()],
-          boardSuggestion: 'Travel Inspiration',
-          characterLimit: 500,
+          title: `Dreaming of ${property.city}? 😍`,
+          description: `${baseContent.description}\n\n${baseContent.hashtags.map(tag => `#${tag}`).join(' ')}`,
+          // Instagram doesn't use hashtags separately, they're in the description
+          hashtags: [],
         };
         
       case 'whatsapp':
         return {
           ...baseContent,
-          message: `Check out this amazing property I found: ${property.name} in ${property.city}, ${property.country}. ${property.starRating} stars for just $${property.basePrice} per night! Take a look: `,
-          characterLimit: 65536,
+          title: `${property.name} in ${property.city}`,
+          description: `Hey! Check out this amazing place I found on Nestery: ${baseContent.description}`,
+          // WhatsApp doesn't use hashtags
+          hashtags: [],
+        };
+        
+      case 'email':
+        return {
+          ...baseContent,
+          title: `Discover ${property.name} in ${property.city} with Nestery`,
+          description: `I thought you might be interested in this property I found on Nestery:\n\n${property.name} in ${property.city}\n\n${property.description}\n\nCheck it out at: ${baseContent.shareUrl}`,
+          // Email doesn't use hashtags
+          hashtags: [],
         };
         
       default:
@@ -204,70 +349,13 @@ export class SocialSharingService {
   }
 
   /**
-   * Simulate sharing to social media
-   * This is a mock implementation for demonstration purposes
-   */
-  private async simulateShare(content: any, platform: string, userId: string): Promise<any> {
-    // In a real implementation, this would use the platform's API
-    this.logger.log(`Simulating share to ${platform} for user ${userId}`);
-    
-    // Generate mock share ID and URL
-    const shareId = `share_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const shareUrl = `https://${platform.toLowerCase()}.com/share/${shareId}`;
-    
-    return {
-      id: shareId,
-      url: shareUrl,
-      platform,
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Record sharing activity
-   * This is a mock implementation for demonstration purposes
-   */
-  private async recordSharingActivity(propertyId: string, platform: string, userId: string): Promise<void> {
-    // In a real implementation, this would save to a database
-    this.logger.log(`Recording sharing activity: Property ${propertyId} shared to ${platform} by user ${userId}`);
-  }
-
-  /**
    * Generate referral code for a user
    */
-  private generateReferralCode(userId: string): string {
-    // In a real implementation, this would generate a unique, secure code
-    // For this example, we're using a simple algorithm
-    const prefix = 'NST';
-    const userPart = userId.substring(0, 6);
-    const timestamp = Date.now().toString(36).substring(4, 10);
+  private generateReferralCode(user: UserEntity): string {
+    // Generate a code based on user info and random characters
+    const namePrefix = user.firstName.substring(0, 2).toUpperCase();
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
     
-    return `${prefix}-${userPart}-${timestamp}`.toUpperCase();
-  }
-
-  /**
-   * Extract user ID from referral code
-   */
-  private extractUserIdFromReferralCode(referralCode: string): string {
-    // In a real implementation, this would look up the code in a database
-    // For this example, we're using a simple algorithm to extract the user ID part
-    
-    // Mock user ID extraction (this would be different in a real implementation)
-    const parts = referralCode.split('-');
-    if (parts.length !== 3) {
-      throw new Error('Invalid referral code format');
-    }
-    
-    // This is just a placeholder - in a real app, we would look up the full user ID
-    return `user_${parts[1].toLowerCase()}`;
-  }
-
-  /**
-   * Record referral conversion
-   * This is a mock implementation for demonstration purposes
-   */
-  private async recordReferralConversion(referrerId: string, newUserId: string, referralCode: string): Promise<void> {
-    // In a real implementation, this would save to a database and trigger rewards
-    this.logger.log(`Recording referral conversion: User ${referrerId} referred user ${newUserId} with code ${referralCode}`);
+    return `${namePrefix}${randomChars}`;
   }
 }
