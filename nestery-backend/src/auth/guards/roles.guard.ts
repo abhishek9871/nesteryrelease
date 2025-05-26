@@ -25,7 +25,7 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    
+
     // If no user is present, deny access
     if (!user) {
       return false;

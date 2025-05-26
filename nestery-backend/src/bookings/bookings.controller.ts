@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Req,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -43,10 +55,7 @@ export class BookingsController {
   @ApiResponse({ status: 200, description: 'Bookings retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
+  async findAll(@Query('page') page?: number, @Query('limit') limit?: number) {
     return this.bookingsService.findAll(page, limit);
   }
 
@@ -68,7 +77,7 @@ export class BookingsController {
    * Get current user's bookings
    */
   @Get('my-bookings')
-  @ApiOperation({ summary: 'Get current user\'s bookings' })
+  @ApiOperation({ summary: "Get current user's bookings" })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
   @ApiResponse({ status: 200, description: 'Bookings retrieved successfully' })
@@ -92,12 +101,12 @@ export class BookingsController {
   @ApiResponse({ status: 404, description: 'Booking not found' })
   async findOne(@Param('id') id: string, @Req() req: any) {
     const booking = await this.bookingsService.findById(id);
-    
+
     // Check if booking belongs to the user or user is admin
     if (booking.userId !== req.user.id && req.user.role !== 'admin') {
       throw new ForbiddenException('You do not have permission to access this booking');
     }
-    
+
     return booking;
   }
 

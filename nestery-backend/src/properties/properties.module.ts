@@ -9,10 +9,7 @@ import { CoreModule } from '../core/core.module';
  * Properties module handling property-related operations
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Property]),
-    CoreModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Property]), CoreModule],
   controllers: [PropertiesController],
   providers: [PropertiesService],
   exports: [PropertiesService],

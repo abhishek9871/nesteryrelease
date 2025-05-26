@@ -1,46 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '../logger/logger.service';
 
-/**
- * Service for handling exceptions and error responses consistently across the application
- */
 @Injectable()
 export class ExceptionService {
   constructor(private readonly logger: LoggerService) {
     this.logger.setContext('ExceptionService');
   }
 
-  /**
-   * Creates a standardized error response object
-   */
-  createErrorResponse(
-    statusCode: number,
-    message: string,
-    error: string,
-    details?: any,
-  ): Record<string, any> {
-    const errorResponse = {
-      statusCode,
-      message,
-      error,
-      timestamp: new Date().toISOString(),
-    };
-
-    if (details) {
-      Object.assign(errorResponse, { details });
-    }
-
-    this.logger.error(`Error: ${error} - ${message}`, JSON.stringify(errorResponse));
-    return errorResponse;
+  handleException(error: Error): void {
+    this.logger.error(`Exception handled: ${error.message}`, error.stack);
+    // Additional error handling logic could be added here
+    // such as sending to error monitoring service, etc.
   }
 
-  /**
-   * Handles and logs an exception
-   */
-  handleException(exception: any): void {
-    const errorMessage = exception.message || 'Unknown error occurred';
-    const errorStack = exception.stack || '';
-    
-    this.logger.error(errorMessage, errorStack);
+  handleHttpException(error: Error, statusCode: number): void {
+    this.logger.error(`HTTP Exception (${statusCode}): ${error.message}`, error.stack);
+    // Additional HTTP-specific error handling logic
+  }
+
+  handleDatabaseException(error: Error): void {
+    this.logger.error(`Database Exception: ${error.message}`, error.stack);
+    // Database-specific error handling logic
+  }
+
+  handleValidationException(error: Error): void {
+    this.logger.error(`Validation Exception: ${error.message}`, error.stack);
+    // Validation-specific error handling logic
   }
 }

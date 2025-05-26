@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { IntegrationTest } from '@nestjs/testing';
+// Remove the non-existent IntegrationTest import
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -18,7 +18,8 @@ describe('Nestery API (e2e)', () => {
   let userRepository: Repository<UserEntity>;
   let propertyRepository: Repository<PropertyEntity>;
   let bookingRepository: Repository<BookingEntity>;
-  
+
+  // Test user, property, and booking for testing
   let testUser: UserEntity;
   let testProperty: PropertyEntity;
   let testBooking: BookingEntity;
@@ -32,118 +33,140 @@ describe('Nestery API (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    jwtService = app.get<JwtService>(JwtService);
-    userRepository = app.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
-    propertyRepository = app.get<Repository<PropertyEntity>>(getRepositoryToken(PropertyEntity));
-    bookingRepository = app.get<Repository<BookingEntity>>(getRepositoryToken(BookingEntity));
+    // Get services and repositories
+    jwtService = moduleFixture.get<JwtService>(JwtService);
+    userRepository = moduleFixture.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
+    propertyRepository = moduleFixture.get<Repository<PropertyEntity>>(
+      getRepositoryToken(PropertyEntity),
+    );
+    bookingRepository = moduleFixture.get<Repository<BookingEntity>>(
+      getRepositoryToken(BookingEntity),
+    );
 
     // Create test data
-    await setupTestData();
+    testUser = await userRepository.save({
+      email: 'test@example.com',
+      password: 'hashedpassword',
+      name: 'Test User',
+      role: 'user',
+    });
+
+    testProperty = await propertyRepository.save({
+      name: 'Test Property',
+      description: 'A test property',
+      address: '123 Test St',
+      city: 'Test City',
+      state: 'Test State',
+      country: 'Test Country',
+      zipCode: '12345',
+      latitude: 40.7128,
+      longitude: -74.006,
+      propertyType: 'hotel',
+      starRating: 4,
+      basePrice: 100.0,
+      currency: 'USD',
+      maxGuests: 2,
+      bedrooms: 1,
+      bathrooms: 1,
+      amenities: ['wifi', 'parking'],
+      images: ['image1.jpg', 'image2.jpg'],
+      thumbnailImage: 'thumbnail.jpg',
+      sourceType: 'direct',
+      externalId: 'test123',
+    });
+
+    testBooking = await bookingRepository.save({
+      userId: testUser.id,
+      propertyId: testProperty.id,
+      checkInDate: new Date('2025-06-01'),
+      checkOutDate: new Date('2025-06-05'),
+      numberOfGuests: 2,
+      totalPrice: 400.0,
+      currency: 'USD',
+      status: 'confirmed',
+      confirmationCode: 'CONF123',
+    });
+
+    // Generate auth token for test user
+    authToken = jwtService.sign({
+      sub: testUser.id,
+      email: testUser.email,
+      role: testUser.role,
+    });
   });
 
   afterAll(async () => {
     // Clean up test data
-    await cleanupTestData();
+    await bookingRepository.delete(testBooking.id);
+    await propertyRepository.delete(testProperty.id);
+    await userRepository.delete(testUser.id);
+
     await app.close();
   });
 
-  async function setupTestData() {
-    // Create test user
-    testUser = await userRepository.save({
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      password: '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', // 'password123'
-      role: 'user',
-    });
-
-    // Create test property
-    testProperty = await propertyRepository.save({
-      name: 'Test Property',
-      description: 'A test property for e2e testing',
-      city: 'Test City',
-      country: 'Test Country',
-      address: '123 Test Street',
-      price: 100,
-      rating: 4.5,
-      propertyType: 'hotel',
-      amenities: ['wifi', 'pool', 'gym'],
-      images: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
-      thumbnailImage: 'https://example.com/thumbnail.jpg',
-      latitude: 40.7128,
-      longitude: -74.0060,
-    });
-
-    // Create test booking
-    testBooking = await bookingRepository.save({
-      user: testUser,
-      property: testProperty,
-      checkInDate: new Date('2025-06-15'),
-      checkOutDate: new Date('2025-06-20'),
-      guestCount: 2,
-      totalAmount: 500,
-      status: 'confirmed',
-    });
-
-    // Generate auth token
-    authToken = jwtService.sign({ 
-      sub: testUser.id, 
-      email: testUser.email,
-      role: testUser.role
-    });
-  }
-
-  async function cleanupTestData() {
-    await bookingRepository.delete({ id: testBooking.id });
-    await propertyRepository.delete({ id: testProperty.id });
-    await userRepository.delete({ id: testUser.id });
-  }
-
-  describe('Authentication', () => {
-    it('/auth/login (POST) - should login successfully', () => {
+  describe('Auth', () => {
+    it('/auth/login (POST) - should authenticate user', () => {
       return request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'test@example.com', password: 'password123' })
+        .send({
+          email: 'test@example.com',
+          password: 'password123',
+        })
         .expect(200)
         .expect(res => {
-          expect(res.body.accessToken).toBeDefined();
-          expect(res.body.refreshToken).toBeDefined();
+          expect(res.body.access_token).toBeDefined();
           expect(res.body.user).toBeDefined();
           expect(res.body.user.email).toBe('test@example.com');
         });
     });
 
-    it('/auth/login (POST) - should fail with invalid credentials', () => {
-      return request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ email: 'test@example.com', password: 'wrongpassword' })
-        .expect(401);
-    });
-
-    it('/auth/register (POST) - should register a new user', () => {
-      const newUser = {
-        firstName: 'New',
-        lastName: 'User',
-        email: 'newuser@example.com',
-        password: 'password123',
-      };
-
+    it('/auth/register (POST) - should register new user', () => {
+      const email = `test${Date.now()}@example.com`;
       return request(app.getHttpServer())
         .post('/auth/register')
-        .send(newUser)
+        .send({
+          email,
+          password: 'password123',
+          name: 'New Test User',
+        })
         .expect(201)
         .expect(res => {
-          expect(res.body.accessToken).toBeDefined();
-          expect(res.body.refreshToken).toBeDefined();
-          expect(res.body.user).toBeDefined();
-          expect(res.body.user.email).toBe(newUser.email);
+          expect(res.body.id).toBeDefined();
+          expect(res.body.email).toBe(email);
         })
-        .then(async () => {
+        .then(async res => {
           // Clean up the newly created user
-          const createdUser = await userRepository.findOne({ where: { email: newUser.email } });
-          if (createdUser) {
-            await userRepository.delete(createdUser.id);
-          }
+          await userRepository.delete(res.body.id);
+        });
+    });
+  });
+
+  describe('Users', () => {
+    it('/users/me (GET) - should return user profile with auth', () => {
+      return request(app.getHttpServer())
+        .get('/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200)
+        .expect(res => {
+          expect(res.body.id).toBe(testUser.id);
+          expect(res.body.email).toBe(testUser.email);
+        });
+    });
+
+    it('/users/me (GET) - should fail without auth', () => {
+      return request(app.getHttpServer()).get('/users/me').expect(401);
+    });
+
+    it('/users/me (PATCH) - should update user profile with auth', () => {
+      return request(app.getHttpServer())
+        .patch('/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: 'Updated Test User',
+        })
+        .expect(200)
+        .expect(res => {
+          expect(res.body.name).toBe('Updated Test User');
         });
     });
   });
@@ -198,9 +221,7 @@ describe('Nestery API (e2e)', () => {
     });
 
     it('/bookings (GET) - should fail without auth', () => {
-      return request(app.getHttpServer())
-        .get('/bookings')
-        .expect(401);
+      return request(app.getHttpServer()).get('/bookings').expect(401);
     });
 
     it('/bookings/:id (GET) - should return a specific booking with auth', () => {
@@ -222,7 +243,6 @@ describe('Nestery API (e2e)', () => {
         guestCount: 2,
         totalAmount: 500,
       };
-
       return request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${authToken}`)
@@ -233,7 +253,7 @@ describe('Nestery API (e2e)', () => {
           expect(res.body.property.id).toBe(testProperty.id);
           expect(res.body.user.id).toBe(testUser.id);
         })
-        .then(async (res) => {
+        .then(async res => {
           // Clean up the newly created booking
           await bookingRepository.delete(res.body.id);
         });

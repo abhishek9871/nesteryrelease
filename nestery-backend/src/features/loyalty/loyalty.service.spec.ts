@@ -1,97 +1,43 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LoyaltyService } from './loyalty.service';
-import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../core/logger/logger.service';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserEntity } from '../../users/entities/user.entity';
 import { BookingEntity } from '../../bookings/entities/booking.entity';
-import { Repository } from 'typeorm';
 
 describe('LoyaltyService', () => {
   let service: LoyaltyService;
-  let userRepository: Repository<UserEntity>;
-  let bookingRepository: Repository<BookingEntity>;
-
-  const mockUserRepository = {
-    findOne: jest.fn().mockResolvedValue({
-      id: 'user1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      referralCode: 'JO1234',
-    }),
-    save: jest.fn().mockResolvedValue({
-      id: 'user1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      referralCode: 'JO1234',
-    }),
-  };
-
-  const mockBookingRepository = {
-    find: jest.fn().mockResolvedValue([
-      {
-        id: 'booking1',
-        user: { id: 'user1' },
-        property: {
-          id: 'property1',
-          name: 'Test Property 1',
-          price: 150,
-          rating: 4.5,
-        },
-        checkInDate: new Date('2025-06-15'),
-        checkOutDate: new Date('2025-06-20'),
-        totalAmount: 750,
-        createdAt: new Date(),
-      },
-      {
-        id: 'booking2',
-        user: { id: 'user1' },
-        property: {
-          id: 'property2',
-          name: 'Test Property 2',
-          price: 200,
-          rating: 4.8,
-        },
-        checkInDate: new Date('2025-07-10'),
-        checkOutDate: new Date('2025-07-15'),
-        totalAmount: 1000,
-        createdAt: new Date(),
-      },
-    ]),
-    findOne: jest.fn().mockResolvedValue({
-      id: 'booking1',
-      user: { id: 'user1' },
-      property: {
-        id: 'property1',
-        name: 'Test Property 1',
-        price: 150,
-        rating: 4.5,
-      },
-      checkInDate: new Date('2025-06-15'),
-      checkOutDate: new Date('2025-06-20'),
-      totalAmount: 750,
-      createdAt: new Date(),
-    }),
-  };
+  let mockUserRepository: any;
+  let mockBookingRepository: any;
 
   beforeEach(async () => {
+    mockUserRepository = {
+      findOne: jest.fn(),
+      update: jest.fn(),
+      save: jest.fn(),
+    };
+
+    mockBookingRepository = {
+      findOne: jest.fn(),
+      find: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LoyaltyService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn(),
-          },
-        },
         {
           provide: LoggerService,
           useValue: {
             setContext: jest.fn(),
             debug: jest.fn(),
             error: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
           },
         },
         {
@@ -106,8 +52,6 @@ describe('LoyaltyService', () => {
     }).compile();
 
     service = module.get<LoyaltyService>(LoyaltyService);
-    userRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
-    bookingRepository = module.get<Repository<BookingEntity>>(getRepositoryToken(BookingEntity));
   });
 
   it('should be defined', () => {
@@ -115,131 +59,178 @@ describe('LoyaltyService', () => {
   });
 
   describe('getLoyaltyStatus', () => {
-    it('should return loyalty status and points for a user', async () => {
-      const userId = 'user1';
+    it('should return loyalty status for a user', async () => {
+      const userId = 'test-user-id';
+      const mockUser = {
+        id: userId,
+        loyaltyPoints: 1500,
+      };
+
+      const mockBookings = [
+        {
+          id: 'booking1',
+          createdAt: new Date(),
+          property: { name: 'Test Property' },
+        },
+      ];
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockBookingRepository.find.mockResolvedValue(mockBookings);
 
       const result = await service.getLoyaltyStatus(userId);
 
       expect(result).toBeDefined();
-      expect(result.tier).toBeDefined();
-      expect(result.points).toBeGreaterThan(0);
-      expect(result.nextTier).toBeDefined();
-      expect(result.pointsToNextTier).toBeDefined();
-      expect(result.benefits).toBeDefined();
-      expect(result.benefits.length).toBeGreaterThan(0);
-      expect(result.history).toBeDefined();
-      expect(bookingRepository.find).toHaveBeenCalledWith({
-        where: { user: { id: userId } },
-        relations: ['property'],
-        order: { createdAt: 'DESC' },
-      });
+      expect(result.tier).toBe('Silver');
+      expect(result.points).toBe(1500);
+      expect(result.nextTier).toBe('Gold');
+      expect(result.pointsToNextTier).toBe(500);
+      expect(result.benefits).toBeInstanceOf(Array);
+      expect(result.history).toBeInstanceOf(Array);
     });
 
-    it('should handle errors gracefully', async () => {
-      const userId = 'user1';
+    it('should throw an error if user not found', async () => {
+      const userId = 'nonexistent-user';
+      mockUserRepository.findOne.mockResolvedValue(null);
 
-      // Mock error
-      jest.spyOn(bookingRepository, 'find').mockRejectedValueOnce(new Error('Database error'));
-
-      await expect(service.getLoyaltyStatus(userId)).rejects.toThrow('Failed to get loyalty status');
+      await expect(service.getLoyaltyStatus(userId)).rejects.toThrow('User not found');
     });
   });
 
   describe('awardPointsForBooking', () => {
-    it('should award points for a booking', async () => {
-      const bookingId = 'booking1';
+    it('should award points for a completed booking', async () => {
+      const bookingId = 'test-booking-id';
+      const mockBooking = {
+        id: bookingId,
+        status: 'completed',
+        user: {
+          id: 'user1',
+          loyaltyPoints: 500,
+        },
+        property: {
+          name: 'Test Property',
+          rating: 4.8,
+        },
+        checkInDate: new Date('2023-01-01'),
+        checkOutDate: new Date('2023-01-05'),
+        totalPrice: 1000,
+      };
+
+      mockBookingRepository.findOne.mockResolvedValue(mockBooking);
+      mockUserRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.awardPointsForBooking(bookingId);
 
       expect(result).toBeDefined();
-      expect(result.pointsAwarded).toBeGreaterThan(0);
-      expect(result.newTotal).toBeGreaterThan(0);
+      expect(result.awarded).toBeGreaterThan(0);
+      expect(result.newTotal).toBeGreaterThan(500);
       expect(result.tier).toBeDefined();
-      expect(result.tierChanged).toBeDefined();
-      expect(bookingRepository.findOne).toHaveBeenCalledWith({
-        where: { id: bookingId },
-        relations: ['user', 'property'],
-      });
     });
 
     it('should throw an error if booking not found', async () => {
-      const bookingId = 'nonexistent';
+      const bookingId = 'nonexistent-booking';
+      mockBookingRepository.findOne.mockResolvedValue(null);
 
-      // Mock booking not found
-      jest.spyOn(bookingRepository, 'findOne').mockResolvedValueOnce(null);
-
-      await expect(service.awardPointsForBooking(bookingId)).rejects.toThrow(
-        `Booking with ID ${bookingId} not found`,
-      );
+      await expect(service.awardPointsForBooking(bookingId)).rejects.toThrow('Booking not found');
     });
 
-    it('should handle errors gracefully', async () => {
-      const bookingId = 'booking1';
+    it('should throw an error if booking is not completed', async () => {
+      const bookingId = 'pending-booking';
+      const mockBooking = {
+        id: bookingId,
+        status: 'pending',
+      };
 
-      // Mock error
-      jest.spyOn(bookingRepository, 'findOne').mockRejectedValueOnce(new Error('Database error'));
+      mockBookingRepository.findOne.mockResolvedValue(mockBooking);
 
-      await expect(service.awardPointsForBooking(bookingId)).rejects.toThrow('Failed to award points for booking');
+      await expect(service.awardPointsForBooking(bookingId)).rejects.toThrow(
+        'Cannot award points for non-completed booking',
+      );
     });
   });
 
   describe('redeemPoints', () => {
     it('should redeem points for a reward', async () => {
-      const userId = 'user1';
+      const userId = 'test-user-id';
       const rewardId = 'reward1';
-      const pointsCost = 250;
+      const pointsRequired = 500;
 
-      const result = await service.redeemPoints(userId, rewardId, pointsCost);
+      const mockUser = {
+        id: userId,
+        loyaltyPoints: 1000,
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.update.mockResolvedValue({ affected: 1 });
+
+      const result = await service.redeemPoints(userId, rewardId, pointsRequired);
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
-      expect(result.remainingPoints).toBeDefined();
+      expect(result.remainingPoints).toBe(500);
       expect(result.reward).toBeDefined();
       expect(result.reward.id).toBe(rewardId);
-      expect(result.reward.name).toBeDefined();
-      expect(result.reward.description).toBeDefined();
-      expect(result.reward.pointsCost).toBe(pointsCost);
+      expect(result.reward.pointsRequired).toBe(pointsRequired);
     });
 
-    it('should throw an error if user has insufficient points', async () => {
-      const userId = 'user1';
+    it('should throw an error if user not found', async () => {
+      const userId = 'nonexistent-user';
       const rewardId = 'reward1';
-      const pointsCost = 10000; // Very high cost
+      const pointsRequired = 500;
 
-      await expect(service.redeemPoints(userId, rewardId, pointsCost)).rejects.toThrow('Insufficient points');
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.redeemPoints(userId, rewardId, pointsRequired)).rejects.toThrow(
+        'User not found',
+      );
     });
 
-    it('should handle errors gracefully', async () => {
-      const userId = 'user1';
-      const rewardId = 'nonexistent';
-      const pointsCost = 250;
+    it('should throw an error if insufficient points', async () => {
+      const userId = 'test-user-id';
+      const rewardId = 'reward1';
+      const pointsRequired = 1500;
 
-      await expect(service.redeemPoints(userId, rewardId, pointsCost)).rejects.toThrow('Failed to redeem points');
+      const mockUser = {
+        id: userId,
+        loyaltyPoints: 1000,
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+
+      await expect(service.redeemPoints(userId, rewardId, pointsRequired)).rejects.toThrow(
+        'Insufficient points',
+      );
     });
   });
 
+  // Test for getAvailableRewards method
   describe('getAvailableRewards', () => {
     it('should return available rewards for a user', async () => {
-      const userId = 'user1';
+      const userId = 'test-user-id';
+      const mockUser = {
+        id: userId,
+        loyaltyPoints: 1000,
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
 
       const result = await service.getAvailableRewards(userId);
 
       expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(Array);
       expect(result.length).toBeGreaterThan(0);
-      expect(result[0].id).toBeDefined();
-      expect(result[0].name).toBeDefined();
-      expect(result[0].description).toBeDefined();
-      expect(result[0].pointsCost).toBeDefined();
-      expect(result[0].canRedeem).toBeDefined();
+      expect(result[0]).toHaveProperty('id');
+      expect(result[0]).toHaveProperty('name');
+      expect(result[0]).toHaveProperty('pointsRequired');
+      expect(result[0]).toHaveProperty('available');
     });
 
-    it('should handle errors gracefully', async () => {
-      const userId = 'user1';
+    it('should throw an error if user not found', async () => {
+      const userId = 'nonexistent-user';
+      mockUserRepository.findOne.mockResolvedValue(null);
 
-      // Mock error
-      jest.spyOn(service as any, 'calculateTotalPoints').mockRejectedValueOnce(new Error('Database error'));
-
-      await expect(service.getAvailableRewards(userId)).rejects.toThrow('Failed to get available rewards');
+      await expect(service.getAvailableRewards(userId)).rejects.toThrow(
+        'Failed to get available rewards',
+      );
     });
   });
 });

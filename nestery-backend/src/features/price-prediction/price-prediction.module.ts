@@ -8,11 +8,7 @@ import { PricePredictionService } from './price-prediction.service';
  * Module for price prediction functionality
  */
 @Module({
-  imports: [
-    HttpModule,
-    ConfigModule,
-    CoreModule,
-  ],
+  imports: [HttpModule, ConfigModule, CoreModule],
   providers: [PricePredictionService],
   exports: [PricePredictionService],
 })

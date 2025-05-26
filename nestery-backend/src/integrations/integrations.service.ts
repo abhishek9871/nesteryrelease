@@ -29,23 +29,33 @@ export class IntegrationsService {
   async searchProperties(searchParams: any) {
     try {
       this.logger.log(`Searching properties across all providers: ${JSON.stringify(searchParams)}`);
-      
+
       // Collect results from all providers in parallel
       const [bookingComResults, oyoResults] = await Promise.all([
         this.bookingComService.searchProperties(searchParams),
         this.oyoService.searchProperties(searchParams),
       ]);
-      
+
       // Combine and de-duplicate results
       const combinedResults = this.deduplicateResults([
-        ...bookingComResults,
-        ...oyoResults,
+        ...(bookingComResults?.hotels || []),
+        ...(oyoResults?.hotels || []),
       ]);
-      
-      return combinedResults;
+
+      return {
+        success: true,
+        totalResults: combinedResults.length,
+        hotels: combinedResults,
+      };
     } catch (error) {
+      this.logger.error(`Error searching properties: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);
-      throw error;
+      return {
+        success: false,
+        totalResults: 0,
+        hotels: [],
+        error: 'Failed to search properties',
+      };
     }
   }
 
@@ -54,85 +64,106 @@ export class IntegrationsService {
    */
   async getPropertyDetails(propertyId: string, sourceType: string) {
     try {
-      this.logger.log(`Getting property details for ${propertyId} from ${sourceType}`);
-      
-      switch (sourceType.toLowerCase()) {
-        case 'booking_com':
-          return this.bookingComService.getPropertyDetails(propertyId);
-        case 'oyo':
-          return this.oyoService.getPropertyDetails(propertyId);
-        default:
-          throw new Error(`Unsupported source type: ${sourceType}`);
+      this.logger.log(`Getting property details for ID ${propertyId} from source ${sourceType}`);
+
+      // Route to the appropriate provider
+      if (sourceType === 'booking_com') {
+        return this.bookingComService.getPropertyDetails(propertyId);
+      } else if (sourceType === 'oyo') {
+        return this.oyoService.getPropertyDetails(propertyId);
+      } else {
+        throw new Error(`Unsupported source type: ${sourceType}`);
       }
     } catch (error) {
+      this.logger.error(`Error getting property details: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);
-      throw error;
+      return {
+        success: false,
+        error: `Failed to get property details for ID ${propertyId}`,
+      };
     }
   }
 
   /**
    * Create a booking with the appropriate provider
    */
-  async createBooking(bookingData: any, sourceType: string) {
+  async createBooking(bookingData: any) {
     try {
-      this.logger.log(`Creating booking with ${sourceType}`);
-      
-      switch (sourceType.toLowerCase()) {
-        case 'booking_com':
-          return this.bookingComService.createBooking(bookingData);
-        case 'oyo':
-          return this.oyoService.createBooking(bookingData);
-        default:
-          throw new Error(`Unsupported source type: ${sourceType}`);
+      this.logger.log(`Creating booking: ${JSON.stringify(bookingData)}`);
+
+      const { sourceType } = bookingData;
+
+      // Route to the appropriate provider
+      if (sourceType === 'booking_com') {
+        // Implement BookingCom booking creation
+        throw new Error('Booking.com booking creation not implemented');
+      } else if (sourceType === 'oyo') {
+        return this.oyoService.createBooking(bookingData);
+      } else {
+        throw new Error(`Unsupported source type: ${sourceType}`);
       }
     } catch (error) {
+      this.logger.error(`Error creating booking: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);
-      throw error;
+      return {
+        success: false,
+        error: 'Failed to create booking',
+      };
     }
   }
 
   /**
-   * Get geocoding information for an address
+   * Get nearby places using Google Maps API
    */
-  async geocodeAddress(address: string) {
+  async getNearbyPlaces(
+    latitude: number,
+    longitude: number,
+    radius: number = 1000,
+    type: string = 'restaurant',
+  ) {
     try {
-      return this.googleMapsService.geocodeAddress(address);
-    } catch (error) {
-      this.exceptionService.handleException(error);
-      throw error;
-    }
-  }
+      this.logger.log(
+        `Getting nearby places at ${latitude},${longitude} with radius ${radius}m and type ${type}`,
+      );
 
-  /**
-   * Get nearby places of interest
-   */
-  async getNearbyPlaces(latitude: number, longitude: number, radius: number, type?: string) {
-    try {
       return this.googleMapsService.getNearbyPlaces(latitude, longitude, radius, type);
     } catch (error) {
+      this.logger.error(`Error getting nearby places: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);
-      throw error;
+      return {
+        success: false,
+        error: 'Failed to get nearby places',
+      };
     }
   }
 
   /**
-   * De-duplicate results from multiple providers
-   * Uses a simple algorithm based on name and address similarity
+   * Helper method to deduplicate results from multiple providers
    */
-  private deduplicateResults(properties: any[]): any[] {
-    const uniqueProperties = [];
-    const seenProperties = new Set();
-    
-    for (const property of properties) {
-      // Create a unique key based on property attributes
-      const key = `${property.name.toLowerCase()}-${property.address.toLowerCase()}`;
-      
-      if (!seenProperties.has(key)) {
-        seenProperties.add(key);
-        uniqueProperties.push(property);
+  private deduplicateResults(results: any[]) {
+    // Use a Map to deduplicate by ID
+    const uniqueMap = new Map();
+
+    results.forEach(result => {
+      // Skip if no ID
+      if (!result.id) return;
+
+      // If we already have this ID, only replace if the new one has more info
+      if (uniqueMap.has(result.id)) {
+        const existing = uniqueMap.get(result.id);
+
+        // Simple heuristic: replace if the new one has more fields
+        const existingKeys = Object.keys(existing).length;
+        const newKeys = Object.keys(result).length;
+
+        if (newKeys > existingKeys) {
+          uniqueMap.set(result.id, result);
+        }
+      } else {
+        uniqueMap.set(result.id, result);
       }
-    }
-    
-    return uniqueProperties;
+    });
+
+    return Array.from(uniqueMap.values());
   }
 }

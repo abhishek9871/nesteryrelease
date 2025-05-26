@@ -1,10 +1,15 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Property } from '../../properties/entities/property.entity';
 
-/**
- * Booking entity representing the bookings table in the database
- */
 @Entity('bookings')
 export class Booking {
   @PrimaryGeneratedColumn('uuid')
@@ -24,66 +29,71 @@ export class Booking {
   @JoinColumn({ name: 'propertyId' })
   property: Property;
 
-  @Column({ type: 'date' })
+  @Column()
   checkInDate: Date;
 
-  @Column({ type: 'date' })
+  @Column()
   checkOutDate: Date;
 
-  @Column('int')
-  numberOfGuests: number;
-
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('float')
   totalPrice: number;
 
-  @Column()
+  @Column({ default: 'USD' })
   currency: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-    default: 'pending',
-  })
+  @Column({ default: 'pending' })
   status: string;
 
+  @Column('int', { name: 'guest_count' })
+  guestCount: number;
+
+  @Column('int', { name: 'number_of_guests', nullable: true })
+  numberOfGuests: number;
+
   @Column({ nullable: true })
-  confirmationCode: string;
+  specialRequests: string;
+
+  @Column({ default: false })
+  isCancelled: boolean;
 
   @Column({ nullable: true })
   cancellationReason: string;
+
+  @Column({ nullable: true })
+  cancellationDate: Date;
+
+  @Column({ default: false })
+  isRefunded: boolean;
+
+  @Column('float', { nullable: true })
+  refundAmount: number;
+
+  @Column({ nullable: true })
+  paymentId: string;
+
+  @Column({ nullable: true })
+  paymentMethod: string;
 
   @Column({ default: false })
   isPaid: boolean;
 
   @Column({ nullable: true })
-  paymentMethod: string;
+  paymentDate: Date;
 
   @Column({ nullable: true })
-  paymentTransactionId: string;
+  confirmationCode: string;
 
-  @Column({ default: false })
-  isRefunded: boolean;
-
-  @Column({ default: 0 })
+  @Column('int', { default: 0 })
   loyaltyPointsEarned: number;
 
-  @Column({ default: 0 })
+  @Column('int', { default: 0 })
   loyaltyPointsRedeemed: number;
 
   @Column({ default: false })
   isPremiumBooking: boolean;
 
-  @Column({ nullable: true })
-  specialRequests: string;
-
-  @Column({ nullable: true })
-  sourceType: string; // 'booking_com', 'oyo', 'direct', etc.
-
-  @Column({ nullable: true })
-  externalBookingId: string;
-
-  @Column('jsonb', { nullable: true })
-  metadata: Record<string, any>; // Additional metadata
+  @Column({ default: 'direct' })
+  sourceType: string;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -91,3 +101,6 @@ export class Booking {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+
+// Export for tests
+export { Booking as BookingEntity };

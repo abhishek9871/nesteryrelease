@@ -10,12 +10,7 @@ import { UsersModule } from '../../users/users.module';
  * Module for loyalty program functionality
  */
 @Module({
-  imports: [
-    HttpModule,
-    ConfigModule,
-    CoreModule,
-    UsersModule,
-  ],
+  imports: [HttpModule, ConfigModule, CoreModule, UsersModule],
   controllers: [LoyaltyController],
   providers: [LoyaltyService],
   exports: [LoyaltyService],

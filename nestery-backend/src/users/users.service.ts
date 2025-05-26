@@ -30,7 +30,8 @@ export class UsersService {
       return await this.usersRepository.save(user);
     } catch (error) {
       this.exceptionService.handleException(error);
-      if (error.code === '23505') { // PostgreSQL unique violation code
+      if (error.code === '23505') {
+        // PostgreSQL unique violation code
         throw new ConflictException('User with this email already exists');
       }
       throw error;

@@ -1,18 +1,24 @@
 import { Injectable, Logger, BadRequestException, PayloadTooLargeException } from '@nestjs/common';
-import { FileInfo, MultipartParserService, MultipartParserOptions } from './multipart-parser.service';
-import * as fs from 'fs';
+import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as mime from 'mime-types';
-import { promisify } from 'util';
+import { stat, mkdir, writeFile } from 'fs/promises';
 
-const mkdir = promisify(fs.mkdir);
-const writeFile = promisify(fs.writeFile);
-const stat = promisify(fs.stat);
+export interface FileInfo {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+  filename?: string;
+  path?: string;
+}
 
 export interface SecureFileOptions {
   allowedMimeTypes?: string[];
-  maxFileSize?: number; // in bytes
+  maxFileSize?: number;
   destination?: string;
   sanitizeFilename?: boolean;
   generateRandomFilename?: boolean;
@@ -22,142 +28,154 @@ export interface SecureFileOptions {
 export class SecureFileService {
   private readonly logger = new Logger(SecureFileService.name);
   private readonly defaultOptions: SecureFileOptions = {
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+    allowedMimeTypes: [],
     maxFileSize: 5 * 1024 * 1024, // 5MB
     destination: './uploads',
     sanitizeFilename: true,
     generateRandomFilename: true,
   };
 
-  constructor(private readonly multipartParser: MultipartParserService) {}
+  constructor(private readonly configService: ConfigService) {
+    // Initialize with config values if available
+    const configMaxSize = this.configService.get<number>('MAX_FILE_SIZE');
+    if (configMaxSize) {
+      this.defaultOptions.maxFileSize = configMaxSize;
+    }
+
+    const uploadDir = this.configService.get<string>('UPLOAD_DIRECTORY');
+    if (uploadDir) {
+      this.defaultOptions.destination = uploadDir;
+    }
+  }
 
   /**
-   * Process file upload with security checks
-   * @param req Express request object
-   * @param options Secure file options
-   * @returns Promise with processed file information
+   * Process upload from request
    */
   async processUpload(req: any, options: SecureFileOptions = {}): Promise<FileInfo[]> {
-    const mergedOptions = this.mergeOptions(options);
-    
-    // Create destination directory if it doesn't exist
-    await this.ensureDirectoryExists(mergedOptions.destination);
-    
-    // Configure multipart parser options
-    const parserOptions: MultipartParserOptions = {
-      limits: {
-        fileSize: mergedOptions.maxFileSize,
-        files: 10, // Reasonable limit
-      },
-      fileFilter: (mimetype, filename) => this.validateFile(mimetype, filename, mergedOptions),
-      dest: mergedOptions.destination,
-    };
-    
+    // Import MultipartParserService
+    const { MultipartParserService } = require('../security/multipart-parser.service');
+
+    // Use MultipartParserService to parse the request
+    const multipartParser = new MultipartParserService();
+    const { files } = await multipartParser.parseMultipartData(req, {});
+
+    // Process the parsed files
+    return this.processFiles(files, options);
+  }
+
+  /**
+   * Process uploaded files with security checks
+   */
+  async processFiles(files: FileInfo[], options: SecureFileOptions = {}): Promise<FileInfo[]> {
     try {
-      // Parse multipart data
-      const { files, fields } = await this.multipartParser.parseMultipartData(req, parserOptions);
-      
-      if (files.length === 0) {
-        throw new BadRequestException('No files were uploaded');
+      const mergedOptions = this.mergeOptions(options);
+
+      // Ensure upload directory exists
+      const destinationDir = mergedOptions.destination || this.defaultOptions.destination;
+      if (!destinationDir) {
+        throw new Error('Destination directory is required');
       }
-      
-      // Process each file
+      await this.ensureDirectoryExists(destinationDir);
+
       const processedFiles: FileInfo[] = [];
-      
+
       for (const file of files) {
-        // Additional validation
+        // Validate file type and extension
+        this.validateFile(file.mimetype, file.originalname, mergedOptions);
+
+        // Validate file content (size, etc.)
         await this.validateFileContent(file, mergedOptions);
-        
+
         // Process filename
         if (mergedOptions.sanitizeFilename) {
           file.originalname = this.sanitizeFilename(file.originalname);
         }
-        
+
         if (mergedOptions.generateRandomFilename) {
           file.filename = this.generateSecureFilename(file.originalname);
         } else {
           file.filename = file.originalname;
         }
-        
+
         // Save file
-        file.path = await this.saveFile(file, mergedOptions.destination);
-        
+        const destination = mergedOptions.destination || this.defaultOptions.destination;
+        if (!destination) {
+          throw new Error('Destination directory is required');
+        }
+        file.path = await this.saveFile(file, destination);
+
         processedFiles.push(file);
       }
-      
+
       return processedFiles;
     } catch (error) {
       this.logger.error(`File upload error: ${error.message}`, error.stack);
-      
+
       if (error instanceof PayloadTooLargeException) {
         throw error;
       }
-      
-      throw new BadRequestException(
-        `File upload failed: ${error.message || 'Unknown error'}`,
-      );
+
+      throw new BadRequestException(`File upload failed: ${error.message || 'Unknown error'}`);
     }
   }
-  
+
   /**
    * Validate file based on mime type and filename
    */
-  private validateFile(
-    mimetype: string, 
-    filename: string, 
-    options: SecureFileOptions
-  ): boolean {
+  private validateFile(mimetype: string, filename: string, options: SecureFileOptions): boolean {
     // Check mime type
-    if (options.allowedMimeTypes.length > 0 && !options.allowedMimeTypes.includes(mimetype)) {
+    const allowedTypes = options.allowedMimeTypes || [];
+    if (allowedTypes.length > 0 && !allowedTypes.includes(mimetype)) {
       this.logger.warn(`Rejected file with mimetype: ${mimetype}`);
       throw new BadRequestException(
-        `File type not allowed. Allowed types: ${options.allowedMimeTypes.join(', ')}`,
+        `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`,
       );
     }
-    
+
     // Check file extension matches mime type
     const extension = path.extname(filename).toLowerCase().substring(1);
     const expectedExtensions = mime.extensions[mimetype] || [];
-    
+
     if (extension && expectedExtensions.length > 0 && !expectedExtensions.includes(extension)) {
       this.logger.warn(`File extension doesn't match mimetype: ${filename} (${mimetype})`);
-      throw new BadRequestException('File extension doesn\'t match content type');
+      throw new BadRequestException("File extension doesn't match content type");
     }
-    
+
     return true;
   }
-  
+
   /**
    * Validate file content (size, format integrity)
    */
   private async validateFileContent(file: FileInfo, options: SecureFileOptions): Promise<void> {
     // Check file size
-    if (file.size > options.maxFileSize) {
+    const maxSize = options.maxFileSize || this.defaultOptions.maxFileSize;
+    if (maxSize && file.size > maxSize) {
       throw new PayloadTooLargeException(
-        `File too large. Maximum size is ${options.maxFileSize / 1024 / 1024}MB`,
+        `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`,
       );
     }
-    
+
     // Additional content validation could be added here
     // For example, validating image dimensions, checking PDF structure, etc.
   }
-  
+
   /**
    * Sanitize filename to prevent path traversal and command injection
    */
   private sanitizeFilename(filename: string): string {
     // Remove path components
     let sanitized = path.basename(filename);
-    
+
     // Replace potentially dangerous characters
     sanitized = sanitized.replace(/[^\w\s.-]/g, '_');
-    
+
     // Ensure filename doesn't start with dots or dashes
     sanitized = sanitized.replace(/^[.-]+/, '');
-    
+
     return sanitized;
   }
-  
+
   /**
    * Generate secure random filename while preserving extension
    */
@@ -166,13 +184,13 @@ export class SecureFileService {
     const randomName = crypto.randomBytes(16).toString('hex');
     return `${randomName}${extension}`;
   }
-  
+
   /**
    * Save file to disk with proper error handling
    */
   private async saveFile(file: FileInfo, destination: string): Promise<string> {
-    const filePath = path.join(destination, file.filename);
-    
+    const filePath = path.join(destination, file.filename || '');
+
     try {
       await writeFile(filePath, file.buffer);
       return filePath;
@@ -181,7 +199,7 @@ export class SecureFileService {
       throw new Error(`Failed to save file: ${error.message}`);
     }
   }
-  
+
   /**
    * Ensure directory exists, create if it doesn't
    */
@@ -201,7 +219,7 @@ export class SecureFileService {
       }
     }
   }
-  
+
   /**
    * Merge default options with provided options
    */
@@ -210,12 +228,14 @@ export class SecureFileService {
       allowedMimeTypes: options.allowedMimeTypes || this.defaultOptions.allowedMimeTypes,
       maxFileSize: options.maxFileSize || this.defaultOptions.maxFileSize,
       destination: options.destination || this.defaultOptions.destination,
-      sanitizeFilename: options.sanitizeFilename !== undefined 
-        ? options.sanitizeFilename 
-        : this.defaultOptions.sanitizeFilename,
-      generateRandomFilename: options.generateRandomFilename !== undefined 
-        ? options.generateRandomFilename 
-        : this.defaultOptions.generateRandomFilename,
+      sanitizeFilename:
+        options.sanitizeFilename !== undefined
+          ? options.sanitizeFilename
+          : this.defaultOptions.sanitizeFilename,
+      generateRandomFilename:
+        options.generateRandomFilename !== undefined
+          ? options.generateRandomFilename
+          : this.defaultOptions.generateRandomFilename,
     };
   }
 }

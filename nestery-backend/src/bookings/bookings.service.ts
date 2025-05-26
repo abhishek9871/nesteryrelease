@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Booking } from './entities/booking.entity';
@@ -66,7 +71,9 @@ export class BookingsService {
       // Calculate number of nights
       const checkInDate = new Date(createBookingDto.checkInDate);
       const checkOutDate = new Date(createBookingDto.checkOutDate);
-      const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+      const nights = Math.ceil(
+        (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
 
       // Calculate total price
       let totalPrice = property.basePrice * nights;
@@ -85,14 +92,14 @@ export class BookingsService {
 
         // Convert loyalty points to discount (1 point = $0.01)
         const loyaltyDiscount = createBookingDto.loyaltyPointsToRedeem * 0.01;
-        
+
         // Ensure discount doesn't exceed total price
         const maxDiscount = totalPrice * 0.3; // Max 30% discount from loyalty points
         const appliedDiscount = Math.min(loyaltyDiscount, maxDiscount);
-        
+
         totalPrice -= appliedDiscount;
         loyaltyPointsRedeemed = createBookingDto.loyaltyPointsToRedeem;
-        
+
         // Deduct loyalty points from user
         await this.usersService.addLoyaltyPoints(userId, -loyaltyPointsRedeemed);
       }
@@ -138,7 +145,10 @@ export class BookingsService {
   /**
    * Find all bookings with optional pagination
    */
-  async findAll(page: number = 1, limit: number = 10): Promise<{ bookings: Booking[]; total: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ bookings: Booking[]; total: number }> {
     try {
       const [bookings, total] = await this.bookingsRepository.findAndCount({
         skip: (page - 1) * limit,
@@ -161,7 +171,15 @@ export class BookingsService {
    */
   async search(searchDto: SearchBookingsDto): Promise<{ bookings: Booking[]; total: number }> {
     try {
-      const { userId, propertyId, status, checkInDateStart, checkInDateEnd, page = 1, limit = 10 } = searchDto;
+      const {
+        userId,
+        propertyId,
+        status,
+        checkInDateStart,
+        checkInDateEnd,
+        page = 1,
+        limit = 10,
+      } = searchDto;
 
       // Build query conditions
       const whereConditions: any = {};
@@ -208,7 +226,11 @@ export class BookingsService {
   /**
    * Find bookings by user ID
    */
-  async findByUserId(userId: string, page: number = 1, limit: number = 10): Promise<{ bookings: Booking[]; total: number }> {
+  async findByUserId(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ bookings: Booking[]; total: number }> {
     try {
       const [bookings, total] = await this.bookingsRepository.findAndCount({
         where: { userId },
@@ -310,7 +332,9 @@ export class BookingsService {
   private generateConfirmationCode(): string {
     const prefix = 'NST';
     const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const random = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
     return `${prefix}-${timestamp}-${random}`;
   }
 }

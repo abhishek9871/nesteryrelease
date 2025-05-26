@@ -1,8 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Booking } from '../../bookings/entities/booking.entity';
 
-/**
- * Property entity representing the properties table in the database
- */
 @Entity('properties')
 export class Property {
   @PrimaryGeneratedColumn('uuid')
@@ -29,22 +37,22 @@ export class Property {
   @Column()
   zipCode: string;
 
-  @Column('decimal', { precision: 10, scale: 6 })
+  @Column('float')
   latitude: number;
 
-  @Column('decimal', { precision: 10, scale: 6 })
+  @Column('float')
   longitude: number;
 
   @Column()
-  propertyType: string;
+  type: string;
 
-  @Column('int')
-  starRating: number;
+  @Column('float')
+  pricePerNight: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('float')
   basePrice: number;
 
-  @Column()
+  @Column({ default: 'USD' })
   currency: string;
 
   @Column('int')
@@ -62,34 +70,31 @@ export class Property {
   @Column('simple-array', { nullable: true })
   images: string[];
 
-  @Column({ nullable: true })
-  thumbnailImage: string;
+  @Column('float', { nullable: true })
+  rating: number;
+
+  @Column('int', { default: 0 })
+  reviewCount: number;
 
   @Column({ default: true })
   isActive: boolean;
 
-  @Column()
-  sourceType: string; // 'booking_com', 'oyo', etc.
-
-  @Column()
-  externalId: string; // ID from the source system
-
   @Column({ nullable: true })
-  externalUrl: string; // URL to the property on the source system
+  hostId: string;
 
-  @Column('jsonb', { nullable: true })
-  metadata: Record<string, any>; // Additional metadata from the source
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'hostId' })
+  host: User;
+
+  @OneToMany(() => Booking, booking => booking.property)
+  bookings: Booking[];
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  // Relationships will be added as needed
-  // @OneToMany(() => Room, room => room.property)
-  // rooms: Room[];
-
-  // @OneToMany(() => Booking, booking => booking.property)
-  // bookings: Booking[];
 }
+
+// Export for tests
+export { Property as PropertyEntity };

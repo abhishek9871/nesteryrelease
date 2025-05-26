@@ -46,12 +46,13 @@ export class SecureFileUploadMiddleware implements NestMiddleware {
       });
 
       // Attach files to request object
-      req[this.options.fieldName] = files.length === 1 ? files[0] : files;
+      // Use type assertion to avoid index signature error
+      (req as any)[this.options.fieldName] = files.length === 1 ? files[0] : files;
 
       next();
     } catch (error) {
       this.logger.error(`File upload error: ${error.message}`, error.stack);
-      
+
       // Send appropriate error response
       const statusCode = error.status || 400;
       return res.status(statusCode).json({

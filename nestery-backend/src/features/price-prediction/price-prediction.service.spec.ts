@@ -1,72 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PricePredictionService } from './price-prediction.service';
-import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../core/logger/logger.service';
+import { ExceptionService } from '../../core/exception/exception.service';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { PropertyEntity } from '../../properties/entities/property.entity';
-import { BookingEntity } from '../../bookings/entities/booking.entity';
-import { Repository } from 'typeorm';
+import { Property } from '../../properties/entities/property.entity';
 
 describe('PricePredictionService', () => {
   let service: PricePredictionService;
-  let propertyRepository: Repository<PropertyEntity>;
-  let bookingRepository: Repository<BookingEntity>;
-
-  const mockPropertyRepository = {
-    createQueryBuilder: jest.fn(() => ({
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([
-        {
-          id: 'property1',
-          name: 'Test Property 1',
-          city: 'New York',
-          country: 'US',
-          price: 150,
-          rating: 4.5,
-          amenities: ['wifi', 'pool', 'gym'],
-          propertyType: 'hotel',
-        },
-        {
-          id: 'property2',
-          name: 'Test Property 2',
-          city: 'New York',
-          country: 'US',
-          price: 200,
-          rating: 4.8,
-          amenities: ['wifi', 'pool', 'spa'],
-          propertyType: 'hotel',
-        },
-      ]),
-      getCount: jest.fn().mockResolvedValue(10),
-    })),
-    findOne: jest.fn(),
-  };
-
-  const mockBookingRepository = {
-    createQueryBuilder: jest.fn(() => ({
-      innerJoin: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getCount: jest.fn().mockResolvedValue(5),
-    })),
-    find: jest.fn(),
-  };
+  let mockPropertyRepository: any;
 
   beforeEach(async () => {
+    mockPropertyRepository = {
+      find: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PricePredictionService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn((key) => {
-              if (key === 'GOOGLE_MAPS_API_KEY') return 'test-api-key';
-              return null;
-            }),
-          },
-        },
         {
           provide: LoggerService,
           useValue: {
@@ -76,19 +27,25 @@ describe('PricePredictionService', () => {
           },
         },
         {
-          provide: getRepositoryToken(PropertyEntity),
-          useValue: mockPropertyRepository,
+          provide: ExceptionService,
+          useValue: {
+            handleException: jest.fn(),
+          },
         },
         {
-          provide: getRepositoryToken(BookingEntity),
-          useValue: mockBookingRepository,
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Property),
+          useValue: mockPropertyRepository,
         },
       ],
     }).compile();
 
     service = module.get<PricePredictionService>(PricePredictionService);
-    propertyRepository = module.get<Repository<PropertyEntity>>(getRepositoryToken(PropertyEntity));
-    bookingRepository = module.get<Repository<BookingEntity>>(getRepositoryToken(BookingEntity));
   });
 
   it('should be defined', () => {
@@ -96,44 +53,56 @@ describe('PricePredictionService', () => {
   });
 
   describe('predictPrice', () => {
-    it('should predict price based on various factors', async () => {
+    it('should predict price for a property', async () => {
       const params = {
+        propertyType: 'apartment',
+        bedrooms: 2,
+        bathrooms: 1,
+        maxGuests: 4,
         city: 'New York',
         country: 'US',
-        checkInDate: new Date('2025-06-15'),
-        checkOutDate: new Date('2025-06-20'),
-        guestCount: 2,
-        amenities: ['wifi', 'pool'],
-        propertyType: 'hotel',
+        amenities: ['wifi', 'pool', 'gym'],
+        latitude: 40.7128,
+        longitude: -74.006,
       };
+
+      const mockProperties = [
+        {
+          id: 'property1',
+          pricePerNight: 150,
+          rating: 4.5,
+        },
+        {
+          id: 'property2',
+          pricePerNight: 180,
+          rating: 4.8,
+        },
+      ];
+
+      mockPropertyRepository.find.mockResolvedValue(mockProperties);
 
       const result = await service.predictPrice(params);
 
       expect(result).toBeDefined();
       expect(result.predictedPrice).toBeGreaterThan(0);
-      expect(result.currency).toBe('USD');
       expect(result.confidence).toBeGreaterThan(0);
-      expect(result.confidence).toBeLessThanOrEqual(1);
-      expect(result.priceRange).toBeDefined();
-      expect(result.priceRange.min).toBeLessThan(result.priceRange.max);
-      expect(result.factors).toHaveLength(4);
+      expect(result.priceRange.min).toBeLessThan(result.predictedPrice);
+      expect(result.priceRange.max).toBeGreaterThan(result.predictedPrice);
+      expect(result.factors).toBeDefined();
     });
 
-    it('should handle errors gracefully', async () => {
-      // Mock the repository to throw an error
-      jest.spyOn(propertyRepository, 'createQueryBuilder').mockImplementation(() => {
-        throw new Error('Database error');
-      });
-
+    it('should throw an error with invalid parameters', async () => {
       const params = {
-        city: 'New York',
+        propertyType: 'apartment',
+        bedrooms: 2,
+        bathrooms: 1,
+        maxGuests: 4,
+        city: '', // Missing required field
         country: 'US',
-        checkInDate: new Date('2025-06-15'),
-        checkOutDate: new Date('2025-06-20'),
-        guestCount: 2,
+        amenities: ['wifi', 'pool', 'gym'],
       };
 
-      await expect(service.predictPrice(params)).rejects.toThrow('Failed to predict price');
+      await expect(service.predictPrice(params as any)).rejects.toThrow('Failed to predict price');
     });
   });
 });

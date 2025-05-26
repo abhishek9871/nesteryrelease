@@ -27,7 +27,7 @@ import { configValidationSchema } from './config/config.schema';
       validationSchema: configValidationSchema,
       envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
     }),
-    
+
     // Database
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -46,20 +46,20 @@ import { configValidationSchema } from './config/config.schema';
         ssl: configService.get('DB_SSL') === 'true',
       }),
     }),
-    
+
     // HTTP
     HttpModule,
-    
+
     // Core modules
     CoreModule,
-    
+
     // Feature modules
     UsersModule,
     AuthModule,
     PropertiesModule,
     BookingsModule,
     IntegrationsModule,
-    
+
     // Advanced feature modules
     PricePredictionModule,
     RecommendationModule,

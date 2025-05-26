@@ -1,254 +1,237 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PropertiesService } from './properties.service';
+import { LoggerService } from '../core/logger/logger.service';
+import { ExceptionService } from '../core/exception/exception.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Property } from './entities/property.entity';
 import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
 
 describe('PropertiesService', () => {
   let service: PropertiesService;
-  let repository: Repository<Property>;
-
-  const mockProperty = {
-    id: 'test-id',
-    name: 'Test Property',
-    description: 'A test property',
-    type: 'Hotel',
-    sourceType: 'booking_com',
-    sourceId: 'bcom_123',
-    address: '123 Test St',
-    city: 'Test City',
-    country: 'Test Country',
-    latitude: 0.0,
-    longitude: 0.0,
-    starRating: 4,
-    basePrice: 100.0,
-    currency: 'USD',
-    amenities: ['WiFi', 'Pool'],
-    images: ['https://example.com/image.jpg'],
-    thumbnailImage: 'https://example.com/thumb.jpg',
-    rating: 4.5,
-    reviewCount: 100,
-    isFeatured: true,
-    isPremium: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockPropertiesRepository = {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  };
+  let mockPropertyRepository: any;
 
   beforeEach(async () => {
+    mockPropertyRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findOne: jest.fn(),
+      find: jest.fn(),
+      findAndCount: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PropertiesService,
         {
+          provide: LoggerService,
+          useValue: {
+            setContext: jest.fn(),
+            debug: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+        {
+          provide: ExceptionService,
+          useValue: {
+            handleException: jest.fn(),
+          },
+        },
+        {
           provide: getRepositoryToken(Property),
-          useValue: mockPropertiesRepository,
+          useValue: mockPropertyRepository,
         },
       ],
     }).compile();
 
     service = module.get<PropertiesService>(PropertiesService);
-    repository = module.get<Repository<Property>>(getRepositoryToken(Property));
-
-    // Reset mocks
-    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('findAll', () => {
-    it('should return an array of properties', async () => {
-      mockPropertiesRepository.find.mockResolvedValue([mockProperty]);
-      
-      const result = await service.findAll();
-      
-      expect(result).toEqual([mockProperty]);
-      expect(mockPropertiesRepository.find).toHaveBeenCalled();
-    });
-  });
-
-  describe('findOne', () => {
-    it('should return a property when it exists', async () => {
-      mockPropertiesRepository.findOne.mockResolvedValue(mockProperty);
-      
-      const result = await service.findOne('test-id');
-      
-      expect(result).toEqual(mockProperty);
-      expect(mockPropertiesRepository.findOne).toHaveBeenCalledWith({ where: { id: 'test-id' } });
-    });
-
-    it('should throw NotFoundException when property does not exist', async () => {
-      mockPropertiesRepository.findOne.mockResolvedValue(null);
-      
-      await expect(service.findOne('nonexistent-id')).rejects.toThrow(NotFoundException);
-      expect(mockPropertiesRepository.findOne).toHaveBeenCalledWith({ where: { id: 'nonexistent-id' } });
-    });
-  });
-
   describe('create', () => {
-    it('should create and return a new property', async () => {
+    it('should create a property', async () => {
       const createPropertyDto = {
-        name: 'New Property',
-        description: 'A new property',
-        type: 'Hotel',
-        sourceType: 'booking_com',
-        sourceId: 'bcom_456',
-        address: '456 New St',
-        city: 'New City',
-        country: 'New Country',
-        latitude: 1.0,
-        longitude: 1.0,
-        starRating: 5,
-        basePrice: 200.0,
-        currency: 'USD',
-        amenities: ['WiFi', 'Pool', 'Spa'],
-        images: ['https://example.com/new.jpg'],
-        thumbnailImage: 'https://example.com/new_thumb.jpg',
-        rating: 4.8,
-        reviewCount: 50,
-        isFeatured: false,
-        isPremium: true,
-      };
-      
-      const newProperty = { ...createPropertyDto, id: 'new-id', createdAt: new Date(), updatedAt: new Date() };
-      
-      mockPropertiesRepository.create.mockReturnValue(newProperty);
-      mockPropertiesRepository.save.mockResolvedValue(newProperty);
-      
-      const result = await service.create(createPropertyDto);
-      
-      expect(result).toEqual(newProperty);
-      expect(mockPropertiesRepository.create).toHaveBeenCalledWith(createPropertyDto);
-      expect(mockPropertiesRepository.save).toHaveBeenCalledWith(newProperty);
-    });
-  });
-
-  describe('update', () => {
-    it('should update and return the property when it exists', async () => {
-      const updatePropertyDto = {
-        name: 'Updated Property',
-        description: 'An updated property',
-      };
-      
-      const updatedProperty = { ...mockProperty, ...updatePropertyDto, updatedAt: new Date() };
-      
-      mockPropertiesRepository.findOne.mockResolvedValue(mockProperty);
-      mockPropertiesRepository.save.mockResolvedValue(updatedProperty);
-      
-      const result = await service.update('test-id', updatePropertyDto);
-      
-      expect(result).toEqual(updatedProperty);
-      expect(mockPropertiesRepository.findOne).toHaveBeenCalledWith({ where: { id: 'test-id' } });
-      expect(mockPropertiesRepository.save).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException when property does not exist', async () => {
-      mockPropertiesRepository.findOne.mockResolvedValue(null);
-      
-      await expect(service.update('nonexistent-id', { name: 'Updated' })).rejects.toThrow(NotFoundException);
-      expect(mockPropertiesRepository.findOne).toHaveBeenCalledWith({ where: { id: 'nonexistent-id' } });
-    });
-  });
-
-  describe('remove', () => {
-    it('should delete the property when it exists', async () => {
-      mockPropertiesRepository.findOne.mockResolvedValue(mockProperty);
-      mockPropertiesRepository.delete.mockResolvedValue({ affected: 1 });
-      
-      await service.remove('test-id');
-      
-      expect(mockPropertiesRepository.findOne).toHaveBeenCalledWith({ where: { id: 'test-id' } });
-      expect(mockPropertiesRepository.delete).toHaveBeenCalledWith('test-id');
-    });
-
-    it('should throw NotFoundException when property does not exist', async () => {
-      mockPropertiesRepository.findOne.mockResolvedValue(null);
-      
-      await expect(service.remove('nonexistent-id')).rejects.toThrow(NotFoundException);
-      expect(mockPropertiesRepository.findOne).toHaveBeenCalledWith({ where: { id: 'nonexistent-id' } });
-    });
-  });
-
-  describe('search', () => {
-    it('should return properties matching search criteria', async () => {
-      const searchDto = {
+        name: 'Test Property',
+        description: 'A test property',
+        propertyType: 'apartment',
+        bedrooms: 2,
+        bathrooms: 1,
+        maxGuests: 4,
+        basePrice: 100,
         city: 'Test City',
-        checkIn: new Date(),
-        checkOut: new Date(new Date().getTime() + 86400000), // Tomorrow
-        guests: 2,
-        rooms: 1,
-      };
-      
-      mockPropertiesRepository.find.mockResolvedValue([mockProperty]);
-      
-      const result = await service.search(searchDto);
-      
-      expect(result).toEqual([mockProperty]);
-      expect(mockPropertiesRepository.find).toHaveBeenCalled();
-    });
-
-    it('should apply filters correctly', async () => {
-      const searchDto = {
-        city: 'Test City',
-        checkIn: new Date(),
-        checkOut: new Date(new Date().getTime() + 86400000), // Tomorrow
-        guests: 2,
-        rooms: 1,
-        type: 'Hotel',
-        minPrice: 50,
-        maxPrice: 150,
+        state: 'Test State',
+        country: 'Test Country',
+        address: 'Test Address',
+        zipCode: '12345',
+        latitude: 40.7128,
+        longitude: -74.006,
         starRating: 4,
+        currency: 'USD',
+        sourceType: 'internal',
+        externalId: 'test-external-id',
       };
-      
-      mockPropertiesRepository.find.mockResolvedValue([mockProperty]);
-      
-      const result = await service.search(searchDto);
-      
-      expect(result).toEqual([mockProperty]);
-      expect(mockPropertiesRepository.find).toHaveBeenCalled();
-      // Verify that the query includes all filters
-      const queryOptions = mockPropertiesRepository.find.mock.calls[0][0];
-      expect(queryOptions.where).toBeDefined();
+
+      const mockProperty = {
+        id: 'test-id',
+        ...createPropertyDto,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: true,
+      };
+
+      mockPropertyRepository.create.mockReturnValue(mockProperty);
+      mockPropertyRepository.save.mockResolvedValue(mockProperty);
+
+      const result = await service.create(createPropertyDto);
+
+      expect(result).toBe(mockProperty);
+      expect(mockPropertyRepository.create).toHaveBeenCalledWith(createPropertyDto);
+      expect(mockPropertyRepository.save).toHaveBeenCalledWith(mockProperty);
     });
   });
 
-  describe('getFeaturedProperties', () => {
-    it('should return featured properties', async () => {
-      mockPropertiesRepository.find.mockResolvedValue([mockProperty]);
-      
-      const result = await service.getFeaturedProperties();
-      
-      expect(result).toEqual([mockProperty]);
-      expect(mockPropertiesRepository.find).toHaveBeenCalledWith({
-        where: { isFeatured: true },
+  describe('findAll', () => {
+    it('should return properties with pagination', async () => {
+      const mockProperties = [
+        { id: 'property1', name: 'Property 1' },
+        { id: 'property2', name: 'Property 2' },
+      ];
+
+      mockPropertyRepository.findAndCount.mockResolvedValue([mockProperties, 2]);
+
+      const result = await service.findAll(1, 10);
+
+      expect(result.properties).toBe(mockProperties);
+      expect(result.total).toBe(2);
+      expect(mockPropertyRepository.findAndCount).toHaveBeenCalledWith({
+        skip: 0,
         take: 10,
+        where: { isActive: true },
       });
     });
   });
 
-  describe('getTrendingDestinations', () => {
-    it('should return trending destinations', async () => {
-      const mockDestinations = [
-        { city: 'Test City', country: 'Test Country', count: 10 },
+  describe('findById', () => {
+    it('should find a property by id', async () => {
+      const mockProperty = { id: 'test-id', name: 'Test Property' };
+      mockPropertyRepository.findOne.mockResolvedValue(mockProperty);
+
+      const result = await service.findById('test-id');
+
+      expect(result).toBe(mockProperty);
+      expect(mockPropertyRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'test-id' },
+      });
+    });
+
+    it('should throw an error if property not found', async () => {
+      mockPropertyRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findById('nonexistent-id')).rejects.toThrow(Error);
+    });
+  });
+
+  describe('update', () => {
+    it('should update a property', async () => {
+      const updatePropertyDto = {
+        name: 'Updated Property',
+        description: 'An updated property',
+      };
+
+      const mockProperty = {
+        id: 'test-id',
+        name: 'Test Property',
+        description: 'A test property',
+      };
+
+      const updatedProperty = {
+        ...mockProperty,
+        ...updatePropertyDto,
+      };
+
+      mockPropertyRepository.findOne.mockResolvedValue(mockProperty);
+      mockPropertyRepository.save.mockResolvedValue(updatedProperty);
+
+      const result = await service.update('test-id', updatePropertyDto);
+
+      expect(result).toBe(updatedProperty);
+      expect(mockPropertyRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'test-id' },
+      });
+      expect(mockPropertyRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('remove', () => {
+    it('should soft delete a property', async () => {
+      const mockProperty = {
+        id: 'test-id',
+        name: 'Test Property',
+        isActive: true,
+      };
+
+      mockPropertyRepository.findOne.mockResolvedValue(mockProperty);
+      mockPropertyRepository.save.mockResolvedValue({ ...mockProperty, isActive: false });
+
+      await service.remove('test-id');
+
+      expect(mockPropertyRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'test-id' },
+      });
+      expect(mockPropertyRepository.save).toHaveBeenCalledWith({
+        ...mockProperty,
+        isActive: false,
+      });
+    });
+  });
+
+  describe('findNearby', () => {
+    it('should find properties near a location', async () => {
+      const mockProperties = [
+        { id: 'property1', name: 'Property 1' },
+        { id: 'property2', name: 'Property 2' },
       ];
-      
-      // Mock the raw query result
-      mockPropertiesRepository.query = jest.fn().mockResolvedValue(mockDestinations);
-      
+
+      mockPropertyRepository.find.mockResolvedValue(mockProperties);
+
+      const result = await service.findNearby(1.0, 1.0, 5, 10);
+
+      expect(result).toBe(mockProperties);
+      expect(mockPropertyRepository.find).toHaveBeenCalledWith({
+        take: 10,
+        where: { isActive: true },
+      });
+    });
+  });
+
+  describe('getFeaturedProperties', () => {
+    it('should get featured properties', async () => {
+      const mockProperties = [
+        { id: 'property1', name: 'Property 1' },
+        { id: 'property2', name: 'Property 2' },
+      ];
+
+      mockPropertyRepository.find.mockResolvedValue(mockProperties);
+
+      const result = await service.getFeaturedProperties(5);
+
+      expect(result).toBe(mockProperties);
+    });
+  });
+
+  describe('getTrendingDestinations', () => {
+    it('should get trending destinations', async () => {
       const result = await service.getTrendingDestinations();
-      
-      expect(result).toEqual(mockDestinations);
-      expect(mockPropertiesRepository.query).toHaveBeenCalled();
+
+      expect(result).toBeInstanceOf(Array);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty('city');
+      expect(result[0]).toHaveProperty('country');
+      expect(result[0]).toHaveProperty('count');
     });
   });
 });

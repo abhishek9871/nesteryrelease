@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum, Min, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsEnum, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -7,8 +7,8 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class SearchPropertiesDto {
   @ApiProperty({
-    description: 'City to search for',
-    example: 'Miami',
+    description: 'City to search in',
+    example: 'New York',
     required: false,
   })
   @IsOptional()
@@ -16,7 +16,7 @@ export class SearchPropertiesDto {
   city?: string;
 
   @ApiProperty({
-    description: 'Country to search for',
+    description: 'Country to search in',
     example: 'USA',
     required: false,
   })
@@ -26,24 +26,22 @@ export class SearchPropertiesDto {
 
   @ApiProperty({
     description: 'Minimum price per night',
-    example: 100,
+    example: 50,
     required: false,
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  @Type(() => Number)
   minPrice?: number;
 
   @ApiProperty({
     description: 'Maximum price per night',
-    example: 300,
+    example: 500,
     required: false,
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  @Type(() => Number)
   maxPrice?: number;
 
   @ApiProperty({
@@ -64,14 +62,13 @@ export class SearchPropertiesDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
-  @Type(() => Number)
   starRating?: number;
 
   @ApiProperty({
     description: 'Page number for pagination',
     example: 1,
-    default: 1,
     required: false,
+    default: 1,
   })
   @IsOptional()
   @IsNumber()
@@ -80,10 +77,10 @@ export class SearchPropertiesDto {
   page?: number;
 
   @ApiProperty({
-    description: 'Number of items per page',
+    description: 'Number of results per page',
     example: 10,
-    default: 10,
     required: false,
+    default: 10,
   })
   @IsOptional()
   @IsNumber()

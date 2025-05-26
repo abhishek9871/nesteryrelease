@@ -13,40 +13,28 @@ export class LoyaltyController {
   @Get('status/:userId')
   @ApiOperation({ summary: 'Get loyalty status and points for a user' })
   @ApiResponse({ status: 200, description: 'Returns loyalty status, points, and benefits' })
-  async getLoyaltyStatus(
-    @Param('userId') userId: string,
-  ) {
+  async getLoyaltyStatus(@Param('userId') userId: string) {
     return this.loyaltyService.getLoyaltyStatus(userId);
   }
 
   @Post('award-points')
   @ApiOperation({ summary: 'Award points for a booking' })
   @ApiResponse({ status: 200, description: 'Returns points awarded and new total' })
-  async awardPointsForBooking(
-    @Body('bookingId') bookingId: string,
-  ) {
+  async awardPointsForBooking(@Body('bookingId') bookingId: string) {
     return this.loyaltyService.awardPointsForBooking(bookingId);
   }
 
   @Post('redeem')
   @ApiOperation({ summary: 'Redeem points for a reward' })
   @ApiResponse({ status: 200, description: 'Returns redemption result and remaining points' })
-  async redeemPoints(
-    @Body() params: {
-      userId: string;
-      rewardId: string;
-      pointsCost: number;
-    },
-  ) {
-    return this.loyaltyService.redeemPoints(params.userId, params.rewardId, params.pointsCost);
+  async redeemPoints(@Body() params: { userId: string; rewardId: string; pointsRequired: number }) {
+    return this.loyaltyService.redeemPoints(params.userId, params.rewardId, params.pointsRequired);
   }
 
   @Get('rewards/:userId')
   @ApiOperation({ summary: 'Get available rewards for a user' })
   @ApiResponse({ status: 200, description: 'Returns available rewards and redemption status' })
-  async getAvailableRewards(
-    @Param('userId') userId: string,
-  ) {
+  async getAvailableRewards(@Param('userId') userId: string) {
     return this.loyaltyService.getAvailableRewards(userId);
   }
 }

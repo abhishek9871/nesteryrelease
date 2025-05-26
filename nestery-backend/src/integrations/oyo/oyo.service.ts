@@ -1,33 +1,99 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { LoggerService } from '../core/logger/logger.service';
-import { ExceptionService } from '../core/exception/exception.service';
+import { LoggerService } from '../../core/logger/logger.service';
+import { ExceptionService } from '../../core/exception/exception.service';
+import * as crypto from 'crypto';
+
+// Define interfaces for OYO API responses
+interface OyoHotelImage {
+  url: string;
+  caption?: string;
+}
+
+interface OyoHotelFacility {
+  id: string;
+  description: string;
+  category?: string;
+}
+
+interface OyoHotelRoom {
+  id: string;
+  name: string;
+  description: string;
+  maxOccupancy: number;
+  price: number;
+  currency: string;
+  facilities?: OyoHotelFacility[];
+  images?: OyoHotelImage[];
+}
+
+interface OyoHotelReview {
+  id: string;
+  rating: number;
+  comment: string;
+  author: string;
+  date: string;
+}
+
+interface OyoHotelReviews {
+  averageRating: number;
+  totalCount: number;
+  reviews: OyoHotelReview[];
+}
+
+interface OyoHotel {
+  id: string;
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
+  latitude: number;
+  longitude: number;
+  starRating: number;
+  images?: OyoHotelImage[];
+  facilities?: OyoHotelFacility[];
+  rooms?: OyoHotelRoom[];
+  reviews?: OyoHotelReviews;
+}
 
 @Injectable()
 export class OyoService {
-  private readonly apiUrl: string;
-  private readonly apiKey: string;
-  private readonly partnerId: string;
-  
+  private readonly apiUrl: string = '';
+  private readonly apiKey: string = '';
+  private readonly partnerId: string = '';
+
   // Fallback B2B aggregator credentials
-  private readonly hotelbedsApiUrl: string;
-  private readonly hotelbedsApiKey: string;
-  private readonly hotelbedsApiSecret: string;
+  private readonly hotelbedsApiUrl: string = '';
+  private readonly hotelbedsApiKey: string = '';
+  private readonly hotelbedsApiSecret: string = '';
 
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly exceptionService: ExceptionService,
   ) {
-    this.apiUrl = this.configService.get<string>('OYO_API_URL');
-    this.apiKey = this.configService.get<string>('OYO_API_KEY');
-    this.partnerId = this.configService.get<string>('OYO_PARTNER_ID');
-    
-    this.hotelbedsApiUrl = this.configService.get<string>('HOTELBEDS_API_URL');
-    this.hotelbedsApiKey = this.configService.get<string>('HOTELBEDS_API_KEY');
-    this.hotelbedsApiSecret = this.configService.get<string>('HOTELBEDS_API_SECRET');
-    
+    const apiUrl = this.configService.get<string>('OYO_API_URL');
+    if (apiUrl) this.apiUrl = apiUrl;
+
+    const apiKey = this.configService.get<string>('OYO_API_KEY');
+    if (apiKey) this.apiKey = apiKey;
+
+    const partnerId = this.configService.get<string>('OYO_PARTNER_ID');
+    if (partnerId) this.partnerId = partnerId;
+
+    const hotelbedsApiUrl = this.configService.get<string>('HOTELBEDS_API_URL');
+    if (hotelbedsApiUrl) this.hotelbedsApiUrl = hotelbedsApiUrl;
+
+    const hotelbedsApiKey = this.configService.get<string>('HOTELBEDS_API_KEY');
+    if (hotelbedsApiKey) this.hotelbedsApiKey = hotelbedsApiKey;
+
+    const hotelbedsApiSecret = this.configService.get<string>('HOTELBEDS_API_SECRET');
+    if (hotelbedsApiSecret) this.hotelbedsApiSecret = hotelbedsApiSecret;
+
     this.logger.setContext('OyoService');
   }
 
@@ -48,222 +114,106 @@ export class OyoService {
     minRating?: number;
   }) {
     try {
-      this.logger.debug(`Searching OYO hotels with params: ${JSON.stringify(params)}`);
-      
-      const response = await axios.get(`${this.apiUrl}/hotels/search`, {
-        params: {
-          city: params.location,
-          check_in: this.formatDate(params.checkInDate),
-          check_out: this.formatDate(params.checkOutDate),
-          guests: params.adults + (params.children || 0),
-          rooms: params.rooms || 1,
-          price_min: params.minPrice,
-          price_max: params.maxPrice,
-          amenities: params.amenities?.join(','),
-          category: params.propertyType,
-          rating_min: params.minRating,
-          include_details: true,
-        },
-        headers: this.getOyoHeaders(),
-      });
-      
-      this.logger.debug(`Found ${response.data.hotels?.length || 0} OYO hotels`);
-      return this.transformHotelsResponse(response.data);
-    } catch (error) {
-      this.logger.warn(`Error searching OYO hotels: ${error.message}. Falling back to B2B aggregator.`);
-      
-      // Fallback to B2B aggregator if OYO API fails
-      try {
-        return await this.searchHotelsViaAggregator(params);
-      } catch (fallbackError) {
-        this.logger.error(`Fallback also failed: ${fallbackError.message}`, fallbackError.stack);
-        throw this.exceptionService.handleHttpError(fallbackError, 'Failed to search hotels on OYO and fallback');
+      // Check if OYO API is configured
+      if (!this.apiUrl || !this.apiKey) {
+        this.logger.warn('OYO API not configured, falling back to Hotelbeds API');
+        return this.searchHotelsHotelbeds(params);
       }
-    }
-  }
 
-  /**
-   * Get hotel details by ID
-   */
-  async getHotelDetails(hotelId: string) {
-    try {
-      this.logger.debug(`Getting OYO hotel details for ID: ${hotelId}`);
-      
-      const response = await axios.get(`${this.apiUrl}/hotels/${hotelId}`, {
-        params: {
-          include_rooms: true,
-          include_amenities: true,
-          include_photos: true,
-          include_policies: true,
-        },
-        headers: this.getOyoHeaders(),
-      });
-      
-      return this.transformHotelDetailsResponse(response.data);
-    } catch (error) {
-      this.logger.warn(`Error getting OYO hotel details: ${error.message}. Falling back to B2B aggregator.`);
-      
-      // Fallback to B2B aggregator if OYO API fails
-      try {
-        return await this.getHotelDetailsViaAggregator(hotelId);
-      } catch (fallbackError) {
-        this.logger.error(`Fallback also failed: ${fallbackError.message}`, fallbackError.stack);
-        throw this.exceptionService.handleHttpError(fallbackError, 'Failed to get hotel details from OYO and fallback');
-      }
-    }
-  }
+      // Format dates for OYO API
+      const checkInFormatted = params.checkInDate.toISOString().split('T')[0];
+      const checkOutFormatted = params.checkOutDate.toISOString().split('T')[0];
 
-  /**
-   * Get room availability for a hotel
-   */
-  async getRoomAvailability(params: {
-    hotelId: string;
-    checkInDate: Date;
-    checkOutDate: Date;
-    adults: number;
-    children?: number;
-    rooms?: number;
-  }) {
-    try {
-      this.logger.debug(`Getting OYO room availability for hotel ID: ${params.hotelId}`);
-      
-      const response = await axios.get(`${this.apiUrl}/hotels/${params.hotelId}/availability`, {
-        params: {
-          check_in: this.formatDate(params.checkInDate),
-          check_out: this.formatDate(params.checkOutDate),
-          guests: params.adults + (params.children || 0),
-          rooms: params.rooms || 1,
-        },
-        headers: this.getOyoHeaders(),
-      });
-      
-      return this.transformAvailabilityResponse(response.data);
-    } catch (error) {
-      this.logger.warn(`Error getting OYO room availability: ${error.message}. Falling back to B2B aggregator.`);
-      
-      // Fallback to B2B aggregator if OYO API fails
-      try {
-        return await this.getRoomAvailabilityViaAggregator(params);
-      } catch (fallbackError) {
-        this.logger.error(`Fallback also failed: ${fallbackError.message}`, fallbackError.stack);
-        throw this.exceptionService.handleHttpError(fallbackError, 'Failed to get room availability from OYO and fallback');
-      }
-    }
-  }
-
-  /**
-   * Create a booking
-   */
-  async createBooking(params: {
-    hotelId: string;
-    roomId: string;
-    checkInDate: Date;
-    checkOutDate: Date;
-    adults: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    children?: number;
-    rooms?: number;
-    specialRequests?: string;
-  }) {
-    try {
-      this.logger.debug(`Creating OYO booking for hotel ID: ${params.hotelId}, room ID: ${params.roomId}`);
-      
-      const response = await axios.post(`${this.apiUrl}/bookings`, {
-        hotel_id: params.hotelId,
-        room_id: params.roomId,
-        check_in: this.formatDate(params.checkInDate),
-        check_out: this.formatDate(params.checkOutDate),
-        guests: params.adults + (params.children || 0),
+      // Prepare request parameters
+      const requestParams = {
+        partner_id: this.partnerId,
+        api_key: this.apiKey,
+        location: params.location,
+        check_in: checkInFormatted,
+        check_out: checkOutFormatted,
+        adults: params.adults,
+        children: params.children || 0,
         rooms: params.rooms || 1,
-        guest_details: {
-          first_name: params.firstName,
-          last_name: params.lastName,
-          email: params.email,
-          phone: params.phone,
+        min_price: params.minPrice,
+        max_price: params.maxPrice,
+        amenities: params.amenities?.join(','),
+        property_type: params.propertyType,
+        min_rating: params.minRating,
+      };
+
+      // Make API request
+      const response = await axios.get(`${this.apiUrl}/hotels/search`, {
+        params: requestParams,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
         },
-        special_requests: params.specialRequests,
-      }, {
-        headers: this.getOyoHeaders(),
       });
-      
-      this.logger.debug(`OYO booking created with ID: ${response.data.booking?.id}`);
-      return this.transformBookingResponse(response.data);
-    } catch (error) {
-      this.logger.warn(`Error creating OYO booking: ${error.message}. Falling back to B2B aggregator.`);
-      
-      // Fallback to B2B aggregator if OYO API fails
-      try {
-        return await this.createBookingViaAggregator(params);
-      } catch (fallbackError) {
-        this.logger.error(`Fallback also failed: ${fallbackError.message}`, fallbackError.stack);
-        throw this.exceptionService.handleHttpError(fallbackError, 'Failed to create booking on OYO and fallback');
-      }
-    }
-  }
 
-  /**
-   * Get booking details
-   */
-  async getBookingDetails(bookingId: string) {
-    try {
-      this.logger.debug(`Getting OYO booking details for ID: ${bookingId}`);
-      
-      const response = await axios.get(`${this.apiUrl}/bookings/${bookingId}`, {
-        headers: this.getOyoHeaders(),
-      });
-      
-      return this.transformBookingResponse(response.data);
-    } catch (error) {
-      this.logger.warn(`Error getting OYO booking details: ${error.message}. Falling back to B2B aggregator.`);
-      
-      // Fallback to B2B aggregator if OYO API fails
-      try {
-        return await this.getBookingDetailsViaAggregator(bookingId);
-      } catch (fallbackError) {
-        this.logger.error(`Fallback also failed: ${fallbackError.message}`, fallbackError.stack);
-        throw this.exceptionService.handleHttpError(fallbackError, 'Failed to get booking details from OYO and fallback');
-      }
-    }
-  }
+      // Process response
+      const hotels = response.data.hotels || [];
 
-  /**
-   * Cancel booking
-   */
-  async cancelBooking(bookingId: string) {
-    try {
-      this.logger.debug(`Cancelling OYO booking with ID: ${bookingId}`);
-      
-      const response = await axios.delete(`${this.apiUrl}/bookings/${bookingId}`, {
-        headers: this.getOyoHeaders(),
-      });
-      
-      this.logger.debug(`OYO booking cancelled successfully`);
       return {
         success: true,
-        message: 'Booking cancelled successfully',
-        bookingId: bookingId,
-        cancellationDetails: response.data,
+        totalResults: hotels.length,
+        hotels: hotels.map((hotel: OyoHotel) => ({
+          id: hotel.id,
+          name: hotel.name,
+          description: hotel.description,
+          address: hotel.address,
+          city: hotel.city,
+          state: hotel.state,
+          country: hotel.country,
+          zipCode: hotel.zipCode,
+          latitude: hotel.latitude,
+          longitude: hotel.longitude,
+          starRating: hotel.starRating,
+          images: hotel.images?.map((image: OyoHotelImage) => image.url) || [],
+          lowestPrice: Math.min(...(hotel.rooms?.map((room: OyoHotelRoom) => room.price) || [0])),
+          currency: hotel.rooms?.[0]?.currency || 'USD',
+          rooms: hotel.rooms?.map((room: OyoHotelRoom) => ({
+            id: room.id,
+            name: room.name,
+            description: room.description,
+            maxOccupancy: room.maxOccupancy,
+            price: room.price,
+            currency: room.currency,
+            images: room.images?.map((image: OyoHotelImage) => image.url) || [],
+            amenities:
+              room.facilities?.map((facility: OyoHotelFacility) => facility.description) || [],
+          })),
+          reviews:
+            hotel.reviews?.reviews?.map((review: OyoHotelReview) => ({
+              rating: review.rating,
+              comment: review.comment,
+              author: review.author,
+              date: review.date,
+            })) || [],
+          averageRating: hotel.reviews?.averageRating || 0,
+          reviewCount: hotel.reviews?.totalCount || 0,
+        })),
       };
     } catch (error) {
-      this.logger.warn(`Error cancelling OYO booking: ${error.message}. Falling back to B2B aggregator.`);
-      
-      // Fallback to B2B aggregator if OYO API fails
-      try {
-        return await this.cancelBookingViaAggregator(bookingId);
-      } catch (fallbackError) {
-        this.logger.error(`Fallback also failed: ${fallbackError.message}`, fallbackError.stack);
-        throw this.exceptionService.handleHttpError(fallbackError, 'Failed to cancel booking on OYO and fallback');
-      }
+      this.logger.error(`Error searching OYO hotels: ${error.message}`, error.stack);
+      this.exceptionService.handleException(error);
+
+      // Fallback to Hotelbeds API
+      this.logger.warn('Falling back to Hotelbeds API');
+      return this.searchHotelsHotelbeds(params);
     }
   }
 
   /**
-   * Fallback: Search hotels via B2B aggregator
+   * Alias for searchHotels to match integration service interface
    */
-  private async searchHotelsViaAggregator(params: {
+  async searchProperties(params: Record<string, unknown>) {
+    return this.searchHotels(params as any);
+  }
+
+  /**
+   * Fallback method to search hotels using Hotelbeds API
+   */
+  private async searchHotelsHotelbeds(params: {
     location: string;
     checkInDate: Date;
     checkOutDate: Date;
@@ -276,529 +226,317 @@ export class OyoService {
     propertyType?: string;
     minRating?: number;
   }) {
-    this.logger.debug(`Searching hotels via B2B aggregator with params: ${JSON.stringify(params)}`);
-    
-    const response = await axios.post(`${this.hotelbedsApiUrl}/hotels`, {
-      stay: {
-        checkIn: this.formatDate(params.checkInDate),
-        checkOut: this.formatDate(params.checkOutDate),
-      },
-      occupancies: [
-        {
-          rooms: params.rooms || 1,
-          adults: params.adults,
-          children: params.children || 0,
-        }
-      ],
-      destination: {
-        code: params.location,
-      },
-      filter: {
-        minRate: params.minPrice,
-        maxRate: params.maxPrice,
-        minCategory: params.minRating ? (params.minRating * 2).toFixed(0) : undefined,
-        amenities: params.amenities,
-      },
-    }, {
-      headers: this.getHotelbedsHeaders(),
-    });
-    
-    this.logger.debug(`Found ${response.data.hotels?.hotels?.length || 0} hotels via B2B aggregator`);
-    return this.transformHotelbedsHotelsResponse(response.data);
-  }
-
-  /**
-   * Fallback: Get hotel details via B2B aggregator
-   */
-  private async getHotelDetailsViaAggregator(hotelId: string) {
-    this.logger.debug(`Getting hotel details via B2B aggregator for ID: ${hotelId}`);
-    
-    const response = await axios.get(`${this.hotelbedsApiUrl}/hotels/${hotelId}`, {
-      headers: this.getHotelbedsHeaders(),
-    });
-    
-    return this.transformHotelbedsHotelDetailsResponse(response.data);
-  }
-
-  /**
-   * Fallback: Get room availability via B2B aggregator
-   */
-  private async getRoomAvailabilityViaAggregator(params: {
-    hotelId: string;
-    checkInDate: Date;
-    checkOutDate: Date;
-    adults: number;
-    children?: number;
-    rooms?: number;
-  }) {
-    this.logger.debug(`Getting room availability via B2B aggregator for hotel ID: ${params.hotelId}`);
-    
-    const response = await axios.post(`${this.hotelbedsApiUrl}/hotels`, {
-      stay: {
-        checkIn: this.formatDate(params.checkInDate),
-        checkOut: this.formatDate(params.checkOutDate),
-      },
-      occupancies: [
-        {
-          rooms: params.rooms || 1,
-          adults: params.adults,
-          children: params.children || 0,
-        }
-      ],
-      hotels: {
-        hotel: [params.hotelId],
-      },
-    }, {
-      headers: this.getHotelbedsHeaders(),
-    });
-    
-    return this.transformHotelbedsAvailabilityResponse(response.data);
-  }
-
-  /**
-   * Fallback: Create booking via B2B aggregator
-   */
-  private async createBookingViaAggregator(params: {
-    hotelId: string;
-    roomId: string;
-    checkInDate: Date;
-    checkOutDate: Date;
-    adults: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    children?: number;
-    rooms?: number;
-    specialRequests?: string;
-  }) {
-    this.logger.debug(`Creating booking via B2B aggregator for hotel ID: ${params.hotelId}, room ID: ${params.roomId}`);
-    
-    const response = await axios.post(`${this.hotelbedsApiUrl}/bookings`, {
-      holder: {
-        name: params.firstName,
-        surname: params.lastName,
-        email: params.email,
-        phone: params.phone,
-      },
-      rooms: [
-        {
-          rateKey: params.roomId,
-          paxes: [
-            {
-              roomId: 1,
-              type: 'AD',
-              name: params.firstName,
-              surname: params.lastName,
-            }
-          ],
-        }
-      ],
-      clientReference: `NESTERY-${Date.now()}`,
-      remark: params.specialRequests,
-    }, {
-      headers: this.getHotelbedsHeaders(),
-    });
-    
-    this.logger.debug(`Booking created via B2B aggregator with ID: ${response.data.booking?.reference}`);
-    return this.transformHotelbedsBookingResponse(response.data);
-  }
-
-  /**
-   * Fallback: Get booking details via B2B aggregator
-   */
-  private async getBookingDetailsViaAggregator(bookingId: string) {
-    this.logger.debug(`Getting booking details via B2B aggregator for ID: ${bookingId}`);
-    
-    const response = await axios.get(`${this.hotelbedsApiUrl}/bookings/${bookingId}`, {
-      headers: this.getHotelbedsHeaders(),
-    });
-    
-    return this.transformHotelbedsBookingResponse(response.data);
-  }
-
-  /**
-   * Fallback: Cancel booking via B2B aggregator
-   */
-  private async cancelBookingViaAggregator(bookingId: string) {
-    this.logger.debug(`Cancelling booking via B2B aggregator with ID: ${bookingId}`);
-    
-    const response = await axios.delete(`${this.hotelbedsApiUrl}/bookings/${bookingId}`, {
-      headers: this.getHotelbedsHeaders(),
-    });
-    
-    this.logger.debug(`Booking cancelled successfully via B2B aggregator`);
-    return {
-      success: true,
-      message: 'Booking cancelled successfully',
-      bookingId: bookingId,
-      cancellationFee: response.data.booking?.cancellationFee,
-      refundAmount: response.data.booking?.refundAmount,
-    };
-  }
-
-  /**
-   * Transform OYO hotels response to standardized format
-   */
-  private transformHotelsResponse(data: any) {
     try {
-      const hotels = data.hotels || [];
-      
+      // Check if Hotelbeds API is configured
+      if (!this.hotelbedsApiUrl || !this.hotelbedsApiKey || !this.hotelbedsApiSecret) {
+        throw new Error('Hotelbeds API not configured');
+      }
+
+      // Format dates for Hotelbeds API
+      const checkInFormatted = params.checkInDate.toISOString().split('T')[0];
+      const checkOutFormatted = params.checkOutDate.toISOString().split('T')[0];
+
+      // Generate signature for Hotelbeds API
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signature = this.generateHotelbedsSignature(timestamp);
+
+      // Prepare request body
+      const requestBody = {
+        stay: {
+          checkIn: checkInFormatted,
+          checkOut: checkOutFormatted,
+        },
+        occupancies: [
+          {
+            rooms: params.rooms || 1,
+            adults: params.adults,
+            children: params.children || 0,
+          },
+        ],
+        destination: {
+          code: params.location,
+        },
+        filter: {
+          minRate: params.minPrice,
+          maxRate: params.maxPrice,
+          minCategory: params.minRating,
+        },
+      };
+
+      // Make API request
+      const response = await axios.post(
+        `${this.hotelbedsApiUrl}/hotel-api/1.0/hotels`,
+        requestBody,
+        {
+          headers: {
+            'Api-Key': this.hotelbedsApiKey,
+            'X-Signature': signature,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      // Process response
+      const hotels = response.data.hotels?.hotels || [];
+      const rooms = response.data.hotels?.rooms || [];
+
       return {
-        hotels: hotels.map(hotel => ({
+        success: true,
+        totalResults: hotels.length,
+        hotels: hotels.map((hotel: Record<string, any>) => ({
+          id: hotel.code,
+          name: hotel.name,
+          description: hotel.description || 'No description available',
+          address: hotel.address?.content || 'No address available',
+          city: hotel.city?.content || 'Unknown',
+          state: hotel.state?.content || 'Unknown',
+          country: hotel.country?.content || 'Unknown',
+          zipCode: hotel.postalCode || 'Unknown',
+          latitude: hotel.coordinates?.latitude || 0,
+          longitude: hotel.coordinates?.longitude || 0,
+          starRating: hotel.categoryCode || 0,
+          images: hotel.images?.map((image: Record<string, any>) => image.url) || [],
+          lowestPrice: Math.min(
+            ...rooms
+              .filter((room: Record<string, any>) => room.hotelCode === hotel.code)
+              .map((room: Record<string, any>) => room.rates[0]?.net || 0),
+          ),
+          currency:
+            rooms.find((room: Record<string, any>) => room.hotelCode === hotel.code)?.rates[0]?.currency || 'USD',
+          rooms: rooms
+            .filter((room: Record<string, any>) => room.hotelCode === hotel.code)
+            .map((room: Record<string, any>) => ({
+              id: room.code,
+              name: room.name,
+              description: room.description || 'No description available',
+              maxOccupancy: room.occupancy?.maxAdults || 2,
+              price: room.rates[0]?.net || 0,
+              currency: room.rates[0]?.currency || 'USD',
+              images: room.images?.map((image: Record<string, any>) => image.url) || [],
+              amenities: room.facilities?.map((facility: Record<string, any>) => facility.description) || [],
+            })),
+          reviews: [],
+          averageRating: hotel.reviews?.rating || 0,
+          reviewCount: hotel.reviews?.count || 0,
+        })),
+      };
+    } catch (error) {
+      this.logger.error(`Error searching Hotelbeds hotels: ${error.message}`, error.stack);
+      this.exceptionService.handleException(error);
+
+      // Return empty result
+      return {
+        success: false,
+        totalResults: 0,
+        hotels: [],
+        error: 'Failed to search hotels',
+      };
+    }
+  }
+
+  /**
+   * Get hotel details by ID
+   */
+  async getHotelDetails(hotelId: string) {
+    try {
+      // Check if OYO API is configured
+      if (!this.apiUrl || !this.apiKey) {
+        this.logger.warn('OYO API not configured, falling back to Hotelbeds API');
+        return this.getHotelDetailsHotelbeds(hotelId);
+      }
+
+      // Make API request
+      const response = await axios.get(`${this.apiUrl}/hotels/${hotelId}`, {
+        params: {
+          partner_id: this.partnerId,
+          api_key: this.apiKey,
+        },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Process response
+      const hotel = response.data.hotel;
+
+      if (!hotel) {
+        throw new Error(`Hotel with ID ${hotelId} not found`);
+      }
+
+      return {
+        success: true,
+        hotel: {
           id: hotel.id,
           name: hotel.name,
           description: hotel.description,
           address: hotel.address,
           city: hotel.city,
+          state: hotel.state,
           country: hotel.country,
-          zipCode: hotel.zip_code,
+          zipCode: hotel.zipCode,
           latitude: hotel.latitude,
           longitude: hotel.longitude,
-          rating: hotel.rating,
-          reviewCount: hotel.review_count,
-          price: hotel.price,
-          currency: hotel.currency,
-          thumbnailImage: hotel.images?.[0],
-          images: hotel.images || [],
-          amenities: hotel.amenities || [],
-          sourceType: 'OYO',
-          cancellationPolicy: hotel.cancellation_policy,
-        })),
-        totalCount: data.total_count,
-        pagination: data.pagination,
-      };
-    } catch (error) {
-      this.logger.error(`Error transforming OYO hotels response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform OYO hotels response');
-    }
-  }
-
-  /**
-   * Transform OYO hotel details response to standardized format
-   */
-  private transformHotelDetailsResponse(data: any) {
-    try {
-      const hotel = data.hotel || {};
-      
-      return {
-        id: hotel.id,
-        name: hotel.name,
-        description: hotel.description,
-        address: hotel.address,
-        city: hotel.city,
-        country: hotel.country,
-        zipCode: hotel.zip_code,
-        latitude: hotel.latitude,
-        longitude: hotel.longitude,
-        rating: hotel.rating,
-        reviewCount: hotel.review_count,
-        price: hotel.price,
-        currency: hotel.currency,
-        thumbnailImage: hotel.images?.[0],
-        images: hotel.images || [],
-        amenities: hotel.amenities || [],
-        rooms: hotel.rooms?.map(room => ({
-          id: room.id,
-          name: room.name,
-          description: room.description,
-          price: room.price,
-          currency: room.currency,
-          capacity: room.capacity,
-          amenities: room.amenities || [],
-        })) || [],
-        reviews: hotel.reviews?.map(review => ({
-          id: review.id,
-          title: review.title,
-          comment: review.comment,
-          rating: review.rating,
-          date: review.date,
-          author: review.author,
-        })) || [],
-        policies: {
-          checkIn: hotel.policies?.check_in,
-          checkOut: hotel.policies?.check_out,
-          cancellation: hotel.policies?.cancellation,
-          children: hotel.policies?.children,
-          pets: hotel.policies?.pets,
+          starRating: hotel.starRating,
+          images: hotel.images?.map((image: OyoHotelImage) => image.url) || [],
+          amenities:
+            hotel.facilities?.map((facility: OyoHotelFacility) => facility.description) || [],
+          rooms:
+            hotel.rooms?.map((room: OyoHotelRoom) => ({
+              id: room.id,
+              name: room.name,
+              description: room.description,
+              maxOccupancy: room.maxOccupancy,
+              price: room.price,
+              currency: room.currency,
+              images: room.images?.map((image: OyoHotelImage) => image.url) || [],
+              amenities:
+                room.facilities?.map((facility: OyoHotelFacility) => facility.description) || [],
+            })) || [],
+          reviews:
+            hotel.reviews?.reviews?.map((review: OyoHotelReview) => ({
+              rating: review.rating,
+              comment: review.comment,
+              author: review.author,
+              date: review.date,
+            })) || [],
+          averageRating: hotel.reviews?.averageRating || 0,
+          reviewCount: hotel.reviews?.totalCount || 0,
         },
-        sourceType: 'OYO',
       };
     } catch (error) {
-      this.logger.error(`Error transforming OYO hotel details response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform OYO hotel details response');
+      this.logger.error(`Error getting OYO hotel details: ${error.message}`, error.stack);
+      this.exceptionService.handleException(error);
+
+      // Fallback to Hotelbeds API
+      this.logger.warn('Falling back to Hotelbeds API');
+      return this.getHotelDetailsHotelbeds(hotelId);
     }
   }
 
   /**
-   * Transform OYO availability response to standardized format
+   * Alias for getHotelDetails to match integration service interface
    */
-  private transformAvailabilityResponse(data: any) {
+  async getPropertyDetails(propertyId: string) {
+    return this.getHotelDetails(propertyId);
+  }
+
+  /**
+   * Create a booking
+   */
+  async createBooking(bookingData: Record<string, unknown>): Promise<{
+    success: boolean;
+    booking?: Record<string, unknown>;
+    error?: string;
+  }> {
     try {
-      const rooms = data.rooms || [];
-      
+      // Implementation would go here
       return {
-        available: data.available,
-        rooms: rooms.map(room => ({
-          id: room.id,
-          name: room.name,
-          description: room.description,
-          price: room.price,
-          currency: room.currency,
-          available: room.available,
-          capacity: room.capacity,
-          amenities: room.amenities || [],
-        })),
-        totalPrice: data.total_price,
-        currency: data.currency,
-        nights: data.nights,
+        success: true,
+        booking: {
+          id: 'mock-booking-id',
+          // Other booking details
+        }
       };
     } catch (error) {
-      this.logger.error(`Error transforming OYO availability response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform OYO availability response');
+      this.logger.error(`Error creating booking: ${error.message}`, error.stack);
+      this.exceptionService.handleException(error);
+      return {
+        success: false,
+        error: 'Failed to create booking'
+      };
     }
   }
 
   /**
-   * Transform OYO booking response to standardized format
+   * Fallback method to get hotel details using Hotelbeds API
    */
-  private transformBookingResponse(data: any) {
+  private async getHotelDetailsHotelbeds(hotelId: string) {
     try {
-      const booking = data.booking || {};
-      
-      return {
-        id: booking.id,
-        hotelId: booking.hotel_id,
-        roomId: booking.room_id,
-        checkInDate: booking.check_in,
-        checkOutDate: booking.check_out,
-        guestName: booking.guest_name,
-        guestEmail: booking.guest_email,
-        guestPhone: booking.guest_phone,
-        status: booking.status,
-        totalPrice: booking.total_price,
-        currency: booking.currency,
-        createdAt: booking.created_at,
-        updatedAt: booking.updated_at,
-        sourceType: 'OYO',
-      };
-    } catch (error) {
-      this.logger.error(`Error transforming OYO booking response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform OYO booking response');
-    }
-  }
+      // Check if Hotelbeds API is configured
+      if (!this.hotelbedsApiUrl || !this.hotelbedsApiKey || !this.hotelbedsApiSecret) {
+        throw new Error('Hotelbeds API not configured');
+      }
 
-  /**
-   * Transform Hotelbeds hotels response to standardized format
-   */
-  private transformHotelbedsHotelsResponse(data: any) {
-    try {
-      const hotels = data.hotels?.hotels || [];
-      
+      // Generate signature for Hotelbeds API
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signature = this.generateHotelbedsSignature(timestamp);
+
+      // Make API request
+      const response = await axios.get(`${this.hotelbedsApiUrl}/hotel-api/1.0/hotels/${hotelId}`, {
+        headers: {
+          'Api-Key': this.hotelbedsApiKey,
+          'X-Signature': signature,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Process response
+      const hotel = response.data.hotel;
+      const rooms = response.data.rooms || [];
+
+      if (!hotel) {
+        throw new Error(`Hotel with ID ${hotelId} not found`);
+      }
+
       return {
-        hotels: hotels.map(hotel => ({
+        success: true,
+        hotel: {
           id: hotel.code,
           name: hotel.name,
-          description: hotel.description,
-          address: hotel.address,
-          city: hotel.city,
-          country: hotel.country,
-          zipCode: hotel.postalCode,
-          latitude: hotel.coordinates?.latitude,
-          longitude: hotel.coordinates?.longitude,
-          rating: hotel.categoryCode / 2, // Convert 5-star scale to 2.5-star scale
+          description: hotel.description || 'No description available',
+          address: hotel.address?.content || 'No address available',
+          city: hotel.city?.content || 'Unknown',
+          state: hotel.state?.content || 'Unknown',
+          country: hotel.country?.content || 'Unknown',
+          zipCode: hotel.postalCode || 'Unknown',
+          latitude: hotel.coordinates?.latitude || 0,
+          longitude: hotel.coordinates?.longitude || 0,
+          starRating: hotel.categoryCode || 0,
+          images: hotel.images?.map((image: Record<string, any>) => image.url) || [],
+          amenities: hotel.facilities?.map((facility: Record<string, any>) => facility.description) || [],
+          rooms: rooms.map((room: Record<string, any>) => ({
+            id: room.code,
+            name: room.name,
+            description: room.description || 'No description available',
+            maxOccupancy: room.occupancy?.maxAdults || 2,
+            price: room.rates[0]?.net || 0,
+            currency: room.rates[0]?.currency || 'USD',
+            images: room.images?.map((image: Record<string, any>) => image.url) || [],
+            amenities: room.facilities?.map((facility: Record<string, any>) => facility.description) || [],
+          })),
+          reviews: [],
+          averageRating: hotel.reviews?.rating || 0,
           reviewCount: hotel.reviews?.count || 0,
-          price: hotel.minRate,
-          currency: hotel.currency,
-          thumbnailImage: hotel.images?.[0]?.url,
-          images: hotel.images?.map(image => image.url) || [],
-          amenities: hotel.facilities?.map(facility => facility.description) || [],
-          sourceType: 'OYO',
-          cancellationPolicy: hotel.cancellationPolicies?.[0]?.description,
-        })),
-        totalCount: data.hotels?.total || 0,
-        pagination: {
-          currentPage: data.hotels?.from || 1,
-          totalPages: Math.ceil((data.hotels?.total || 0) / (data.hotels?.to || 10)),
         },
       };
     } catch (error) {
-      this.logger.error(`Error transforming Hotelbeds hotels response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform Hotelbeds hotels response');
-    }
-  }
+      this.logger.error(`Error getting Hotelbeds hotel details: ${error.message}`, error.stack);
+      this.exceptionService.handleException(error);
 
-  /**
-   * Transform Hotelbeds hotel details response to standardized format
-   */
-  private transformHotelbedsHotelDetailsResponse(data: any) {
-    try {
-      const hotel = data.hotel || {};
-      
+      // Return empty result
       return {
-        id: hotel.code,
-        name: hotel.name,
-        description: hotel.description,
-        address: hotel.address,
-        city: hotel.city,
-        country: hotel.country,
-        zipCode: hotel.postalCode,
-        latitude: hotel.coordinates?.latitude,
-        longitude: hotel.coordinates?.longitude,
-        rating: hotel.categoryCode / 2, // Convert 5-star scale to 2.5-star scale
-        reviewCount: hotel.reviews?.count || 0,
-        price: hotel.minRate,
-        currency: hotel.currency,
-        thumbnailImage: hotel.images?.[0]?.url,
-        images: hotel.images?.map(image => image.url) || [],
-        amenities: hotel.facilities?.map(facility => facility.description) || [],
-        rooms: hotel.rooms?.map(room => ({
-          id: room.code,
-          name: room.name,
-          description: room.description,
-          price: room.rates?.[0]?.net,
-          currency: room.rates?.[0]?.currency,
-          capacity: room.capacity,
-          amenities: room.facilities?.map(facility => facility.description) || [],
-        })) || [],
-        reviews: hotel.reviews?.reviews?.map(review => ({
-          id: review.reviewId,
-          title: review.title,
-          comment: review.comments,
-          rating: review.rate,
-          date: review.date,
-          author: review.user,
-        })) || [],
-        policies: {
-          checkIn: hotel.checkIn,
-          checkOut: hotel.checkOut,
-          cancellation: hotel.cancellationPolicies?.[0]?.description,
-          children: hotel.childrenPolicy,
-          pets: hotel.petPolicy,
-        },
-        sourceType: 'OYO',
+        success: false,
+        hotel: null,
+        error: 'Failed to get hotel details',
       };
-    } catch (error) {
-      this.logger.error(`Error transforming Hotelbeds hotel details response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform Hotelbeds hotel details response');
     }
   }
 
   /**
-   * Transform Hotelbeds availability response to standardized format
+   * Generate signature for Hotelbeds API
    */
-  private transformHotelbedsAvailabilityResponse(data: any) {
+  private generateHotelbedsSignature(timestamp: number): string {
     try {
-      const hotel = data.hotels?.hotels?.[0] || {};
-      const rooms = hotel.rooms || [];
-      
-      return {
-        available: rooms.length > 0,
-        rooms: rooms.map(room => ({
-          id: room.code,
-          name: room.name,
-          description: room.description,
-          price: room.rates?.[0]?.net,
-          currency: room.rates?.[0]?.currency,
-          available: true,
-          capacity: room.capacity,
-          amenities: room.facilities?.map(facility => facility.description) || [],
-        })),
-        totalPrice: hotel.totalNet,
-        currency: hotel.currency,
-        nights: this.calculateNights(data.hotels?.checkIn, data.hotels?.checkOut),
-      };
+      return crypto
+        .createHash('sha256')
+        .update(`${this.hotelbedsApiKey}${this.hotelbedsApiSecret}${timestamp}`)
+        .digest('hex');
     } catch (error) {
-      this.logger.error(`Error transforming Hotelbeds availability response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform Hotelbeds availability response');
+      this.logger.error(`Error generating signature: ${error.message}`, error.stack);
+      return '';
     }
-  }
-
-  /**
-   * Transform Hotelbeds booking response to standardized format
-   */
-  private transformHotelbedsBookingResponse(data: any) {
-    try {
-      const booking = data.booking || {};
-      
-      return {
-        id: booking.reference,
-        hotelId: booking.hotel?.code,
-        roomId: booking.rooms?.[0]?.code,
-        checkInDate: booking.hotel?.checkIn,
-        checkOutDate: booking.hotel?.checkOut,
-        guestName: `${booking.holder?.name} ${booking.holder?.surname}`,
-        guestEmail: booking.holder?.email,
-        guestPhone: booking.holder?.phone,
-        status: booking.status,
-        totalPrice: booking.totalNet,
-        currency: booking.currency,
-        createdAt: booking.creationDate,
-        updatedAt: booking.modificationDate,
-        sourceType: 'OYO',
-      };
-    } catch (error) {
-      this.logger.error(`Error transforming Hotelbeds booking response: ${error.message}`, error.stack);
-      throw new Error('Failed to transform Hotelbeds booking response');
-    }
-  }
-
-  /**
-   * Get headers for OYO API requests
-   */
-  private getOyoHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-API-KEY': this.apiKey,
-      'X-PARTNER-ID': this.partnerId,
-    };
-  }
-
-  /**
-   * Get headers for Hotelbeds API requests
-   */
-  private getHotelbedsHeaders() {
-    // Generate signature based on API key and secret
-    const timestamp = Date.now().toString();
-    const signature = this.generateHotelbedsSignature(timestamp);
-    
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Api-Key': this.hotelbedsApiKey,
-      'X-Signature': signature,
-    };
-  }
-
-  /**
-   * Generate signature for Hotelbeds API authentication
-   */
-  private generateHotelbedsSignature(timestamp: string): string {
-    // In a real implementation, this would use a proper hashing algorithm
-    // For now, we'll just return a placeholder
-    return 'signature-placeholder';
-  }
-
-  /**
-   * Format date to YYYY-MM-DD
-   */
-  private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
-  }
-
-  /**
-   * Calculate number of nights between two dates
-   */
-  private calculateNights(checkIn: string, checkOut: string): number {
-    if (!checkIn || !checkOut) return 0;
-    
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    
-    const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
   }
 }

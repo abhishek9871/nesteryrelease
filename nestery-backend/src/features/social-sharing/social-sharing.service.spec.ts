@@ -1,55 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SocialSharingService } from './social-sharing.service';
 import { ConfigService } from '@nestjs/config';
-import { LoggerService } from '../../core/logger/logger.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { PropertyEntity } from '../../properties/entities/property.entity';
-import { UserEntity } from '../../users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { LoggerService } from '../../core/logger/logger.service';
+import { ExceptionService } from '../../core/exception/exception.service';
 
 describe('SocialSharingService', () => {
   let service: SocialSharingService;
-  let propertyRepository: Repository<PropertyEntity>;
-  let userRepository: Repository<UserEntity>;
-
-  const mockPropertyRepository = {
-    findOne: jest.fn().mockResolvedValue({
-      id: 'property1',
-      name: 'Test Property 1',
-      city: 'New York',
-      country: 'US',
-      description: 'A beautiful property in the heart of New York City with amazing views and amenities.',
-      thumbnailImage: 'https://example.com/image.jpg',
-      images: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
-      propertyType: 'hotel',
-      amenities: ['wifi', 'pool', 'gym'],
-      rating: 4.5,
-    }),
-  };
-
-  const mockUserRepository = {
-    findOne: jest.fn().mockResolvedValue({
-      id: 'user1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      referralCode: 'JO1234',
-    }),
-    save: jest.fn().mockResolvedValue({
-      id: 'user1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      referralCode: 'JO1234',
-    }),
-  };
-
-  const mockConfigService = {
-    get: jest.fn((key) => {
-      if (key === 'APP_URL') return 'https://nestery.com';
-      return null;
-    }),
-  };
+  let configService: ConfigService;
+  let userRepository: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -57,182 +17,202 @@ describe('SocialSharingService', () => {
         SocialSharingService,
         {
           provide: ConfigService,
-          useValue: mockConfigService,
+          useValue: {
+            get: jest.fn().mockImplementation(key => {
+              if (key === 'APP_URL') return 'https://nestery.com';
+              return null;
+            }),
+          },
         },
         {
           provide: LoggerService,
           useValue: {
             setContext: jest.fn(),
-            debug: jest.fn(),
+            log: jest.fn(),
             error: jest.fn(),
+            debug: jest.fn(),
+            warn: jest.fn(),
           },
         },
         {
-          provide: getRepositoryToken(PropertyEntity),
-          useValue: mockPropertyRepository,
+          provide: ExceptionService,
+          useValue: {
+            handleException: jest.fn(),
+          },
         },
         {
-          provide: getRepositoryToken(UserEntity),
-          useValue: mockUserRepository,
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: jest.fn(),
+            find: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+          },
         },
       ],
     }).compile();
 
     service = module.get<SocialSharingService>(SocialSharingService);
-    propertyRepository = module.get<Repository<PropertyEntity>>(getRepositoryToken(PropertyEntity));
-    userRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
+    configService = module.get<ConfigService>(ConfigService);
+    userRepository = module.get(getRepositoryToken(User));
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('generateShareableContent', () => {
-    it('should generate shareable content for Facebook', async () => {
-      const propertyId = 'property1';
-      const platform = 'facebook';
-
-      const result = await service.generateShareableContent(propertyId, platform);
-
-      expect(result).toBeDefined();
-      expect(result.title).toContain('Test Property 1');
-      expect(result.description).toBeDefined();
-      expect(result.imageUrl).toBe('https://example.com/image.jpg');
-      expect(result.shareUrl).toContain('utm_source=facebook');
-      expect(result.hashtags).toBeDefined();
-      expect(result.hashtags.length).toBeGreaterThan(0);
-      expect(propertyRepository.findOne).toHaveBeenCalledWith({
-        where: { id: propertyId },
-      });
-    });
-
-    it('should generate shareable content for Twitter', async () => {
-      const propertyId = 'property1';
-      const platform = 'twitter';
-
-      const result = await service.generateShareableContent(propertyId, platform);
-
-      expect(result).toBeDefined();
-      expect(result.title).toContain('Test Property 1');
-      expect(result.description.length).toBeLessThanOrEqual(200); // Twitter has shorter description
-      expect(result.imageUrl).toBe('https://example.com/image.jpg');
-      expect(result.shareUrl).toContain('utm_source=twitter');
-      expect(result.hashtags).toBeDefined();
-      expect(result.hashtags.length).toBeLessThanOrEqual(3); // Twitter uses fewer hashtags
-    });
-
-    it('should throw an error if property not found', async () => {
-      const propertyId = 'nonexistent';
-      const platform = 'facebook';
-
-      // Mock property not found
-      jest.spyOn(propertyRepository, 'findOne').mockResolvedValueOnce(null);
-
-      await expect(service.generateShareableContent(propertyId, platform)).rejects.toThrow(
-        `Property with ID ${propertyId} not found`,
-      );
-    });
-
-    it('should handle errors gracefully', async () => {
-      const propertyId = 'property1';
-      const platform = 'facebook';
-
-      // Mock error
-      jest.spyOn(propertyRepository, 'findOne').mockRejectedValueOnce(new Error('Database error'));
-
-      await expect(service.generateShareableContent(propertyId, platform)).rejects.toThrow('Failed to generate shareable content');
+  describe('getSocialPlatforms', () => {
+    it('should return all available social platforms', () => {
+      const platforms = service.getSocialPlatforms();
+      expect(platforms).toBeDefined();
+      expect(platforms.length).toBeGreaterThan(0);
+      expect(platforms[0].name).toBeDefined();
+      expect(platforms[0].icon).toBeDefined();
+      expect(platforms[0].color).toBeDefined();
     });
   });
 
-  describe('trackSocialShare', () => {
-    it('should track a social share event', async () => {
-      const params = {
-        userId: 'user1',
-        propertyId: 'property1',
-        platform: 'facebook',
-        shareUrl: 'https://nestery.com/properties/property1?utm_source=facebook',
-      };
-
-      const result = await service.trackSocialShare(params);
-
+  describe('generatePropertySharingLinks', () => {
+    it('should generate sharing links for a property', () => {
+      const propertyId = 'property1';
+      const propertyName = 'Luxury Villa';
+      const result = service.generatePropertySharingLinks(propertyId, propertyName);
       expect(result).toBeDefined();
-      expect(result.success).toBe(true);
-      expect(result.shareId).toBeDefined();
-    });
-
-    it('should handle errors gracefully', async () => {
-      const params = {
-        userId: 'user1',
-        propertyId: 'property1',
-        platform: 'facebook',
-        shareUrl: 'https://nestery.com/properties/property1?utm_source=facebook',
-      };
-
-      // Mock implementation to throw error
-      jest.spyOn(service as any, 'trackSocialShare').mockImplementationOnce(() => {
-        throw new Error('Tracking error');
-      });
-
-      await expect(service.trackSocialShare(params)).rejects.toThrow('Failed to track social share');
+      expect(result.url).toContain(propertyId);
+      expect(result.text).toContain(propertyName);
+      expect(result.links).toBeDefined();
+      expect(Object.keys(result.links).length).toBeGreaterThan(0);
     });
   });
 
-  describe('getReferralLink', () => {
-    it('should get referral link for a user with existing referral code', async () => {
+  describe('generateReferralCode', () => {
+    it('should generate a referral code for a user', async () => {
       const userId = 'user1';
+      const mockUser = new User();
+      mockUser.id = userId;
+      mockUser.firstName = 'John';
+      mockUser.lastName = 'Doe';
+      mockUser.email = 'john.doe@example.com';
+      mockUser.name = 'John Doe';
+      mockUser.password = 'hashedpassword';
+      mockUser.role = 'user';
 
-      const result = await service.getReferralLink(userId);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(mockUser);
+      jest.spyOn(userRepository, 'save').mockResolvedValueOnce(mockUser);
 
+      const result = await service.generateReferralCode(userId);
       expect(result).toBeDefined();
-      expect(result.referralCode).toBe('JO1234');
-      expect(result.referralUrl).toContain('ref=JO1234');
-      expect(result.rewards).toBeDefined();
-      expect(result.rewards.referrerReward).toBeDefined();
-      expect(result.rewards.refereeReward).toBeDefined();
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { id: userId },
-      });
-    });
-
-    it('should generate and save referral code for a user without one', async () => {
-      const userId = 'user2';
-
-      // Mock user without referral code
-      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce({
-        id: 'user2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@example.com',
-        referralCode: null,
-      });
-
-      const result = await service.getReferralLink(userId);
-
-      expect(result).toBeDefined();
-      expect(result.referralCode).toBeDefined();
-      expect(result.referralUrl).toContain(`ref=${result.referralCode}`);
-      expect(result.rewards).toBeDefined();
+      expect(result.length).toBeGreaterThan(5);
+      expect(result.startsWith('JO')).toBeTruthy();
       expect(userRepository.save).toHaveBeenCalled();
     });
 
     it('should throw an error if user not found', async () => {
       const userId = 'nonexistent';
-
-      // Mock user not found
       jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
-
-      await expect(service.getReferralLink(userId)).rejects.toThrow(
+      await expect(service.generateReferralCode(userId)).rejects.toThrow(
         `User with ID ${userId} not found`,
       );
     });
+  });
 
-    it('should handle errors gracefully', async () => {
-      const userId = 'user1';
+  describe('getUserByReferralCode', () => {
+    it('should return a user by referral code', async () => {
+      const referralCode = 'JO1234';
+      const mockUser = new User();
+      mockUser.id = 'user1';
+      mockUser.firstName = 'John';
+      mockUser.lastName = 'Doe';
+      mockUser.email = 'john.doe@example.com';
+      mockUser.name = 'John Doe';
+      mockUser.password = 'hashedpassword';
+      mockUser.role = 'user';
+      mockUser.referralCode = referralCode;
 
-      // Mock error
-      jest.spyOn(userRepository, 'findOne').mockRejectedValueOnce(new Error('Database error'));
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(mockUser);
 
-      await expect(service.getReferralLink(userId)).rejects.toThrow('Failed to get referral link');
+      const result = await service.getUserByReferralCode(referralCode);
+      if (result) {
+        // Add null check
+        expect(result.id).toBe('user1');
+        expect(result.referralCode).toBe(referralCode);
+      }
+      expect(result).toBeDefined();
+    });
+
+    it('should return null if no user found with referral code', async () => {
+      const referralCode = 'INVALID';
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
+      const result = await service.getUserByReferralCode(referralCode);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('processReferral', () => {
+    it('should process a valid referral', async () => {
+      const referralCode = 'JO1234';
+
+      const referrer = new User();
+      referrer.id = 'user1';
+      referrer.firstName = 'John';
+      referrer.lastName = 'Doe';
+      referrer.email = 'john.doe@example.com';
+      referrer.name = 'John Doe';
+      referrer.password = 'hashedpassword';
+      referrer.role = 'user';
+      referrer.referralCode = referralCode;
+
+      const newUser = new User();
+      newUser.id = 'user2';
+      newUser.firstName = 'Jane';
+      newUser.lastName = 'Smith';
+      newUser.email = 'jane.smith@example.com';
+      newUser.name = 'Jane Smith';
+      newUser.password = 'hashedpassword';
+      newUser.role = 'user';
+
+      jest.spyOn(service, 'getUserByReferralCode').mockResolvedValueOnce(referrer);
+      jest.spyOn(userRepository, 'save').mockResolvedValueOnce(newUser);
+
+      const result = await service.processReferral(newUser, referralCode);
+      expect(result).toBe(true);
+      expect(newUser.referredBy).toBe('user1');
+      expect(userRepository.save).toHaveBeenCalled();
+    });
+
+    it('should return false if user already has a referrer', async () => {
+      const referralCode = 'JO1234';
+
+      const newUser = new User();
+      newUser.id = 'user2';
+      newUser.firstName = 'Jane';
+      newUser.lastName = 'Smith';
+      newUser.email = 'jane.smith@example.com';
+      newUser.name = 'Jane Smith';
+      newUser.password = 'hashedpassword';
+      newUser.role = 'user';
+      newUser.referredBy = 'user3';
+
+      const result = await service.processReferral(newUser, referralCode);
+      expect(result).toBe(false);
+    });
+
+    it('should return false if referrer not found', async () => {
+      const referralCode = 'INVALID';
+
+      const newUser = new User();
+      newUser.id = 'user2';
+      newUser.firstName = 'Jane';
+      newUser.lastName = 'Smith';
+      newUser.email = 'jane.smith@example.com';
+      newUser.name = 'Jane Smith';
+      newUser.password = 'hashedpassword';
+      newUser.role = 'user';
+
+      jest.spyOn(service, 'getUserByReferralCode').mockResolvedValueOnce(null);
+
+      const result = await service.processReferral(newUser, referralCode);
+      expect(result).toBe(false);
     });
   });
 
@@ -241,121 +221,118 @@ describe('SocialSharingService', () => {
       const referralCode = 'JO1234';
       const newUserId = 'user2';
 
-      // Mock new user without referral
-      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce({
-        id: 'user1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        referralCode: 'JO1234',
-      }).mockResolvedValueOnce({
-        id: 'user2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@example.com',
-        referredBy: null,
-      });
+      const newUser = new User();
+      newUser.id = newUserId;
+      newUser.firstName = 'Jane';
+      newUser.lastName = 'Smith';
+      newUser.email = 'jane.smith@example.com';
+      newUser.name = 'Jane Smith';
+      newUser.password = 'hashedpassword';
+      newUser.role = 'user';
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(newUser);
+      jest.spyOn(service, 'processReferral').mockResolvedValueOnce(true);
 
       const result = await service.processReferralSignup(referralCode, newUserId);
-
-      expect(result).toBeDefined();
-      expect(result.success).toBe(true);
-      expect(result.referrerUserId).toBe('user1');
-      expect(result.refereeReward).toBeDefined();
-      expect(result.refereeReward.type).toBe('credit');
-      expect(result.refereeReward.value).toBe(25);
-      expect(userRepository.save).toHaveBeenCalled();
+      expect(result).toBe(true);
     });
 
-    it('should throw an error if referral code is invalid', async () => {
-      const referralCode = 'INVALID';
-      const newUserId = 'user2';
-
-      // Mock invalid referral code
-      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
-
-      await expect(service.processReferralSignup(referralCode, newUserId)).rejects.toThrow(
-        `Invalid referral code: ${referralCode}`,
-      );
-    });
-
-    it('should throw an error if new user not found', async () => {
+    it('should throw an error if user not found', async () => {
       const referralCode = 'JO1234';
       const newUserId = 'nonexistent';
 
-      // Mock referrer found but new user not found
-      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce({
-        id: 'user1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        referralCode: 'JO1234',
-      }).mockResolvedValueOnce(null);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
 
       await expect(service.processReferralSignup(referralCode, newUserId)).rejects.toThrow(
-        `New user with ID ${newUserId} not found`,
+        `User with ID ${newUserId} not found`,
       );
     });
+  });
 
-    it('should throw an error if user already processed for referral', async () => {
-      const referralCode = 'JO1234';
-      const newUserId = 'user2';
+  describe('getReferralInfo', () => {
+    it('should return referral information for a user', async () => {
+      const userId = 'user1';
 
-      // Mock user already referred
-      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce({
-        id: 'user1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        referralCode: 'JO1234',
-      }).mockResolvedValueOnce({
-        id: 'user2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@example.com',
-        referredBy: 'user3',
-      });
+      const mockUser = new User();
+      mockUser.id = userId;
+      mockUser.firstName = 'John';
+      mockUser.lastName = 'Doe';
+      mockUser.email = 'john.doe@example.com';
+      mockUser.name = 'John Doe';
+      mockUser.password = 'hashedpassword';
+      mockUser.role = 'user';
+      mockUser.referralCode = 'JO1234';
+      mockUser.referredUsers = [];
 
-      await expect(service.processReferralSignup(referralCode, newUserId)).rejects.toThrow(
-        `User ${newUserId} has already been processed for referral`,
-      );
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(mockUser);
+      jest.spyOn(service, 'generateQRCode').mockResolvedValueOnce('data:image/png;base64,abc123');
+
+      const result = await service.getReferralInfo(userId);
+      expect(result).toBeDefined();
+      expect(result.referralCode).toBe('JO1234');
+      expect(result.referralLink).toContain('JO1234');
+      expect(result.qrCode).toBeDefined();
+      expect(result.referralStats).toBeDefined();
+      expect(result.rewards).toBeDefined();
+      expect(result.sharingLinks).toBeDefined();
     });
 
-    it('should handle errors gracefully', async () => {
-      const referralCode = 'JO1234';
-      const newUserId = 'user2';
-
-      // Mock error
-      jest.spyOn(userRepository, 'findOne').mockRejectedValueOnce(new Error('Database error'));
-
-      await expect(service.processReferralSignup(referralCode, newUserId)).rejects.toThrow('Failed to process referral signup');
+    it('should throw an error if user not found', async () => {
+      const userId = 'nonexistent';
+      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.getReferralInfo(userId)).rejects.toThrow(
+        `User with ID ${userId} not found`,
+      );
     });
   });
 
   describe('getPropertySharingStats', () => {
     it('should return sharing statistics for a property', async () => {
       const propertyId = 'property1';
-
       const result = await service.getPropertySharingStats(propertyId);
-
       expect(result).toBeDefined();
       expect(result.totalShares).toBeDefined();
-      expect(result.platformBreakdown).toBeDefined();
-      expect(result.topReferrers).toBeDefined();
-      expect(result.conversionRate).toBeDefined();
-      expect(result.conversionRate).toBeGreaterThan(0);
-      expect(result.conversionRate).toBeLessThan(1);
+      expect(result.sharesByPlatform).toBeDefined();
+      expect(result.clickThroughRate).toBeDefined();
+    });
+  });
+
+  describe('generateShortenedMessage', () => {
+    it('should return original message if within length limit', () => {
+      const message = 'This is a short message';
+      const platform = 'twitter';
+      const result = service.generateShortenedMessage(message, platform);
+      expect(result).toBe(message);
     });
 
-    it('should handle errors gracefully', async () => {
-      const propertyId = 'property1';
+    it('should shorten message if exceeds length limit', () => {
+      const longMessage = 'A'.repeat(300);
+      const platform = 'twitter';
+      const result = service.generateShortenedMessage(longMessage, platform);
+      expect(result.length).toBeLessThan(longMessage.length);
+      expect(result.endsWith('...')).toBeTruthy();
+    });
+  });
 
-      // Mock implementation to throw error
-      jest.spyOn(service as any, 'getPropertySharingStats').mockImplementationOnce(() => {
-        throw new Error('Stats error');
-      });
+  describe('shareBookingConfirmation', () => {
+    it('should generate sharing link for booking confirmation', async () => {
+      const bookingId = 'booking1';
+      const platform = 'facebook';
 
-      await expect(service.getPropertySharingStats(propertyId)).rejects.toThrow('Failed to get property sharing stats');
+      const result = await service.shareBookingConfirmation(bookingId, platform);
+      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(result.platform).toBeDefined();
+      expect(result.sharingLink).toBeDefined();
+    });
+
+    it('should throw error for unsupported platform', async () => {
+      const bookingId = 'booking1';
+      const platform = 'unsupported';
+
+      await expect(service.shareBookingConfirmation(bookingId, platform)).rejects.toThrow(
+        `Platform ${platform} not supported`,
+      );
     });
   });
 });

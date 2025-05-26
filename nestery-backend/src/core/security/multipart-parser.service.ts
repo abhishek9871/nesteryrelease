@@ -51,7 +51,7 @@ export class MultipartParserService {
   ): Promise<{ files: FileInfo[]; fields: Record<string, string> }> {
     const mergedOptions = this.mergeOptions(options);
     const contentType = req.headers['content-type'] || '';
-    
+
     if (!contentType.includes('multipart/form-data')) {
       throw new Error('Content-Type is not multipart/form-data');
     }
@@ -66,9 +66,9 @@ export class MultipartParserService {
       const fields: Record<string, string> = {};
       let fileCount = 0;
       let fieldCount = 0;
-      let currentFile: FileInfo | null = null;
-      let currentField: { name: string; value: string } | null = null;
-      let inHeader = true;
+      const currentFile: FileInfo | null = null;
+      const currentField: { name: string; value: string } | null = null;
+      const inHeader = true;
       let buffer = Buffer.alloc(0);
       let totalSize = 0;
 
@@ -79,7 +79,7 @@ export class MultipartParserService {
       }, 30000); // 30 seconds timeout
 
       // Handle request errors
-      req.on('error', (err) => {
+      req.on('error', (err: Error) => {
         clearTimeout(timeout);
         this.logger.error(`Request error: ${err.message}`);
         reject(err);
@@ -90,15 +90,21 @@ export class MultipartParserService {
         try {
           // Check total size to prevent memory exhaustion
           totalSize += chunk.length;
-          if (totalSize > 50 * 1024 * 1024) { // 50MB total request size limit
+          if (totalSize > 50 * 1024 * 1024) {
+            // 50MB total request size limit
             req.destroy();
             throw new Error('Request body too large');
           }
 
           buffer = Buffer.concat([buffer, chunk]);
-          
+
           // Process buffer
-          this.processBuffer(buffer, boundary, mergedOptions, files, fields, 
+          this.processBuffer(
+            buffer,
+            boundary,
+            mergedOptions,
+            files,
+            fields,
             (newBuffer, newFiles, newFields, newFileCount, newFieldCount) => {
               buffer = newBuffer;
               files.length = 0;
@@ -106,18 +112,18 @@ export class MultipartParserService {
               Object.assign(fields, newFields);
               fileCount = newFileCount;
               fieldCount = newFieldCount;
-              
+
               // Check limits
-              if (mergedOptions.limits.files && fileCount > mergedOptions.limits.files) {
+              if (mergedOptions.limits?.files && fileCount > mergedOptions.limits.files) {
                 req.destroy();
                 throw new Error(`Too many files. Maximum is ${mergedOptions.limits.files}`);
               }
-              
-              if (mergedOptions.limits.fields && fieldCount > mergedOptions.limits.fields) {
+
+              if (mergedOptions.limits?.fields && fieldCount > mergedOptions.limits.fields) {
                 req.destroy();
                 throw new Error(`Too many fields. Maximum is ${mergedOptions.limits.fields}`);
               }
-            }
+            },
           );
         } catch (err) {
           clearTimeout(timeout);
@@ -153,10 +159,10 @@ export class MultipartParserService {
   ): void {
     // Implementation of multipart parsing logic
     // This is a simplified version - in production, use a more robust parser
-    
+
     // For now, we'll use a placeholder implementation
     // In a real implementation, this would parse the multipart data according to RFC 7578
-    
+
     // Placeholder implementation
     callback(Buffer.alloc(0), files, fields, files.length, Object.keys(fields).length);
   }
@@ -166,7 +172,7 @@ export class MultipartParserService {
    */
   private extractBoundary(contentType: string): string | null {
     const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
-    return boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+    return boundaryMatch ? boundaryMatch[1] || boundaryMatch[2] : null;
   }
 
   /**
@@ -199,19 +205,19 @@ export class MultipartParserService {
     return new Promise((resolve, reject) => {
       const filePath = path.join(dest, fileInfo.filename);
       const writeStream = fs.createWriteStream(filePath);
-      
+
       const readable = new Readable();
       readable._read = () => {}; // Required but not used
       readable.push(fileInfo.buffer);
       readable.push(null); // EOF
-      
+
       readable.pipe(writeStream);
-      
+
       writeStream.on('finish', () => {
         resolve(filePath);
       });
-      
-      writeStream.on('error', (err) => {
+
+      writeStream.on('error', err => {
         this.logger.error(`Error saving file: ${err.message}`);
         reject(err);
       });

@@ -8,11 +8,7 @@ import { RecommendationService } from './recommendation.service';
  * Module for personalized recommendations functionality
  */
 @Module({
-  imports: [
-    HttpModule,
-    ConfigModule,
-    CoreModule,
-  ],
+  imports: [HttpModule, ConfigModule, CoreModule],
   providers: [RecommendationService],
   exports: [RecommendationService],
 })

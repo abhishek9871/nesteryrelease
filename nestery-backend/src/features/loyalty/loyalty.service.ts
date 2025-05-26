@@ -5,6 +5,7 @@ import { UserEntity } from '../../users/entities/user.entity';
 import { BookingEntity } from '../../bookings/entities/booking.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as QRCode from 'qrcode';
 
 @Injectable()
 export class LoyaltyService {
@@ -45,15 +46,15 @@ export class LoyaltyService {
 
       // Determine loyalty tier
       const tier = this.determineLoyaltyTier(totalPoints);
-      
+
       // Get next tier and points needed
       const nextTierInfo = this.getNextTierInfo(tier, totalPoints);
 
       // Get tier benefits
       const benefits = this.getTierBenefits(tier);
 
-      // Get points history
-      const history = await this.getPointsHistory(userId);
+      // Get point history
+      const history = await this.getPointHistory(userId);
 
       return {
         tier,
@@ -65,18 +66,17 @@ export class LoyaltyService {
       };
     } catch (error) {
       this.logger.error(`Error getting loyalty status: ${error.message}`, error.stack);
-      throw new Error(`Failed to get loyalty status: ${error.message}`);
+      throw error;
     }
   }
 
   /**
-   * Award points for a new booking
+   * Award points for a completed booking
    */
   async awardPointsForBooking(bookingId: string): Promise<{
-    pointsAwarded: number;
+    awarded: number;
     newTotal: number;
     tier: string;
-    tierChanged: boolean;
   }> {
     try {
       this.logger.debug(`Awarding points for booking: ${bookingId}`);
@@ -88,67 +88,119 @@ export class LoyaltyService {
       });
 
       if (!booking) {
-        throw new Error(`Booking with ID ${bookingId} not found`);
+        throw new Error(`Booking not found: ${bookingId}`);
+      }
+
+      if (booking.status !== 'completed') {
+        throw new Error(`Cannot award points for non-completed booking: ${bookingId}`);
       }
 
       // Calculate points to award
-      const pointsAwarded = this.calculatePointsForBooking(booking);
+      const pointsAwarded = await this.calculateBookingPoints(booking);
 
-      // Get current points and tier
-      const currentPoints = await this.calculateTotalPoints(booking.user.id);
-      const currentTier = this.determineLoyaltyTier(currentPoints);
-
-      // Add points to user's loyalty record
-      await this.addPointsToHistory(booking.user.id, pointsAwarded, `Booking at ${booking.property.name}`, booking.id);
-
-      // Calculate new total and tier
+      // Update user's points
+      const user = booking.user;
+      const currentPoints = user.loyaltyPoints || 0;
       const newTotal = currentPoints + pointsAwarded;
+
+      await this.userRepository.update(user.id, {
+        loyaltyPoints: newTotal,
+      });
+
+      // Record point history
+      await this.recordPointTransaction(
+        user.id,
+        pointsAwarded,
+        `Booking completed: ${booking.property.name}`,
+        booking.id,
+      );
+
+      // Determine new tier
       const newTier = this.determineLoyaltyTier(newTotal);
 
+      // Check if user leveled up
+      const oldTier = this.determineLoyaltyTier(currentPoints);
+      if (newTier !== oldTier) {
+        await this.handleTierUpgrade(user.id, oldTier, newTier);
+      }
+
       return {
-        pointsAwarded,
+        awarded: pointsAwarded,
         newTotal,
         tier: newTier,
-        tierChanged: currentTier !== newTier,
       };
     } catch (error) {
-      this.logger.error(`Error awarding points for booking: ${error.message}`, error.stack);
-      throw new Error(`Failed to award points for booking: ${error.message}`);
+      this.logger.error(`Error awarding booking points: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
   /**
    * Redeem points for a reward
    */
-  async redeemPoints(userId: string, rewardId: string, pointsCost: number): Promise<{
+  async redeemPoints(
+    userId: string,
+    rewardId: string,
+    pointsRequired: number,
+  ): Promise<{
     success: boolean;
     remainingPoints: number;
     reward: {
       id: string;
       name: string;
       description: string;
-      pointsCost: number;
+      pointsRequired: number;
     };
   }> {
     try {
       this.logger.debug(`Redeeming points for user: ${userId}, reward: ${rewardId}`);
 
-      // Get current points
-      const currentPoints = await this.calculateTotalPoints(userId);
+      // Get user's current points
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
 
-      // Check if user has enough points
-      if (currentPoints < pointsCost) {
-        throw new Error(`Insufficient points. Required: ${pointsCost}, Available: ${currentPoints}`);
+      if (!user) {
+        throw new Error(`User not found: ${userId}`);
       }
 
-      // Get reward details (in a real implementation, this would come from a rewards database)
-      const reward = this.getRewardDetails(rewardId);
+      const currentPoints = user.loyaltyPoints || 0;
 
-      // Deduct points from user's loyalty record
-      await this.addPointsToHistory(userId, -pointsCost, `Redeemed for ${reward.name}`, null);
+      if (currentPoints < pointsRequired) {
+        throw new Error(
+          `Insufficient points. Required: ${pointsRequired}, Available: ${currentPoints}`,
+        );
+      }
 
-      // Calculate remaining points
-      const remainingPoints = currentPoints - pointsCost;
+      // Get reward details (in a real app, this would come from a rewards repository)
+      const reward = this.getRewardById(rewardId);
+
+      if (!reward) {
+        throw new Error(`Reward not found: ${rewardId}`);
+      }
+
+      if (reward.pointsRequired !== pointsRequired) {
+        throw new Error(
+          `Points mismatch. Expected: ${reward.pointsRequired}, Received: ${pointsRequired}`,
+        );
+      }
+
+      // Deduct points
+      const remainingPoints = currentPoints - pointsRequired;
+      await this.userRepository.update(userId, {
+        loyaltyPoints: remainingPoints,
+      });
+
+      // Record point transaction
+      await this.recordPointTransaction(
+        userId,
+        -pointsRequired,
+        `Redeemed reward: ${reward.name}`,
+        rewardId,
+      );
+
+      // In a real app, we would also create a reward redemption record
+      // and trigger any necessary fulfillment processes
 
       return {
         success: true,
@@ -157,33 +209,62 @@ export class LoyaltyService {
       };
     } catch (error) {
       this.logger.error(`Error redeeming points: ${error.message}`, error.stack);
-      throw new Error(`Failed to redeem points: ${error.message}`);
+      throw error;
     }
   }
 
   /**
    * Get available rewards for a user
    */
-  async getAvailableRewards(userId: string): Promise<Array<{
-    id: string;
-    name: string;
-    description: string;
-    pointsCost: number;
-    canRedeem: boolean;
-  }>> {
+  async getAvailableRewards(userId: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      pointsRequired: number;
+      available: boolean;
+    }>
+  > {
     try {
       this.logger.debug(`Getting available rewards for user: ${userId}`);
 
-      // Get current points
-      const currentPoints = await this.calculateTotalPoints(userId);
+      // Get user's current points
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
 
-      // Get all rewards (in a real implementation, this would come from a rewards database)
-      const allRewards = this.getAllRewards();
+      if (!user) {
+        throw new Error(`User not found: ${userId}`);
+      }
 
-      // Mark which rewards the user can redeem
+      const currentPoints = user.loyaltyPoints || 0;
+
+      // Get all rewards (in a real app, this would come from a rewards repository)
+      const allRewards = [
+        {
+          id: 'reward1',
+          name: 'Free Night Stay',
+          description: 'Redeem for a free night at any property up to $200 value',
+          pointsRequired: 2000,
+        },
+        {
+          id: 'reward2',
+          name: 'Room Upgrade',
+          description: 'Guaranteed room upgrade on your next booking',
+          pointsRequired: 500,
+        },
+        {
+          id: 'reward3',
+          name: 'Airport Transfer',
+          description: 'Free airport transfer for your next booking',
+          pointsRequired: 300,
+        },
+      ];
+
+      // Mark rewards as available based on user's points
       const availableRewards = allRewards.map(reward => ({
         ...reward,
-        canRedeem: currentPoints >= reward.pointsCost,
+        available: currentPoints >= reward.pointsRequired,
       }));
 
       return availableRewards;
@@ -198,61 +279,60 @@ export class LoyaltyService {
    */
   private async calculateTotalPoints(userId: string): Promise<number> {
     try {
-      // In a real implementation, this would query a loyalty_points table
-      // For now, we'll simulate by calculating from booking history
-      
-      // Get all bookings for the user
-      const bookings = await this.bookingRepository.find({
-        where: { user: { id: userId } },
-        relations: ['property'],
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
       });
 
-      // Calculate points for each booking
-      let totalPoints = 0;
-      for (const booking of bookings) {
-        totalPoints += this.calculatePointsForBooking(booking);
+      if (!user) {
+        throw new Error(`User not found: ${userId}`);
       }
 
-      // Get points from other activities (simulated)
-      const otherPoints = await this.getOtherPoints(userId);
-
-      return totalPoints + otherPoints;
+      return user.loyaltyPoints || 0;
     } catch (error) {
       this.logger.error(`Error calculating total points: ${error.message}`, error.stack);
-      return 0;
+      throw error;
     }
   }
 
   /**
-   * Calculate points for a booking
+   * Calculate points to award for a booking
    */
-  private calculatePointsForBooking(booking: BookingEntity): number {
-    // Base points: 10 points per night
-    const checkInDate = new Date(booking.checkInDate);
-    const checkOutDate = new Date(booking.checkOutDate);
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    let points = nights * 10;
+  private async calculateBookingPoints(booking: BookingEntity): Promise<number> {
+    let points = 0;
 
-    // Additional points based on booking amount
-    if (booking.totalAmount) {
-      points += Math.floor(booking.totalAmount / 10); // 1 point per $10 spent
+    // Base points for any booking
+    points += 100;
+
+    // Points based on booking total
+    if (booking.totalPrice) {
+      points += Math.floor(booking.totalPrice / 10); // 1 point per $10 spent
     }
 
-    // Bonus for high-rated properties
-    if (booking.property && booking.property.rating >= 4.5) {
-      points += 20; // Bonus for excellent properties
+    // Bonus points for longer stays
+    const stayDuration = this.calculateStayDuration(booking.checkInDate, booking.checkOutDate);
+    if (stayDuration >= 7) {
+      points += 200; // Bonus for stays of a week or longer
+    } else if (stayDuration >= 3) {
+      points += 50; // Smaller bonus for stays of 3-6 days
+    }
+
+    // Bonus points for booking premium properties
+    if (booking.property && booking.property.rating && booking.property.rating >= 4.5) {
+      points += 50; // Bonus for premium properties
     }
 
     return points;
   }
 
   /**
-   * Get points from other activities (simulated)
+   * Calculate duration of stay in days
    */
-  private async getOtherPoints(userId: string): Promise<number> {
-    // In a real implementation, this would query various activity records
-    // For now, we'll return a random number to simulate
-    return Math.floor(Math.random() * 50);
+  private calculateStayDuration(checkIn: Date, checkOut: Date): number {
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   }
 
   /**
@@ -273,18 +353,39 @@ export class LoyaltyService {
   /**
    * Get information about the next tier
    */
-  private getNextTierInfo(currentTier: string, currentPoints: number): { nextTier: string; pointsNeeded: number } {
+  private getNextTierInfo(
+    currentTier: string,
+    currentPoints: number,
+  ): {
+    nextTier: string;
+    pointsNeeded: number;
+  } {
     switch (currentTier) {
       case 'Bronze':
-        return { nextTier: 'Silver', pointsNeeded: 500 - currentPoints };
+        return {
+          nextTier: 'Silver',
+          pointsNeeded: 500 - currentPoints,
+        };
       case 'Silver':
-        return { nextTier: 'Gold', pointsNeeded: 2000 - currentPoints };
+        return {
+          nextTier: 'Gold',
+          pointsNeeded: 2000 - currentPoints,
+        };
       case 'Gold':
-        return { nextTier: 'Platinum', pointsNeeded: 5000 - currentPoints };
+        return {
+          nextTier: 'Platinum',
+          pointsNeeded: 5000 - currentPoints,
+        };
       case 'Platinum':
-        return { nextTier: 'Platinum+', pointsNeeded: 10000 - currentPoints };
+        return {
+          nextTier: 'Platinum',
+          pointsNeeded: 0,
+        };
       default:
-        return { nextTier: 'Silver', pointsNeeded: 500 - currentPoints };
+        return {
+          nextTier: 'Silver',
+          pointsNeeded: 500 - currentPoints,
+        };
     }
   }
 
@@ -294,152 +395,142 @@ export class LoyaltyService {
   private getTierBenefits(tier: string): string[] {
     switch (tier) {
       case 'Bronze':
-        return [
-          'Earn 10 points per night',
-          'Member-only rates',
-          'Free Wi-Fi',
-        ];
+        return ['Earn 1 point per $10 spent', 'Access to member-only deals'];
       case 'Silver':
         return [
-          'All Bronze benefits',
-          'Early check-in when available',
-          '10% discount on selected properties',
+          'Earn 1.2 points per $10 spent',
+          'Access to member-only deals',
           'Priority customer service',
+          'Late checkout when available',
         ];
       case 'Gold':
         return [
-          'All Silver benefits',
-          'Room upgrades when available',
-          '15% discount on selected properties',
+          'Earn 1.5 points per $10 spent',
+          'Access to member-only deals',
+          'Priority customer service',
           'Late checkout when available',
-          'Welcome gift on arrival',
+          'Room upgrades when available',
+          '10% discount on bookings',
         ];
       case 'Platinum':
         return [
-          'All Gold benefits',
-          'Guaranteed room availability',
-          '20% discount on selected properties',
-          'Free breakfast at participating properties',
+          'Earn 2 points per $10 spent',
+          'Access to member-only deals',
+          'Priority customer service',
+          'Guaranteed late checkout',
+          'Room upgrades when available',
+          '15% discount on bookings',
+          'Free welcome amenities',
           'Dedicated concierge service',
-          'Annual free night certificate',
         ];
       default:
-        return ['Earn 10 points per night'];
+        return ['Earn 1 point per $10 spent'];
     }
   }
 
   /**
-   * Add points to user's history
+   * Get point history for a user
    */
-  private async addPointsToHistory(
+  private async getPointHistory(
+    userId: string,
+  ): Promise<Array<{ date: Date; description: string; points: number }>> {
+    // In a real app, this would come from a point transaction repository
+    // For now, we'll return mock data
+    return [
+      {
+        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        description: 'Booking completed: Luxury Beach Villa',
+        points: 250,
+      },
+      {
+        date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+        description: 'Booking completed: Mountain Retreat Cabin',
+        points: 180,
+      },
+      {
+        date: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+        description: 'Welcome bonus',
+        points: 100,
+      },
+    ];
+  }
+
+  /**
+   * Record a point transaction
+   */
+  private async recordPointTransaction(
     userId: string,
     points: number,
     description: string,
-    bookingId: string | null
+    referenceId?: string,
   ): Promise<void> {
-    // In a real implementation, this would insert a record into a loyalty_points_history table
+    // In a real app, this would create a record in a point transaction repository
+    this.logger.debug(
+      `Recording point transaction: User ${userId}, Points ${points}, Description: ${description}`,
+    );
+
     // For now, we'll just log it
-    this.logger.debug(`Added ${points} points to user ${userId} for "${description}"`);
-  }
-
-  /**
-   * Get points history for a user
-   */
-  private async getPointsHistory(
-    userId: string
-  ): Promise<Array<{ date: Date; description: string; points: number }>> {
-    // In a real implementation, this would query a loyalty_points_history table
-    // For now, we'll generate some sample history
-    
-    // Get user's bookings for real history items
-    const bookings = await this.bookingRepository.find({
-      where: { user: { id: userId } },
-      relations: ['property'],
-      order: { createdAt: 'DESC' },
-      take: 10,
+    console.log({
+      userId,
+      points,
+      description,
+      referenceId,
+      date: new Date(),
     });
-
-    const history = bookings.map(booking => ({
-      date: booking.createdAt,
-      description: `Booking at ${booking.property.name}`,
-      points: this.calculatePointsForBooking(booking),
-    }));
-
-    // Add some simulated redemptions
-    if (history.length > 0) {
-      history.push({
-        date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-        description: 'Redeemed for $50 travel credit',
-        points: -500,
-      });
-    }
-
-    return history;
   }
 
   /**
-   * Get reward details
+   * Handle tier upgrade
    */
-  private getRewardDetails(rewardId: string): {
-    id: string;
-    name: string;
-    description: string;
-    pointsCost: number;
-  } {
-    // In a real implementation, this would query a rewards database
-    // For now, we'll return hardcoded rewards
-    const allRewards = this.getAllRewards();
-    const reward = allRewards.find(r => r.id === rewardId);
-    
-    if (!reward) {
-      throw new Error(`Reward with ID ${rewardId} not found`);
-    }
-    
-    return reward;
+  private async handleTierUpgrade(userId: string, oldTier: string, newTier: string): Promise<void> {
+    this.logger.debug(`User ${userId} upgraded from ${oldTier} to ${newTier}`);
+
+    // In a real app, we might:
+    // 1. Send a congratulatory email
+    // 2. Create a notification
+    // 3. Award a tier upgrade bonus
+    // 4. Update user's tier in the database
+
+    // For now, we'll just log it
+    console.log({
+      userId,
+      oldTier,
+      newTier,
+      date: new Date(),
+    });
   }
 
   /**
-   * Get all available rewards
+   * Get reward by ID
    */
-  private getAllRewards(): Array<{
+  private getRewardById(rewardId: string): {
     id: string;
     name: string;
     description: string;
-    pointsCost: number;
-  }> {
-    // In a real implementation, this would query a rewards database
-    // For now, we'll return hardcoded rewards
-    return [
+    pointsRequired: number;
+  } | null {
+    // In a real app, this would come from a rewards repository
+    const rewards = [
       {
         id: 'reward1',
-        name: '$25 Travel Credit',
-        description: 'Get $25 off your next booking',
-        pointsCost: 250,
+        name: 'Free Night Stay',
+        description: 'Redeem for a free night at any property up to $200 value',
+        pointsRequired: 2000,
       },
       {
         id: 'reward2',
-        name: '$50 Travel Credit',
-        description: 'Get $50 off your next booking',
-        pointsCost: 500,
+        name: 'Room Upgrade',
+        description: 'Guaranteed room upgrade on your next booking',
+        pointsRequired: 500,
       },
       {
         id: 'reward3',
-        name: 'Free Night Certificate',
-        description: 'One free night at participating properties (up to $200 value)',
-        pointsCost: 2000,
-      },
-      {
-        id: 'reward4',
-        name: 'Airport Lounge Access',
-        description: 'One-time access to airport lounges worldwide',
-        pointsCost: 1000,
-      },
-      {
-        id: 'reward5',
-        name: 'Room Upgrade Certificate',
-        description: 'Guaranteed room upgrade on your next stay',
-        pointsCost: 750,
+        name: 'Airport Transfer',
+        description: 'Free airport transfer for your next booking',
+        pointsRequired: 300,
       },
     ];
+
+    return rewards.find(reward => reward.id === rewardId) || null;
   }
 }

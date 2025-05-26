@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Exclude } from 'class-transformer';
 
 /**
@@ -19,6 +28,12 @@ export class User {
   @Column()
   name: string;
 
+  @Column({ nullable: true })
+  firstName: string;
+
+  @Column({ nullable: true })
+  lastName: string;
+
   @Column({ default: 'user' })
   role: string;
 
@@ -37,13 +52,33 @@ export class User {
   @Column({ nullable: true })
   lastLoginAt: Date;
 
+  @Column({ nullable: true, unique: true })
+  referralCode: string;
+
+  @Column({ nullable: true })
+  referredBy: string;
+
+  @Column({ default: false })
+  hasCompletedBooking: boolean;
+
+  @OneToMany(() => User, user => user.referrer)
+  referredUsers: User[];
+
+  @ManyToOne(() => User, user => user.referredUsers, { nullable: true })
+  @JoinColumn({ name: 'referredBy' })
+  referrer: User;
+
+  // Commented out to avoid circular dependency
+  // Will be properly set up when Booking entity is available
+  // @OneToMany(() => Booking, booking => booking.user)
+  // bookings: Booking[];
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  // Relationships will be added as needed
-  // @OneToMany(() => Booking, booking => booking.user)
-  // bookings: Booking[];
 }
+
+// Export for tests
+export { User as UserEntity };

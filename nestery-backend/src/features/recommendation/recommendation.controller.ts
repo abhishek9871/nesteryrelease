@@ -14,10 +14,7 @@ export class RecommendationController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get personalized recommendations for a user' })
   @ApiResponse({ status: 200, description: 'Returns recommended properties for the user' })
-  async getRecommendationsForUser(
-    @Param('userId') userId: string,
-    @Query('limit') limit?: number,
-  ) {
+  async getRecommendationsForUser(@Param('userId') userId: string, @Query('limit') limit?: number) {
     return this.recommendationService.getRecommendationsForUser(userId, limit);
   }
 
@@ -36,9 +33,7 @@ export class RecommendationController {
   @Public()
   @ApiOperation({ summary: 'Get trending properties' })
   @ApiResponse({ status: 200, description: 'Returns trending properties' })
-  async getTrendingProperties(
-    @Query('limit') limit?: number,
-  ) {
+  async getTrendingProperties(@Query('limit') limit?: number) {
     return this.recommendationService.getTrendingProperties(limit);
   }
 

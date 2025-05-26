@@ -1,11 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  NotFoundException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-
 /**
  * Controller handling user-related endpoints
  */
@@ -15,7 +25,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
   /**
    * Get current user profile
    */
@@ -23,8 +32,14 @@ export class UsersController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getProfile(@Req() req: any) {
     const user = await this.usersService.findById(req.user.id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     return {
       id: user.id,
       email: user.email,
@@ -37,7 +52,6 @@ export class UsersController {
       createdAt: user.createdAt,
     };
   }
-
   /**
    * Update current user profile
    */
@@ -48,6 +62,11 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
     const updatedUser = await this.usersService.update(req.user.id, updateUserDto);
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
     return {
       id: updatedUser.id,
       email: updatedUser.email,
@@ -56,7 +75,6 @@ export class UsersController {
       phoneNumber: updatedUser.phoneNumber,
     };
   }
-
   /**
    * Get all users (admin only)
    */
@@ -77,7 +95,6 @@ export class UsersController {
       createdAt: user.createdAt,
     }));
   }
-
   /**
    * Get user by ID (admin only)
    */
@@ -90,6 +107,11 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id') id: string) {
     const user = await this.usersService.findById(id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     return {
       id: user.id,
       email: user.email,
@@ -102,7 +124,6 @@ export class UsersController {
       createdAt: user.createdAt,
     };
   }
-
   /**
    * Update user by ID (admin only)
    */
@@ -115,9 +136,14 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
-  }
+    const updatedUser = await this.usersService.update(id, updateUserDto);
 
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    return updatedUser;
+  }
   /**
    * Delete user by ID (admin only)
    */

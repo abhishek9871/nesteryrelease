@@ -9,10 +9,7 @@ import { CoreModule } from '../core/core.module';
  * Users module handling user-related operations
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User]),
-    CoreModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User]), CoreModule],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],

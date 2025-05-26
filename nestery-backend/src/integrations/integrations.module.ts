@@ -10,20 +10,8 @@ import { CoreModule } from '../core/core.module';
  * Integrations module handling external API integrations
  */
 @Module({
-  imports: [
-    CoreModule,
-  ],
-  providers: [
-    IntegrationsService,
-    BookingComService,
-    OyoService,
-    GoogleMapsService,
-  ],
-  exports: [
-    IntegrationsService,
-    BookingComService,
-    OyoService,
-    GoogleMapsService,
-  ],
+  imports: [CoreModule],
+  providers: [IntegrationsService, BookingComService, OyoService, GoogleMapsService],
+  exports: [IntegrationsService, BookingComService, OyoService, GoogleMapsService],
 })
 export class IntegrationsModule {}

@@ -1,5 +1,14 @@
-import { IsString, IsNumber, IsOptional, IsEnum, Min, Max, IsArray, ValidateNested, IsUrl, IsBoolean } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  Min,
+  Max,
+  IsArray,
+  IsUrl,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -193,5 +202,5 @@ export class CreatePropertyDto {
     required: false,
   })
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
