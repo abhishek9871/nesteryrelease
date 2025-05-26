@@ -8,7 +8,6 @@ import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: UsersService;
   let jwtService: JwtService;
 
   const mockUser = {
@@ -54,14 +53,13 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
     jwtService = module.get<JwtService>(JwtService);
 
     // Reset mocks
     jest.clearAllMocks();
 
     // Mock bcrypt compare
-    jest.spyOn(bcrypt, 'compare').mockImplementation((password, hash) => {
+    jest.spyOn(bcrypt, 'compare').mockImplementation((password, _hash) => {
       return Promise.resolve(password === 'correct_password');
     });
 

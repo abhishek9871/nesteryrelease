@@ -5,7 +5,6 @@ import { Repository, FindOneOptions } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { LoggerService } from '../../core/logger/logger.service';
 import { ExceptionService } from '../../core/exception/exception.service';
-import { v4 as uuidv4 } from 'uuid';
 import * as QRCode from 'qrcode';
 
 interface SocialPlatform {
@@ -262,7 +261,7 @@ export class SocialSharingService {
   /**
    * Get property sharing statistics
    */
-  async getPropertySharingStats(propertyId: string) {
+  async getPropertySharingStats(_propertyId: string) {
     try {
       // Implementation would go here
       // This is a placeholder to match the test expectations

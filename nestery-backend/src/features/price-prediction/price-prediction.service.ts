@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../core/logger/logger.service';
 import { ExceptionService } from '../../core/exception/exception.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { Property } from '../../properties/entities/property.entity';
 
 interface PredictionParams {

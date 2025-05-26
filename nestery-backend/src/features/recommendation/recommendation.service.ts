@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Property } from '../../properties/entities/property.entity';
 import { User } from '../../users/entities/user.entity';
 import { Booking } from '../../bookings/entities/booking.entity';
@@ -413,8 +413,8 @@ export class RecommendationService {
         // Using Haversine formula to calculate distance
         query.andWhere(
           `
-          (6371 * acos(cos(radians(:lat)) * cos(radians(property.latitude)) * 
-          cos(radians(property.longitude) - radians(:lng)) + 
+          (6371 * acos(cos(radians(:lat)) * cos(radians(property.latitude)) *
+          cos(radians(property.longitude) - radians(:lng)) +
           sin(radians(:lat)) * sin(radians(property.latitude)))) < :radius
         `,
           {

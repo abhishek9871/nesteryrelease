@@ -12,7 +12,6 @@ describe('RecommendationService', () => {
   let service: RecommendationService;
   let propertyRepository: Repository<PropertyEntity>;
   let bookingRepository: Repository<BookingEntity>;
-  let userRepository: Repository<UserEntity>;
 
   const mockPropertyRepository = {
     createQueryBuilder: jest.fn(() => ({
@@ -117,7 +116,6 @@ describe('RecommendationService', () => {
     service = module.get<RecommendationService>(RecommendationService);
     propertyRepository = module.get<Repository<PropertyEntity>>(getRepositoryToken(PropertyEntity));
     bookingRepository = module.get<Repository<BookingEntity>>(getRepositoryToken(BookingEntity));
-    userRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
   });
 
   it('should be defined', () => {

@@ -12,7 +12,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Request } from 'express';
 import { BookingsService } from './bookings.service';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+}
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { SearchBookingsDto } from './dto/search-bookings.dto';
@@ -39,7 +49,7 @@ export class BookingsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Property not found' })
-  async create(@Req() req: any, @Body() createBookingDto: CreateBookingDto) {
+  async create(@Req() req: AuthenticatedRequest, @Body() createBookingDto: CreateBookingDto) {
     return this.bookingsService.create(req.user.id, createBookingDto);
   }
 
@@ -83,7 +93,7 @@ export class BookingsController {
   @ApiResponse({ status: 200, description: 'Bookings retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findMyBookings(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
@@ -99,7 +109,7 @@ export class BookingsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Booking not found' })
-  async findOne(@Param('id') id: string, @Req() req: any) {
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const booking = await this.bookingsService.findById(id);
 
     // Check if booking belongs to the user or user is admin
@@ -123,7 +133,7 @@ export class BookingsController {
   async update(
     @Param('id') id: string,
     @Body() updateBookingDto: UpdateBookingDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     // Admin can update any booking, users can only update their own
     if (req.user.role === 'admin') {

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Readable } from 'stream';
+import { Request } from 'express';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -35,7 +36,7 @@ export class MultipartParserService {
       files: 10,
       fields: 20,
     },
-    fileFilter: (mimetype: string, filename: string) => true,
+    fileFilter: (_mimetype: string, _filename: string) => true,
     dest: os.tmpdir(),
   };
 
@@ -46,7 +47,7 @@ export class MultipartParserService {
    * @returns Promise with parsed files and fields
    */
   async parseMultipartData(
-    req: any,
+    req: Request,
     options: MultipartParserOptions = {},
   ): Promise<{ files: FileInfo[]; fields: Record<string, string> }> {
     const mergedOptions = this.mergeOptions(options);
@@ -66,9 +67,6 @@ export class MultipartParserService {
       const fields: Record<string, string> = {};
       let fileCount = 0;
       let fieldCount = 0;
-      const currentFile: FileInfo | null = null;
-      const currentField: { name: string; value: string } | null = null;
-      const inHeader = true;
       let buffer = Buffer.alloc(0);
       let totalSize = 0;
 
@@ -207,7 +205,9 @@ export class MultipartParserService {
       const writeStream = fs.createWriteStream(filePath);
 
       const readable = new Readable();
-      readable._read = () => {}; // Required but not used
+      readable._read = () => {
+        // Required by Readable interface but not used in this implementation
+      };
       readable.push(fileInfo.buffer);
       readable.push(null); // EOF
 

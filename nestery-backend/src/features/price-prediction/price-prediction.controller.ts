@@ -49,7 +49,7 @@ export class PricePredictionController {
   @ApiQuery({ name: 'city', required: true })
   @ApiQuery({ name: 'country', required: true })
   @ApiResponse({ status: 200, description: 'Price factors retrieved successfully' })
-  async getPriceFactors(@Query('city') city: string, @Query('country') country: string) {
+  async getPriceFactors(@Query('city') city: string, @Query('country') _country: string) {
     // Mock implementation for price factors
     return {
       location: {

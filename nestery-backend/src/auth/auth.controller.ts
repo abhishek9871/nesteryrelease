@@ -1,6 +1,16 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+}
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -59,7 +69,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProfile(@Req() req: any) {
+  async getProfile(@Req() req: AuthenticatedRequest) {
     return {
       id: req.user.id,
       email: req.user.email,

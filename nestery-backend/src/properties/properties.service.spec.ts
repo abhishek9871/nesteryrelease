@@ -4,7 +4,6 @@ import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Property } from './entities/property.entity';
-import { Repository } from 'typeorm';
 
 describe('PropertiesService', () => {
   let service: PropertiesService;

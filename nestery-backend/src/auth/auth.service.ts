@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -144,7 +140,7 @@ export class AuthService {
   /**
    * Generate access and refresh tokens for a user
    */
-  private generateTokens(user: any) {
+  private generateTokens(user: User) {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
@@ -157,7 +153,7 @@ export class AuthService {
   /**
    * Generate access token for a user
    */
-  private generateAccessToken(user: any): string {
+  private generateAccessToken(user: User): string {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -170,7 +166,7 @@ export class AuthService {
   /**
    * Generate refresh token for a user
    */
-  private generateRefreshToken(user: any): string {
+  private generateRefreshToken(user: User): string {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,

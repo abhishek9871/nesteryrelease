@@ -5,7 +5,6 @@ import { UserEntity } from '../../users/entities/user.entity';
 import { BookingEntity } from '../../bookings/entities/booking.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as QRCode from 'qrcode';
 
 @Injectable()
 export class LoyaltyService {
@@ -34,12 +33,7 @@ export class LoyaltyService {
     try {
       this.logger.debug(`Getting loyalty status for user: ${userId}`);
 
-      // Get user's booking history
-      const userBookings = await this.bookingRepository.find({
-        where: { user: { id: userId } },
-        relations: ['property'],
-        order: { createdAt: 'DESC' },
-      });
+      // Note: User's booking history could be used for additional loyalty calculations
 
       // Calculate total points
       const totalPoints = await this.calculateTotalPoints(userId);
@@ -432,7 +426,7 @@ export class LoyaltyService {
    * Get point history for a user
    */
   private async getPointHistory(
-    userId: string,
+    _userId: string,
   ): Promise<Array<{ date: Date; description: string; points: number }>> {
     // In a real app, this would come from a point transaction repository
     // For now, we'll return mock data
@@ -470,13 +464,15 @@ export class LoyaltyService {
     );
 
     // For now, we'll just log it
-    console.log({
-      userId,
-      points,
-      description,
-      referenceId,
-      date: new Date(),
-    });
+    this.logger.debug(
+      `Point transaction recorded: ${JSON.stringify({
+        userId,
+        points,
+        description,
+        referenceId,
+        date: new Date(),
+      })}`,
+    );
   }
 
   /**
@@ -492,12 +488,14 @@ export class LoyaltyService {
     // 4. Update user's tier in the database
 
     // For now, we'll just log it
-    console.log({
-      userId,
-      oldTier,
-      newTier,
-      date: new Date(),
-    });
+    this.logger.log(
+      `Tier upgrade recorded: ${JSON.stringify({
+        userId,
+        oldTier,
+        newTier,
+        date: new Date(),
+      })}`,
+    );
   }
 
   /**

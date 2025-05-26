@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { IntegrationsService } from './integrations.service';
 import { BookingComService } from './booking-com/booking-com.service';
 import { OyoService } from './oyo/oyo.service';

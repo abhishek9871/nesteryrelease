@@ -303,7 +303,8 @@ export class OyoService {
               .map((room: Record<string, any>) => room.rates[0]?.net || 0),
           ),
           currency:
-            rooms.find((room: Record<string, any>) => room.hotelCode === hotel.code)?.rates[0]?.currency || 'USD',
+            rooms.find((room: Record<string, any>) => room.hotelCode === hotel.code)?.rates[0]
+              ?.currency || 'USD',
           rooms: rooms
             .filter((room: Record<string, any>) => room.hotelCode === hotel.code)
             .map((room: Record<string, any>) => ({
@@ -314,7 +315,8 @@ export class OyoService {
               price: room.rates[0]?.net || 0,
               currency: room.rates[0]?.currency || 'USD',
               images: room.images?.map((image: Record<string, any>) => image.url) || [],
-              amenities: room.facilities?.map((facility: Record<string, any>) => facility.description) || [],
+              amenities:
+                room.facilities?.map((facility: Record<string, any>) => facility.description) || [],
             })),
           reviews: [],
           averageRating: hotel.reviews?.rating || 0,
@@ -425,7 +427,7 @@ export class OyoService {
   /**
    * Create a booking
    */
-  async createBooking(bookingData: Record<string, unknown>): Promise<{
+  async createBooking(_bookingData: Record<string, unknown>): Promise<{
     success: boolean;
     booking?: Record<string, unknown>;
     error?: string;
@@ -437,14 +439,14 @@ export class OyoService {
         booking: {
           id: 'mock-booking-id',
           // Other booking details
-        }
+        },
       };
     } catch (error) {
       this.logger.error(`Error creating booking: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);
       return {
         success: false,
-        error: 'Failed to create booking'
+        error: 'Failed to create booking',
       };
     }
   }
@@ -496,7 +498,8 @@ export class OyoService {
           longitude: hotel.coordinates?.longitude || 0,
           starRating: hotel.categoryCode || 0,
           images: hotel.images?.map((image: Record<string, any>) => image.url) || [],
-          amenities: hotel.facilities?.map((facility: Record<string, any>) => facility.description) || [],
+          amenities:
+            hotel.facilities?.map((facility: Record<string, any>) => facility.description) || [],
           rooms: rooms.map((room: Record<string, any>) => ({
             id: room.code,
             name: room.name,
@@ -505,7 +508,8 @@ export class OyoService {
             price: room.rates[0]?.net || 0,
             currency: room.rates[0]?.currency || 'USD',
             images: room.images?.map((image: Record<string, any>) => image.url) || [],
-            amenities: room.facilities?.map((facility: Record<string, any>) => facility.description) || [],
+            amenities:
+              room.facilities?.map((facility: Record<string, any>) => facility.description) || [],
           })),
           reviews: [],
           averageRating: hotel.reviews?.rating || 0,

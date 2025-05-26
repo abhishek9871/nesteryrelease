@@ -1,7 +1,6 @@
-import { PartialType } from '@nestjs/swagger';
+import { PartialType, ApiProperty } from '@nestjs/swagger';
 import { CreateBookingDto } from './create-booking.dto';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * Data Transfer Object for updating a booking

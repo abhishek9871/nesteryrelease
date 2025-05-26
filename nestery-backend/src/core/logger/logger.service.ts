@@ -8,23 +8,26 @@ export class LoggerService implements NestLoggerService {
     this.context = context;
   }
 
-  log(message: string, ...optionalParams: any[]) {
+  log(message: string, ...optionalParams: unknown[]) {
+    // eslint-disable-next-line no-console
     console.log(`[${this.context}] ${message}`, ...optionalParams);
   }
 
-  error(message: string, trace?: string, ...optionalParams: any[]) {
+  error(message: string, trace?: string, ...optionalParams: unknown[]) {
+    // eslint-disable-next-line no-console
     console.error(`[${this.context}] ERROR: ${message}`, trace || '', ...optionalParams);
   }
 
-  warn(message: string, ...optionalParams: any[]) {
+  warn(message: string, ...optionalParams: unknown[]) {
     console.warn(`[${this.context}] WARNING: ${message}`, ...optionalParams);
   }
 
-  debug(message: string, ...optionalParams: any[]) {
+  debug(message: string, ...optionalParams: unknown[]) {
     console.debug(`[${this.context}] DEBUG: ${message}`, ...optionalParams);
   }
 
-  verbose(message: string, ...optionalParams: any[]) {
+  verbose(message: string, ...optionalParams: unknown[]) {
+    // eslint-disable-next-line no-console
     console.log(`[${this.context}] VERBOSE: ${message}`, ...optionalParams);
   }
 }

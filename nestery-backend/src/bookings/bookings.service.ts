@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Repository, Between, LessThanOrEqual, MoreThanOrEqual, FindOperator } from 'typeorm';
 import { Booking } from './entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
@@ -14,7 +14,6 @@ import { UsersService } from '../users/users.service';
 import { PropertiesService } from '../properties/properties.service';
 import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Service handling booking-related operations
@@ -182,7 +181,12 @@ export class BookingsService {
       } = searchDto;
 
       // Build query conditions
-      const whereConditions: any = {};
+      const whereConditions: {
+        userId?: string;
+        propertyId?: string;
+        status?: string;
+        checkInDate?: FindOperator<Date>;
+      } = {};
 
       if (userId) {
         whereConditions.userId = userId;

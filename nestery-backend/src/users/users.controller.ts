@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
@@ -11,6 +10,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+}
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,7 +42,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getProfile(@Req() req: any) {
+  async getProfile(@Req() req: AuthenticatedRequest) {
     const user = await this.usersService.findById(req.user.id);
 
     if (!user) {
@@ -60,7 +69,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User profile updated successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async updateProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
+  async updateProfile(@Req() req: AuthenticatedRequest, @Body() updateUserDto: UpdateUserDto) {
     const updatedUser = await this.usersService.update(req.user.id, updateUserDto);
 
     if (!updatedUser) {

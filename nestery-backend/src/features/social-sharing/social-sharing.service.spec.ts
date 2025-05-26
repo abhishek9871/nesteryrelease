@@ -8,7 +8,6 @@ import { ExceptionService } from '../../core/exception/exception.service';
 
 describe('SocialSharingService', () => {
   let service: SocialSharingService;
-  let configService: ConfigService;
   let userRepository: any;
 
   beforeEach(async () => {
@@ -53,7 +52,6 @@ describe('SocialSharingService', () => {
     }).compile();
 
     service = module.get<SocialSharingService>(SocialSharingService);
-    configService = module.get<ConfigService>(ConfigService);
     userRepository = module.get(getRepositoryToken(User));
   });
 

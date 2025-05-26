@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import * as mime from 'mime-types';
 import { stat, mkdir, writeFile } from 'fs/promises';
+import { MultipartParserService } from './multipart-parser.service';
 
 export interface FileInfo {
   fieldname: string;
@@ -52,9 +53,6 @@ export class SecureFileService {
    * Process upload from request
    */
   async processUpload(req: any, options: SecureFileOptions = {}): Promise<FileInfo[]> {
-    // Import MultipartParserService
-    const { MultipartParserService } = require('../security/multipart-parser.service');
-
     // Use MultipartParserService to parse the request
     const multipartParser = new MultipartParserService();
     const { files } = await multipartParser.parseMultipartData(req, {});
