@@ -6,9 +6,12 @@ class User {
   final String? phoneNumber;
   final String? profilePicture;
   final String role;
-  final Map<String, dynamic>? preferences;
-  final int loyaltyPoints;
   final String loyaltyTier;
+  final int loyaltyPoints;
+  final String? authProvider;
+  final bool emailVerified;
+  final bool phoneVerified;
+  final Map<String, dynamic>? preferences;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -20,9 +23,12 @@ class User {
     this.phoneNumber,
     this.profilePicture,
     required this.role,
-    this.preferences,
-    required this.loyaltyPoints,
     required this.loyaltyTier,
+    required this.loyaltyPoints,
+    this.authProvider,
+    required this.emailVerified,
+    required this.phoneVerified,
+    this.preferences,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -40,9 +46,12 @@ class User {
       phoneNumber: json['phoneNumber'],
       profilePicture: json['profilePicture'],
       role: json['role'],
-      preferences: json['preferences'],
-      loyaltyPoints: json['loyaltyPoints'] ?? 0,
       loyaltyTier: json['loyaltyTier'] ?? 'bronze',
+      loyaltyPoints: json['loyaltyPoints'] ?? 0,
+      authProvider: json['authProvider'],
+      emailVerified: json['emailVerified'] ?? false,
+      phoneVerified: json['phoneVerified'] ?? false,
+      preferences: json['preferences'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
@@ -58,9 +67,12 @@ class User {
       'phoneNumber': phoneNumber,
       'profilePicture': profilePicture,
       'role': role,
-      'preferences': preferences,
-      'loyaltyPoints': loyaltyPoints,
       'loyaltyTier': loyaltyTier,
+      'loyaltyPoints': loyaltyPoints,
+      'authProvider': authProvider,
+      'emailVerified': emailVerified,
+      'phoneVerified': phoneVerified,
+      'preferences': preferences,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -75,9 +87,12 @@ class User {
     String? phoneNumber,
     String? profilePicture,
     String? role,
-    Map<String, dynamic>? preferences,
-    int? loyaltyPoints,
     String? loyaltyTier,
+    int? loyaltyPoints,
+    String? authProvider,
+    bool? emailVerified,
+    bool? phoneVerified,
+    Map<String, dynamic>? preferences,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -89,9 +104,12 @@ class User {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       profilePicture: profilePicture ?? this.profilePicture,
       role: role ?? this.role,
-      preferences: preferences ?? this.preferences,
-      loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
       loyaltyTier: loyaltyTier ?? this.loyaltyTier,
+      loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
+      authProvider: authProvider ?? this.authProvider,
+      emailVerified: emailVerified ?? this.emailVerified,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
+      preferences: preferences ?? this.preferences,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

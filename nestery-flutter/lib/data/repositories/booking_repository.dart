@@ -1,5 +1,6 @@
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/booking.dart';
+import 'package:nestery_flutter/models/enums.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
 

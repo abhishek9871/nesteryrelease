@@ -1,5 +1,3 @@
-import 'package:nestery_flutter/models/user.dart';
-
 class Property {
   final String id;
   final String name;
@@ -19,15 +17,11 @@ class Property {
   final int? bedrooms;
   final int? bathrooms;
   final List<String>? amenities;
-  final List<String>? images;
   final String? thumbnailImage;
   final String sourceType;
   final String? externalId;
   final String? externalUrl;
   final Map<String, dynamic>? metadata;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   Property({
     required this.id,
@@ -48,15 +42,11 @@ class Property {
     this.bedrooms,
     this.bathrooms,
     this.amenities,
-    this.images,
     this.thumbnailImage,
     required this.sourceType,
     this.externalId,
     this.externalUrl,
     this.metadata,
-    required this.isActive,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   // Full address getter
@@ -79,39 +69,33 @@ class Property {
       state: json['state'],
       country: json['country'],
       zipCode: json['zipCode'],
-      latitude: json['latitude'] is int 
-          ? (json['latitude'] as int).toDouble() 
+      latitude: json['latitude'] is int
+          ? (json['latitude'] as int).toDouble()
           : json['latitude'],
-      longitude: json['longitude'] is int 
-          ? (json['longitude'] as int).toDouble() 
+      longitude: json['longitude'] is int
+          ? (json['longitude'] as int).toDouble()
           : json['longitude'],
       propertyType: json['propertyType'],
-      starRating: json['starRating'] != null 
-          ? (json['starRating'] is int 
-              ? (json['starRating'] as int).toDouble() 
-              : json['starRating']) 
+      starRating: json['starRating'] != null
+          ? (json['starRating'] is int
+              ? (json['starRating'] as int).toDouble()
+              : json['starRating'])
           : null,
-      basePrice: json['basePrice'] is int 
-          ? (json['basePrice'] as int).toDouble() 
+      basePrice: json['basePrice'] is int
+          ? (json['basePrice'] as int).toDouble()
           : json['basePrice'],
       currency: json['currency'],
       maxGuests: json['maxGuests'],
       bedrooms: json['bedrooms'],
       bathrooms: json['bathrooms'],
-      amenities: json['amenities'] != null 
-          ? List<String>.from(json['amenities']) 
-          : null,
-      images: json['images'] != null 
-          ? List<String>.from(json['images']) 
+      amenities: json['amenities'] != null
+          ? List<String>.from(json['amenities'])
           : null,
       thumbnailImage: json['thumbnailImage'],
       sourceType: json['sourceType'],
       externalId: json['externalId'],
       externalUrl: json['externalUrl'],
       metadata: json['metadata'],
-      isActive: json['isActive'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
 
@@ -136,15 +120,11 @@ class Property {
       'bedrooms': bedrooms,
       'bathrooms': bathrooms,
       'amenities': amenities,
-      'images': images,
       'thumbnailImage': thumbnailImage,
       'sourceType': sourceType,
       'externalId': externalId,
       'externalUrl': externalUrl,
       'metadata': metadata,
-      'isActive': isActive,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
@@ -168,15 +148,11 @@ class Property {
     int? bedrooms,
     int? bathrooms,
     List<String>? amenities,
-    List<String>? images,
     String? thumbnailImage,
     String? sourceType,
     String? externalId,
     String? externalUrl,
     Map<String, dynamic>? metadata,
-    bool? isActive,
-    DateTime? createdAt,
-    DateTime? updatedAt,
   }) {
     return Property(
       id: id ?? this.id,
@@ -197,15 +173,11 @@ class Property {
       bedrooms: bedrooms ?? this.bedrooms,
       bathrooms: bathrooms ?? this.bathrooms,
       amenities: amenities ?? this.amenities,
-      images: images ?? this.images,
       thumbnailImage: thumbnailImage ?? this.thumbnailImage,
       sourceType: sourceType ?? this.sourceType,
       externalId: externalId ?? this.externalId,
       externalUrl: externalUrl ?? this.externalUrl,
       metadata: metadata ?? this.metadata,
-      isActive: isActive ?? this.isActive,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
