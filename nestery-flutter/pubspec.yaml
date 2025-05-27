@@ -12,6 +12,9 @@ dependencies:
   cupertino_icons: ^1.0.6
   # State management
   flutter_riverpod: ^2.4.9
+  provider: ^6.1.5
+  # Navigation
+  go_router: ^15.1.2
   # Network and API
   dio: ^5.4.0
   http: ^1.1.2
@@ -42,6 +45,9 @@ dependencies:
   flutter_stripe: ^9.5.0+1
   # Animations
   lottie: ^2.7.0
+  # QR Code and Image Picker
+  qr_flutter: ^4.1.0
+  image_picker: ^1.1.2
   # Utilities
   url_launcher: ^6.2.2
   package_info_plus: ^4.2.0
