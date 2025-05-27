@@ -1,8 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/booking.dart';
+import 'package:nestery_flutter/models/search_dtos.dart';
 import 'package:nestery_flutter/models/enums.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/utils/either.dart';
 
 class BookingRepository {
   final ApiClient _apiClient;
@@ -10,7 +13,7 @@ class BookingRepository {
   BookingRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   // Get user bookings
-  Future<List<Booking>> getUserBookings({
+  Future<Either<ApiException, List<Booking>>> getUserBookings({
     BookingStatus? status,
     int page = 1,
     int limit = Constants.defaultPageSize,
@@ -25,110 +28,136 @@ class BookingRepository {
         queryParams['status'] = _bookingStatusToString(status);
       }
 
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.bookingsEndpoint,
         queryParameters: queryParams,
       );
 
-      return (response['data'] as List)
-          .map((json) => Booking.fromJson(json))
-          .toList();
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final bookings = (response.data!['data'] as List)
+            .map((json) => Booking.fromJson(json))
+            .toList();
+        return Either.right(bookings);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get booking details
-  Future<Booking> getBookingDetails(String bookingId) async {
+  Future<Either<ApiException, Booking>> getBookingDetails(String bookingId) async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.bookingsEndpoint}/$bookingId',
       );
 
-      return Booking.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final booking = Booking.fromJson(response.data!);
+        return Either.right(booking);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Create booking
-  Future<Booking> createBooking({
-    required String propertyId,
-    required DateTime checkInDate,
-    required DateTime checkOutDate,
-    required int numberOfGuests,
-    String? specialRequests,
-    required String paymentMethod,
-    Map<String, dynamic>? paymentDetails,
-  }) async {
+  Future<Either<ApiException, Booking>> createBooking(CreateBookingDto bookingData) async {
     try {
-      final response = await _apiClient.post(
+      final response = await _apiClient.post<Map<String, dynamic>>(
         Constants.bookingsEndpoint,
-        data: {
-          'propertyId': propertyId,
-          'checkInDate': checkInDate.toIso8601String(),
-          'checkOutDate': checkOutDate.toIso8601String(),
-          'numberOfGuests': numberOfGuests,
-          'specialRequests': specialRequests,
-          'paymentMethod': paymentMethod,
-          'paymentDetails': paymentDetails,
-        },
+        data: bookingData.toJson(),
       );
 
-      return Booking.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final booking = Booking.fromJson(response.data!);
+        return Either.right(booking);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Cancel booking
-  Future<Booking> cancelBooking(String bookingId, {String? reason}) async {
+  Future<Either<ApiException, Booking>> cancelBooking(String bookingId, {String? reason}) async {
     try {
-      final response = await _apiClient.patch(
+      final response = await _apiClient.patch<Map<String, dynamic>>(
         '${Constants.bookingsEndpoint}/$bookingId/cancel',
         data: reason != null ? {'reason': reason} : null,
       );
 
-      return Booking.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final booking = Booking.fromJson(response.data!);
+        return Either.right(booking);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Update booking
-  Future<Booking> updateBooking(
-    String bookingId, {
-    DateTime? checkInDate,
-    DateTime? checkOutDate,
-    int? numberOfGuests,
-    String? specialRequests,
-  }) async {
+  Future<Either<ApiException, Booking>> updateBooking(String bookingId, UpdateBookingDto updateData) async {
     try {
-      final Map<String, dynamic> data = {};
-
-      if (checkInDate != null) data['checkInDate'] = checkInDate.toIso8601String();
-      if (checkOutDate != null) data['checkOutDate'] = checkOutDate.toIso8601String();
-      if (numberOfGuests != null) data['numberOfGuests'] = numberOfGuests;
-      if (specialRequests != null) data['specialRequests'] = specialRequests;
-
-      final response = await _apiClient.patch(
+      final response = await _apiClient.patch<Map<String, dynamic>>(
         '${Constants.bookingsEndpoint}/$bookingId',
-        data: data,
+        data: updateData.toJson(),
       );
 
-      return Booking.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final booking = Booking.fromJson(response.data!);
+        return Either.right(booking);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 

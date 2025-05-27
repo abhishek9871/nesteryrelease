@@ -1,7 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/property.dart';
+import 'package:nestery_flutter/models/search_dtos.dart';
+import 'package:nestery_flutter/models/response_models.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/utils/either.dart';
 
 class PropertyRepository {
   final ApiClient _apiClient;
@@ -9,117 +13,132 @@ class PropertyRepository {
   PropertyRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   // Get featured properties
-  Future<List<Property>> getFeaturedProperties() async {
+  Future<Either<ApiException, List<Property>>> getFeaturedProperties() async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/featured',
       );
 
-      return (response as List)
-          .map((json) => Property.fromJson(json))
-          .toList();
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final properties = (response.data!['data'] as List)
+            .map((json) => Property.fromJson(json))
+            .toList();
+        return Either.right(properties);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Search properties
-  Future<List<Property>> searchProperties({
-    String? location,
-    DateTime? checkIn,
-    DateTime? checkOut,
-    int? guests,
-    double? minPrice,
-    double? maxPrice,
-    List<String>? amenities,
-    String? propertyType,
-    double? minRating,
-    String? sortBy,
-    String? sortOrder,
-    int page = 1,
-    int limit = Constants.defaultPageSize,
-  }) async {
+  Future<Either<ApiException, List<Property>>> searchProperties(SearchPropertiesDto searchParams) async {
     try {
-      final Map<String, dynamic> queryParams = {
-        'page': page,
-        'limit': limit,
-      };
-
-      if (location != null) queryParams['location'] = location;
-      if (checkIn != null) queryParams['checkIn'] = checkIn.toIso8601String();
-      if (checkOut != null) queryParams['checkOut'] = checkOut.toIso8601String();
-      if (guests != null) queryParams['guests'] = guests;
-      if (minPrice != null) queryParams['minPrice'] = minPrice;
-      if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
-      if (amenities != null) queryParams['amenities'] = amenities.join(',');
-      if (propertyType != null) queryParams['propertyType'] = propertyType;
-      if (minRating != null) queryParams['minRating'] = minRating;
-      if (sortBy != null) queryParams['sortBy'] = sortBy;
-      if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
-
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.propertiesEndpoint,
-        queryParameters: queryParams,
+        queryParameters: searchParams.toQueryParams(),
       );
 
-      return (response['data'] as List)
-          .map((json) => Property.fromJson(json))
-          .toList();
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final properties = (response.data!['data'] as List)
+            .map((json) => Property.fromJson(json))
+            .toList();
+        return Either.right(properties);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get property details
-  Future<Property> getPropertyDetails(String propertyId) async {
+  Future<Either<ApiException, Property>> getPropertyDetails(String propertyId) async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/$propertyId',
       );
 
-      return Property.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final property = Property.fromJson(response.data!);
+        return Either.right(property);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get property availability
-  Future<Map<String, dynamic>> getPropertyAvailability(
+  Future<Either<ApiException, List<PropertyAvailability>>> getPropertyAvailability(
     String propertyId, {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/$propertyId/availability',
         queryParameters: {
-          'startDate': startDate.toIso8601String(),
-          'endDate': endDate.toIso8601String(),
+          'startDate': startDate.toIso8601String().split('T')[0],
+          'endDate': endDate.toIso8601String().split('T')[0],
         },
       );
 
-      return response;
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final availability = (response.data!['data'] as List)
+            .map((json) => PropertyAvailability.fromJson(json))
+            .toList();
+        return Either.right(availability);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get property reviews
-  Future<Map<String, dynamic>> getPropertyReviews(
+  Future<Either<ApiException, Map<String, dynamic>>> getPropertyReviews(
     String propertyId, {
     int page = 1,
     int limit = Constants.defaultPageSize,
   }) async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/$propertyId/reviews',
         queryParameters: {
           'page': page,
@@ -127,43 +146,77 @@ class PropertyRepository {
         },
       );
 
-      return response;
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        return Either.right(response.data!);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get similar properties
-  Future<List<Property>> getSimilarProperties(String propertyId) async {
+  Future<Either<ApiException, List<Property>>> getSimilarProperties(String propertyId) async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/$propertyId/similar',
       );
 
-      return (response as List)
-          .map((json) => Property.fromJson(json))
-          .toList();
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final properties = (response.data!['data'] as List)
+            .map((json) => Property.fromJson(json))
+            .toList();
+        return Either.right(properties);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get trending destinations
-  Future<List<Map<String, dynamic>>> getTrendingDestinations() async {
+  Future<Either<ApiException, List<TrendingDestination>>> getTrendingDestinations() async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/trending-destinations',
       );
 
-      return List<Map<String, dynamic>>.from(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final destinations = (response.data!['data'] as List)
+            .map((json) => TrendingDestination.fromJson(json))
+            .toList();
+        return Either.right(destinations);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 }

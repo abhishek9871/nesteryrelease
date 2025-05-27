@@ -1,7 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/models/loyalty.dart';
+import 'package:nestery_flutter/models/search_dtos.dart';
+import 'package:nestery_flutter/models/response_models.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/utils/either.dart';
 
 class UserRepository {
   final ApiClient _apiClient;
@@ -9,22 +14,33 @@ class UserRepository {
   UserRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   // Get user profile
-  Future<User> getUserProfile() async {
+  Future<Either<ApiException, User>> getUserProfile() async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.userProfileEndpoint,
       );
 
-      return User.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final user = User.fromJson(response.data!);
+        return Either.right(user);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Update user profile
-  Future<User> updateUserProfile({
+  Future<Either<ApiException, User>> updateUserProfile({
     String? firstName,
     String? lastName,
     String? phoneNumber,
@@ -40,16 +56,27 @@ class UserRepository {
       if (profilePicture != null) data['profilePicture'] = profilePicture;
       if (preferences != null) data['preferences'] = preferences;
 
-      final response = await _apiClient.put(
+      final response = await _apiClient.put<Map<String, dynamic>>(
         Constants.userProfileEndpoint,
         data: data,
       );
 
-      return User.fromJson(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        final user = User.fromJson(response.data!);
+        return Either.right(user);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
