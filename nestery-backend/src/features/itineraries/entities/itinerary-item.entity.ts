@@ -29,7 +29,7 @@ export class ItineraryItem {
 
   @Column({
     type: 'enum',
-    enum: ['accommodation', 'activity', 'transport', 'dining', 'other']
+    enum: ['accommodation', 'activity', 'transport', 'dining', 'other'],
   })
   type: string;
 

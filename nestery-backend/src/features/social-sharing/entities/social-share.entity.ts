@@ -35,7 +35,7 @@ export class SocialShare {
 
   @Column({
     type: 'enum',
-    enum: ['facebook', 'twitter', 'whatsapp', 'email']
+    enum: ['facebook', 'twitter', 'whatsapp', 'email'],
   })
   platform: string;
 

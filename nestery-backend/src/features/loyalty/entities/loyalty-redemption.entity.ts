@@ -42,7 +42,7 @@ export class LoyaltyRedemption {
   @Column({
     type: 'enum',
     enum: ['active', 'used', 'expired'],
-    default: 'active'
+    default: 'active',
   })
   status: string;
 

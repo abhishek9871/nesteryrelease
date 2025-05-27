@@ -58,16 +58,7 @@ export class PropertiesService {
    */
   async search(searchDto: SearchPropertiesDto): Promise<{ properties: Property[]; total: number }> {
     try {
-      const {
-        city,
-        country,
-        minPrice,
-        maxPrice,
-        propertyType,
-        starRating,
-        page = 1,
-        limit = 10,
-      } = searchDto;
+      const { city, country, minPrice, maxPrice, propertyType, page = 1, limit = 10 } = searchDto;
 
       const whereConditions: FindOptionsWhere<Property> = {
         isActive: true,
@@ -153,7 +144,7 @@ export class PropertiesService {
         where: {
           externalId,
           sourceType,
-        } as any, // Type assertion to bypass strict type checking for custom fields
+        } as FindOptionsWhere<Property>,
       });
 
       return property;

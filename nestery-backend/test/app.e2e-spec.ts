@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 // Remove the non-existent IntegrationTest import
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request, { Response } from 'supertest';
 import { AppModule } from '../src/app.module';
 import { JwtService } from '@nestjs/jwt';
 import { UserEntity } from '../src/users/entities/user.entity';
@@ -111,7 +111,7 @@ describe('Nestery API (e2e)', () => {
           password: 'password123',
         })
         .expect(200)
-        .expect(res => {
+        .expect((res: Response) => {
           expect(res.body.access_token).toBeDefined();
           expect(res.body.user).toBeDefined();
           expect(res.body.user.email).toBe('test@example.com');

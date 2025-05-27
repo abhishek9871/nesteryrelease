@@ -7,7 +7,7 @@ import { Property } from './entities/property.entity';
 
 describe('PropertiesService', () => {
   let service: PropertiesService;
-  let mockPropertyRepository: any;
+  let mockPropertyRepository: jest.Mocked<any>;
 
   beforeEach(async () => {
     mockPropertyRepository = {

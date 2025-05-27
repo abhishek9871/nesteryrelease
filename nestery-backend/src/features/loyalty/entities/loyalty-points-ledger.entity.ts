@@ -27,7 +27,7 @@ export class LoyaltyPointsLedger {
 
   @Column({
     type: 'enum',
-    enum: ['earned', 'redeemed', 'expired', 'adjusted', 'bonus', 'referral']
+    enum: ['earned', 'redeemed', 'expired', 'adjusted', 'bonus', 'referral'],
   })
   type: string;
 

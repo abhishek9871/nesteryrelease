@@ -28,13 +28,13 @@ export class PremiumSubscription {
 
   @Column({
     type: 'enum',
-    enum: ['monthly', 'yearly']
+    enum: ['monthly', 'yearly'],
   })
   plan: string;
 
   @Column({
     type: 'enum',
-    enum: ['active', 'cancelled', 'expired', 'pending']
+    enum: ['active', 'cancelled', 'expired', 'pending'],
   })
   status: string;
 

@@ -35,7 +35,7 @@ export class LoyaltyTransaction {
 
   @Column({
     type: 'enum',
-    enum: ['earned', 'redeemed', 'expired', 'adjusted']
+    enum: ['earned', 'redeemed', 'expired', 'adjusted'],
   })
   type: string;
 

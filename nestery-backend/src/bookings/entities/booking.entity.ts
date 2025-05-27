@@ -51,7 +51,7 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: ['confirmed', 'completed', 'cancelled'],
-    default: 'confirmed'
+    default: 'confirmed',
   })
   status: string;
 
@@ -64,7 +64,7 @@ export class Booking {
   @Column({
     name: 'payment_method',
     type: 'enum',
-    enum: ['credit_card', 'paypal', 'points']
+    enum: ['credit_card', 'paypal', 'points'],
   })
   paymentMethod: string;
 
@@ -78,7 +78,7 @@ export class Booking {
     name: 'source_type',
     type: 'enum',
     enum: ['internal', 'booking', 'oyo'],
-    default: 'internal'
+    default: 'internal',
   })
   sourceType: string;
 

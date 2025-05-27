@@ -148,7 +148,7 @@ export class SocialSharingService {
   /**
    * Get user by referral code
    */
-  async getUserByReferralCode(referralCode: string): Promise<User | null> {
+  async getUserByReferralCode(_referralCode: string): Promise<User | null> {
     try {
       const options: FindOneOptions<User> = {
         // Note: referralCode moved to Referral entity

@@ -13,7 +13,7 @@ export class UtilsService {
   /**
    * Safely parses a JSON string, returning null if parsing fails
    */
-  safeJsonParse(jsonString: string): any | null {
+  safeJsonParse(jsonString: string): unknown | null {
     try {
       return JSON.parse(jsonString);
     } catch (error) {
@@ -25,7 +25,7 @@ export class UtilsService {
   /**
    * Removes null and undefined values from an object
    */
-  removeEmptyValues(obj: Record<string, any>): Record<string, any> {
+  removeEmptyValues(obj: Record<string, unknown>): Record<string, unknown> {
     return Object.entries(obj)
       .filter(([_, value]) => value !== null && value !== undefined)
       .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});

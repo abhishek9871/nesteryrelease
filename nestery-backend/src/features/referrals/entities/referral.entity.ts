@@ -38,7 +38,7 @@ export class Referral {
   @Column({
     type: 'enum',
     enum: ['pending', 'completed', 'expired'],
-    default: 'pending'
+    default: 'pending',
   })
   status: string;
 

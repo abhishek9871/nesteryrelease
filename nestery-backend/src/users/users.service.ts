@@ -100,7 +100,7 @@ export class UsersService {
   /**
    * Update user's last login timestamp
    */
-  async updateLastLogin(id: string): Promise<void> {
+  async updateLastLogin(_id: string): Promise<void> {
     try {
       // Note: lastLoginAt field was removed from User entity
       // This functionality should be tracked via a separate UserSession entity
@@ -131,7 +131,7 @@ export class UsersService {
   /**
    * Update user's premium status
    */
-  async updatePremiumStatus(id: string, isPremium: boolean): Promise<User> {
+  async updatePremiumStatus(id: string, _isPremium: boolean): Promise<User> {
     try {
       const user = await this.findById(id);
       if (!user) {

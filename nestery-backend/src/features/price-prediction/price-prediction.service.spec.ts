@@ -8,7 +8,7 @@ import { Property } from '../../properties/entities/property.entity';
 
 describe('PricePredictionService', () => {
   let service: PricePredictionService;
-  let mockPropertyRepository: any;
+  let mockPropertyRepository: jest.Mocked<any>;
 
   beforeEach(async () => {
     mockPropertyRepository = {
@@ -102,7 +102,9 @@ describe('PricePredictionService', () => {
         amenities: ['wifi', 'pool', 'gym'],
       };
 
-      await expect(service.predictPrice(params as any)).rejects.toThrow('Failed to predict price');
+      await expect(
+        service.predictPrice(params as Parameters<typeof service.predictPrice>[0]),
+      ).rejects.toThrow('Failed to predict price');
     });
   });
 });

@@ -8,8 +8,8 @@ import { BookingEntity } from '../../bookings/entities/booking.entity';
 
 describe('LoyaltyService', () => {
   let service: LoyaltyService;
-  let mockUserRepository: any;
-  let mockBookingRepository: any;
+  let mockUserRepository: jest.Mocked<any>;
+  let mockBookingRepository: jest.Mocked<any>;
 
   beforeEach(async () => {
     mockUserRepository = {

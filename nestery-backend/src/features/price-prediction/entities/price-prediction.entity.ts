@@ -36,7 +36,7 @@ export class PricePrediction {
 
   @Column({
     type: 'enum',
-    enum: ['rising', 'falling', 'stable']
+    enum: ['rising', 'falling', 'stable'],
   })
   trend: string;
 

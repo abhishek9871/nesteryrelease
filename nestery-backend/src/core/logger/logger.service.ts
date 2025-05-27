@@ -23,6 +23,7 @@ export class LoggerService implements NestLoggerService {
   }
 
   debug(message: string, ...optionalParams: unknown[]) {
+    // eslint-disable-next-line no-console
     console.debug(`[${this.context}] DEBUG: ${message}`, ...optionalParams);
   }
 

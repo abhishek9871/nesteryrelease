@@ -1,5 +1,6 @@
 import { Injectable, Logger, BadRequestException, PayloadTooLargeException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as mime from 'mime-types';
@@ -52,7 +53,7 @@ export class SecureFileService {
   /**
    * Process upload from request
    */
-  async processUpload(req: any, options: SecureFileOptions = {}): Promise<FileInfo[]> {
+  async processUpload(req: Request, options: SecureFileOptions = {}): Promise<FileInfo[]> {
     // Use MultipartParserService to parse the request
     const multipartParser = new MultipartParserService();
     const { files } = await multipartParser.parseMultipartData(req, {});
