@@ -7,11 +7,12 @@ import {
 } from 'typeorm';
 
 /**
- * Property entity representing the properties table in the database
- * Compliant with FRS and DATA_DICTIONARY.md specifications
+ * NesteryMasterProperty entity representing the nestery_master_properties table
+ * Single, canonical record for each unique physical property
+ * FRS-specific entity for property de-duplication and normalization
  */
-@Entity('properties')
-export class Property {
+@Entity('nestery_master_properties')
+export class NesteryMasterProperty {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -52,12 +53,6 @@ export class Property {
   @Column({ name: 'star_rating', type: 'decimal', precision: 2, scale: 1, nullable: true })
   starRating: number;
 
-  @Column({ name: 'base_price', type: 'decimal', precision: 10, scale: 2 })
-  basePrice: number;
-
-  @Column({ length: 3, default: 'USD' })
-  currency: string;
-
   @Column({ name: 'max_guests', type: 'int' })
   maxGuests: number;
 
@@ -76,19 +71,17 @@ export class Property {
   @Column({ name: 'thumbnail_image', length: 255, nullable: true })
   thumbnailImage: string;
 
-  @Column({
-    name: 'source_type',
-    type: 'enum',
-    enum: ['internal', 'booking', 'oyo'],
-    default: 'internal',
-  })
-  sourceType: string;
+  @Column({ name: 'chain_affiliation', length: 100, nullable: true })
+  chainAffiliation: string;
 
-  @Column({ name: 'external_id', length: 100, nullable: true })
-  externalId: string;
+  @Column({ name: 'phone_number', length: 20, nullable: true })
+  phoneNumber: string;
 
-  @Column({ name: 'external_url', length: 255, nullable: true })
-  externalUrl: string;
+  @Column({ name: 'nestery_rating', type: 'decimal', precision: 3, scale: 2, nullable: true })
+  nesteryRating: number;
+
+  @Column({ name: 'review_count', type: 'int', default: 0 })
+  reviewCount: number;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: object;
@@ -97,14 +90,8 @@ export class Property {
   isActive: boolean;
 
   // Relationships will be added when other entities are created
-  // @OneToMany(() => Booking, booking => booking.property)
-  // bookings: Booking[];
-
-  // @OneToMany(() => Review, review => review.property)
-  // reviews: Review[];
-
-  // @OneToMany(() => PropertyAvailability, availability => availability.property)
-  // availability: PropertyAvailability[];
+  // @OneToMany(() => SupplierProperty, supplierProperty => supplierProperty.nesteryMasterProperty)
+  // supplierProperties: SupplierProperty[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -114,4 +101,4 @@ export class Property {
 }
 
 // Export for tests
-export { Property as PropertyEntity };
+export { NesteryMasterProperty as NesteryMasterPropertyEntity };

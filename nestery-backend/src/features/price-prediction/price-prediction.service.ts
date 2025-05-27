@@ -158,7 +158,7 @@ export class PricePredictionService {
         where: {
           city: params.city,
           country: params.country,
-          type: params.propertyType,
+          propertyType: params.propertyType,
           bedrooms: Between(params.bedrooms - 1, params.bedrooms + 1),
           bathrooms: Between(params.bathrooms - 1, params.bathrooms + 1),
           maxGuests: Between(params.maxGuests - 2, params.maxGuests + 2),
@@ -186,9 +186,11 @@ export class PricePredictionService {
 
     for (const property of similarProperties) {
       // Higher rated properties have more influence on the price
-      const weight = property.rating ? property.rating / 5 : 0.6;
+      // Note: rating field was moved to metadata object
+      const rating = (property.metadata as any)?.rating || 0;
+      const weight = rating ? rating / 5 : 0.5;
       totalWeight += weight;
-      weightedSum += property.pricePerNight * weight;
+      weightedSum += property.basePrice * weight;
     }
 
     return totalWeight > 0 ? weightedSum / totalWeight : 100;

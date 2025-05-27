@@ -311,7 +311,9 @@ export class LoyaltyService {
     }
 
     // Bonus points for booking premium properties
-    if (booking.property && booking.property.rating && booking.property.rating >= 4.5) {
+    // Note: rating field was moved to metadata object
+    const rating = (booking.property?.metadata as any)?.rating || 0;
+    if (booking.property && rating && rating >= 4.5) {
       points += 50; // Bonus for premium properties
     }
 

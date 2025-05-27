@@ -77,10 +77,12 @@ export class BookingsService {
       // Calculate total price
       let totalPrice = property.basePrice * nights;
 
-      // Apply premium discount if applicable
-      if (user.isPremium && createBookingDto.isPremiumBooking) {
-        totalPrice *= 0.9; // 10% discount for premium users
-      }
+      // Apply premium discount if applicable (check if user has premium subscription)
+      // Note: Premium status should be checked via PremiumSubscription entity
+      // For now, we'll skip this check until premium subscription logic is implemented
+      // if (user.isPremium && createBookingDto.isPremiumBooking) {
+      //   totalPrice *= 0.9; // 10% discount for premium users
+      // }
 
       // Apply loyalty points redemption if applicable
       let loyaltyPointsRedeemed = 0;
@@ -118,14 +120,12 @@ export class BookingsService {
         numberOfGuests: createBookingDto.numberOfGuests,
         totalPrice,
         currency: property.currency,
-        status: 'pending',
+        status: 'confirmed',
         confirmationCode,
         specialRequests: createBookingDto.specialRequests,
         paymentMethod: createBookingDto.paymentMethod,
-        isPremiumBooking: createBookingDto.isPremiumBooking || false,
         loyaltyPointsEarned,
-        loyaltyPointsRedeemed,
-        sourceType: createBookingDto.sourceType || 'direct',
+        sourceType: createBookingDto.sourceType || 'internal',
       });
 
       const savedBooking = await this.bookingsRepository.save(booking);
@@ -294,9 +294,11 @@ export class BookingsService {
           }
 
           // Handle cancellation logic (e.g., refund loyalty points)
-          if (booking.loyaltyPointsRedeemed > 0) {
-            await this.usersService.addLoyaltyPoints(booking.userId, booking.loyaltyPointsRedeemed);
-          }
+          // Note: loyaltyPointsRedeemed field was removed from booking entity
+          // This logic should be handled via LoyaltyTransaction entity
+          // if (booking.loyaltyPointsRedeemed > 0) {
+          //   await this.usersService.addLoyaltyPoints(booking.userId, booking.loyaltyPointsRedeemed);
+          // }
 
           // Deduct earned loyalty points
           if (booking.loyaltyPointsEarned > 0) {

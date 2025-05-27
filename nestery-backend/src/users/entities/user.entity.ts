@@ -4,79 +4,93 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
 /**
  * User entity representing the users table in the database
+ * Compliant with FRS and DATA_DICTIONARY.md specifications
  */
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, length: 255 })
   email: string;
 
-  @Column()
+  @Column({ length: 255 })
   @Exclude({ toPlainOnly: true })
   password: string;
 
-  @Column()
-  name: string;
-
-  @Column({ nullable: true })
+  @Column({ name: 'first_name', length: 100 })
   firstName: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'last_name', length: 100 })
   lastName: string;
 
-  @Column({ default: 'user' })
-  role: string;
-
-  @Column({ nullable: true })
-  profilePicture: string;
-
-  @Column({ nullable: true })
+  @Column({ name: 'phone_number', length: 20, nullable: true })
   phoneNumber: string;
 
-  @Column({ default: false })
-  isPremium: boolean;
+  @Column({ name: 'profile_picture', length: 255, nullable: true })
+  profilePicture: string;
 
-  @Column({ default: 0 })
+  @Column({
+    type: 'enum',
+    enum: ['user', 'admin'],
+    default: 'user',
+  })
+  role: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  preferences: object;
+
+  @Column({ name: 'refresh_token', length: 255, nullable: true })
+  refreshToken: string;
+
+  @Column({
+    name: 'loyalty_tier',
+    type: 'enum',
+    enum: ['bronze', 'silver', 'gold', 'platinum'],
+    default: 'bronze',
+  })
+  loyaltyTier: string;
+
+  @Column({ name: 'loyalty_points', type: 'int', default: 0 })
   loyaltyPoints: number;
 
-  @Column({ nullable: true })
-  lastLoginAt: Date;
+  @Column({ name: 'auth_provider', length: 50, nullable: true })
+  authProvider: string;
 
-  @Column({ nullable: true, unique: true })
-  referralCode: string;
+  @Column({ name: 'auth_provider_id', length: 255, nullable: true })
+  authProviderId: string;
 
-  @Column({ nullable: true })
-  referredBy: string;
+  @Column({ name: 'stripe_customer_id', length: 255, nullable: true })
+  stripeCustomerId: string;
 
-  @Column({ default: false })
-  hasCompletedBooking: boolean;
+  @Column({ name: 'email_verified', type: 'boolean', default: false })
+  emailVerified: boolean;
 
-  @OneToMany(() => User, user => user.referrer)
-  referredUsers: User[];
+  @Column({ name: 'phone_verified', type: 'boolean', default: false })
+  phoneVerified: boolean;
 
-  @ManyToOne(() => User, user => user.referredUsers, { nullable: true })
-  @JoinColumn({ name: 'referredBy' })
-  referrer: User;
-
-  // Commented out to avoid circular dependency
-  // Will be properly set up when Booking entity is available
+  // Relationships will be added when other entities are created
   // @OneToMany(() => Booking, booking => booking.user)
   // bookings: Booking[];
 
-  @CreateDateColumn()
+  // @OneToMany(() => LoyaltyTransaction, transaction => transaction.user)
+  // loyaltyTransactions: LoyaltyTransaction[];
+
+  // @OneToMany(() => Review, review => review.user)
+  // reviews: Review[];
+
+  // @OneToMany(() => Referral, referral => referral.referrer)
+  // referrals: Referral[];
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
 

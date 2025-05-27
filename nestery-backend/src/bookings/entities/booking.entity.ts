@@ -10,95 +10,97 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Property } from '../../properties/entities/property.entity';
 
+/**
+ * Booking entity representing the bookings table in the database
+ * Compliant with FRS and DATA_DICTIONARY.md specifications
+ */
 @Entity('bookings')
 export class Booking {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ name: 'user_id' })
   userId: string;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column()
+  @Column({ name: 'property_id' })
   propertyId: string;
 
-  @ManyToOne(() => Property)
-  @JoinColumn({ name: 'propertyId' })
+  @ManyToOne(() => Property, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'property_id' })
   property: Property;
 
-  @Column()
+  @Column({ name: 'check_in_date', type: 'date' })
   checkInDate: Date;
 
-  @Column()
+  @Column({ name: 'check_out_date', type: 'date' })
   checkOutDate: Date;
 
-  @Column('float')
-  totalPrice: number;
-
-  @Column({ default: 'USD' })
-  currency: string;
-
-  @Column({ default: 'pending' })
-  status: string;
-
-  @Column('int', { name: 'guest_count' })
-  guestCount: number;
-
-  @Column('int', { name: 'number_of_guests', nullable: true })
+  @Column({ name: 'number_of_guests', type: 'int' })
   numberOfGuests: number;
 
-  @Column({ nullable: true })
-  specialRequests: string;
+  @Column({ name: 'total_price', type: 'decimal', precision: 10, scale: 2 })
+  totalPrice: number;
 
-  @Column({ default: false })
-  isCancelled: boolean;
+  @Column({ length: 3, default: 'USD' })
+  currency: string;
 
-  @Column({ nullable: true })
-  cancellationReason: string;
+  @Column({
+    type: 'enum',
+    enum: ['confirmed', 'completed', 'cancelled'],
+    default: 'confirmed'
+  })
+  status: string;
 
-  @Column({ nullable: true })
-  cancellationDate: Date;
-
-  @Column({ default: false })
-  isRefunded: boolean;
-
-  @Column('float', { nullable: true })
-  refundAmount: number;
-
-  @Column({ nullable: true })
-  paymentId: string;
-
-  @Column({ nullable: true })
-  paymentMethod: string;
-
-  @Column({ default: false })
-  isPaid: boolean;
-
-  @Column({ nullable: true })
-  paymentDate: Date;
-
-  @Column({ nullable: true })
+  @Column({ name: 'confirmation_code', length: 50 })
   confirmationCode: string;
 
-  @Column('int', { default: 0 })
+  @Column({ name: 'special_requests', type: 'text', nullable: true })
+  specialRequests: string;
+
+  @Column({
+    name: 'payment_method',
+    type: 'enum',
+    enum: ['credit_card', 'paypal', 'points']
+  })
+  paymentMethod: string;
+
+  @Column({ name: 'payment_details', type: 'jsonb', nullable: true })
+  paymentDetails: object;
+
+  @Column({ name: 'loyalty_points_earned', type: 'int', default: 0 })
   loyaltyPointsEarned: number;
 
-  @Column('int', { default: 0 })
-  loyaltyPointsRedeemed: number;
-
-  @Column({ default: false })
-  isPremiumBooking: boolean;
-
-  @Column({ default: 'direct' })
+  @Column({
+    name: 'source_type',
+    type: 'enum',
+    enum: ['internal', 'booking', 'oyo'],
+    default: 'internal'
+  })
   sourceType: string;
 
-  @CreateDateColumn()
+  @Column({ name: 'external_booking_id', length: 100, nullable: true })
+  externalBookingId: string;
+
+  // FRS-specific fields for supplier integration
+  @Column({ name: 'supplier_id', nullable: true })
+  supplierId: string;
+
+  @Column({ name: 'supplier_booking_reference', length: 100, nullable: true })
+  supplierBookingReference: string;
+
+  // Relationships will be added when other entities are created
+  // @ManyToOne(() => Supplier, { nullable: true })
+  // @JoinColumn({ name: 'supplier_id' })
+  // supplier: Supplier;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
 

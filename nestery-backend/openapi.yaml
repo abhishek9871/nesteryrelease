@@ -30,6 +30,10 @@ tags:
     description: Social sharing and referrals
   - name: Integrations
     description: External API integrations
+  - name: Reviews
+    description: Property reviews and ratings
+  - name: Itineraries
+    description: Travel itinerary management
 
 paths:
   /auth/register:
@@ -658,6 +662,403 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # Missing API Endpoints from Analysis Report
+  /properties/featured:
+    get:
+      tags:
+        - Properties
+      summary: Get featured properties
+      description: Get a list of featured properties
+      operationId: getFeaturedProperties
+      parameters:
+        - name: limit
+          in: query
+          description: Number of featured properties to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        '200':
+          description: Featured properties retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PropertyResponse'
+
+  /properties/trending-destinations:
+    get:
+      tags:
+        - Properties
+      summary: Get trending destinations
+      description: Get a list of trending travel destinations
+      operationId: getTrendingDestinations
+      parameters:
+        - name: limit
+          in: query
+          description: Number of destinations to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        '200':
+          description: Trending destinations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        destination:
+                          type: string
+                          example: Miami, FL
+                        propertyCount:
+                          type: integer
+                          example: 150
+                        averagePrice:
+                          type: number
+                          example: 199.99
+                        thumbnailImage:
+                          type: string
+                          format: uri
+                          example: https://example.com/miami.jpg
+
+  /bookings/{id}/cancel:
+    patch:
+      tags:
+        - Bookings
+      summary: Cancel booking
+      description: Cancel a specific booking
+      operationId: cancelBooking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Booking ID
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: Change of plans
+      responses:
+        '200':
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Cannot cancel booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /loyalty/status:
+    get:
+      tags:
+        - Loyalty
+      summary: Get loyalty status
+      description: Get detailed loyalty status including tier progress
+      operationId: getLoyaltyStatus
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Loyalty status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Reviews CRUD Endpoints
+  /reviews:
+    get:
+      tags:
+        - Reviews
+      summary: Get reviews
+      description: Get reviews with optional filtering
+      operationId: getReviews
+      parameters:
+        - name: propertyId
+          in: query
+          description: Filter by property ID
+          schema:
+            type: string
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewResponse'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags:
+        - Reviews
+      summary: Create review
+      description: Create a new property review
+      operationId: createReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewDto'
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Property Availability Endpoint
+  /properties/{id}/availability:
+    get:
+      tags:
+        - Properties
+      summary: Get property availability
+      description: Get availability and pricing for a property by date range
+      operationId: getPropertyAvailability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Property ID
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          description: Start date for availability check
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          description: End date for availability check
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Property availability retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PropertyAvailabilityResponse'
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Referrals Endpoint
+  /users/me/referrals:
+    get:
+      tags:
+        - Users
+      summary: Get user referrals
+      description: Get referral information for the authenticated user
+      operationId: getUserReferrals
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User referrals retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReferralDetailResponse'
+                  summary:
+                    $ref: '#/components/schemas/ReferralResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Itineraries CRUD Endpoints
+  /itineraries:
+    get:
+      tags:
+        - Itineraries
+      summary: Get user itineraries
+      description: Get itineraries for the authenticated user
+      operationId: getUserItineraries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [draft, published, shared, archived]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Itineraries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ItineraryResponse'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Itineraries
+      summary: Create itinerary
+      description: Create a new travel itinerary
+      operationId: createItinerary
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItineraryDto'
+      responses:
+        '201':
+          description: Itinerary created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItineraryResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -911,6 +1312,22 @@ components:
           type: string
           enum: [user, admin]
           example: user
+        loyaltyTier:
+          type: string
+          enum: [bronze, silver, gold, platinum]
+          example: bronze
+        loyaltyPoints:
+          type: integer
+          example: 1250
+        authProvider:
+          type: string
+          example: google
+        emailVerified:
+          type: boolean
+          example: true
+        phoneVerified:
+          type: boolean
+          example: false
         preferences:
           type: object
           properties:
@@ -1005,15 +1422,35 @@ components:
           type: string
           enum: [internal, booking, oyo]
           example: internal
-        rating:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 5
-          example: 4.8
-        reviewCount:
-          type: integer
-          example: 120
+        externalId:
+          type: string
+          example: booking_123456
+        externalUrl:
+          type: string
+          format: uri
+          example: https://booking.com/hotel/property.html
+        metadata:
+          type: object
+          properties:
+            rating:
+              type: number
+              format: float
+              example: 4.8
+            reviewCount:
+              type: integer
+              example: 120
+            policies:
+              type: object
+              properties:
+                checkIn:
+                  type: string
+                  example: '14:00'
+                checkOut:
+                  type: string
+                  example: '11:00'
+                cancellation:
+                  type: string
+                  example: Free cancellation up to 24 hours before check-in
 
     PropertyDetailResponse:
       allOf:
@@ -1136,6 +1573,24 @@ components:
         confirmationCode:
           type: string
           example: NEST12345
+        paymentDetails:
+          type: object
+          properties:
+            cardType:
+              type: string
+              example: visa
+            lastFour:
+              type: string
+              example: '1234'
+        externalBookingId:
+          type: string
+          example: booking_ext_123456
+        supplierId:
+          type: string
+          example: supplier_booking_com
+        supplierBookingReference:
+          type: string
+          example: BK123456789
         createdAt:
           type: string
           format: date-time
@@ -1361,6 +1816,590 @@ components:
         totalPages:
           type: integer
           example: 10
+
+    # Missing Schemas for Loyalty System
+    LoyaltyTransactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        bookingId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        type:
+          type: string
+          enum: [earned, redeemed, expired, adjusted]
+          example: earned
+        amount:
+          type: integer
+          example: 100
+        description:
+          type: string
+          example: Booking at Luxury Ocean View Resort
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    LoyaltyRewardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: reward_123
+        name:
+          type: string
+          example: Free Night Stay
+        description:
+          type: string
+          example: Redeem for a free night at select properties
+        pointsCost:
+          type: integer
+          example: 2000
+        isActive:
+          type: boolean
+          example: true
+        validUntil:
+          type: string
+          format: date
+          example: 2025-12-31
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    LoyaltyRedemptionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: redemption_123
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        rewardId:
+          type: string
+          example: reward_123
+        pointsUsed:
+          type: integer
+          example: 2000
+        redemptionCode:
+          type: string
+          example: FREESTAY123
+        status:
+          type: string
+          enum: [active, used, expired]
+          example: active
+        expiryDate:
+          type: string
+          format: date
+          example: 2025-12-31
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    # Reviews Schema
+    ReviewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: review_123
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        propertyId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        bookingId:
+          type: string
+          example: 012e3456-e78b-90d1-a234-426614174000
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          example: Great place, highly recommend!
+        isVerified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    CreateReviewDto:
+      type: object
+      required:
+        - propertyId
+        - rating
+      properties:
+        propertyId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        bookingId:
+          type: string
+          example: 012e3456-e78b-90d1-a234-426614174000
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          example: Great place, highly recommend!
+
+    # Property Availability Schema
+    PropertyAvailabilityResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: availability_123
+        propertyId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        date:
+          type: string
+          format: date
+          example: 2025-06-15
+        isAvailable:
+          type: boolean
+          example: true
+        price:
+          type: number
+          example: 199.99
+        currency:
+          type: string
+          example: USD
+
+    # Referrals Schema
+    ReferralDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: referral_123
+        referrerId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        referredId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        referralCode:
+          type: string
+          example: JOHN25
+        status:
+          type: string
+          enum: [pending, completed, expired]
+          example: completed
+        pointsAwarded:
+          type: integer
+          example: 250
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+        completedAt:
+          type: string
+          format: date-time
+          example: 2025-01-20T12:00:00Z
+
+    # Social Sharing Schema
+    SocialShareResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: share_123
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        propertyId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        platform:
+          type: string
+          enum: [facebook, twitter, whatsapp, email]
+          example: facebook
+        shareLink:
+          type: string
+          format: uri
+          example: https://nestery.com/share/abc123
+        pointsEarned:
+          type: integer
+          example: 10
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    # User Recommendations Schema
+    UserRecommendationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: recommendation_123
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        propertyId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        property:
+          $ref: '#/components/schemas/PropertyResponse'
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.85
+        reason:
+          type: string
+          example: Based on your previous bookings
+        isViewed:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    # FRS-Specific Schemas
+    SupplierResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: supplier_123
+        name:
+          type: string
+          example: Booking.com
+        type:
+          type: string
+          enum: [booking, oyo, goibibo, makemytrip, agoda, expedia, other]
+          example: booking
+        apiEndpoint:
+          type: string
+          format: uri
+          example: https://api.booking.com/v1
+        commissionRate:
+          type: number
+          format: float
+          example: 0.25
+        isActive:
+          type: boolean
+          example: true
+        contactEmail:
+          type: string
+          format: email
+          example: partner@booking.com
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    NesteryMasterPropertyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: master_property_123
+        name:
+          type: string
+          example: Luxury Ocean View Resort
+        description:
+          type: string
+          example: A beautiful resort with ocean views
+        address:
+          type: string
+          example: 123 Beach Road
+        city:
+          type: string
+          example: Miami
+        country:
+          type: string
+          example: USA
+        latitude:
+          type: number
+          format: float
+          example: 25.7617
+        longitude:
+          type: number
+          format: float
+          example: -80.1918
+        propertyType:
+          type: string
+          enum: [hotel, apartment, resort, villa, hostel, guesthouse]
+          example: resort
+        starRating:
+          type: number
+          format: float
+          example: 4.5
+        nesteryRating:
+          type: number
+          format: float
+          example: 4.8
+        reviewCount:
+          type: integer
+          example: 120
+        amenities:
+          type: array
+          items:
+            type: string
+          example: [wifi, pool, parking, air_conditioning]
+        thumbnailImage:
+          type: string
+          format: uri
+          example: https://example.com/property_thumb.jpg
+        chainAffiliation:
+          type: string
+          example: Marriott
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    SupplierPropertyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: supplier_property_123
+        supplierId:
+          type: string
+          example: supplier_123
+        nesteryMasterPropertyId:
+          type: string
+          example: master_property_123
+        supplierNativePropertyId:
+          type: string
+          example: booking_hotel_456789
+        supplierPropertyName:
+          type: string
+          example: Luxury Ocean View Resort - Booking.com
+        supplierPropertyUrl:
+          type: string
+          format: uri
+          example: https://booking.com/hotel/luxury-ocean-view.html
+        basePrice:
+          type: number
+          example: 199.99
+        currency:
+          type: string
+          example: USD
+        lastSyncAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+        isActive:
+          type: boolean
+          example: true
+
+    PremiumSubscriptionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: subscription_123
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        plan:
+          type: string
+          enum: [monthly, yearly]
+          example: yearly
+        status:
+          type: string
+          enum: [active, cancelled, expired, pending]
+          example: active
+        startDate:
+          type: string
+          format: date
+          example: 2025-01-15
+        endDate:
+          type: string
+          format: date
+          example: 2026-01-15
+        pricePaid:
+          type: number
+          example: 59.99
+        currency:
+          type: string
+          example: USD
+        paymentMethod:
+          type: string
+          example: stripe
+        autoRenew:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    ItineraryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: itinerary_123
+        userId:
+          type: string
+          example: 456e7890-e12b-34d5-a678-426614174000
+        title:
+          type: string
+          example: Miami Beach Vacation
+        description:
+          type: string
+          example: A wonderful 5-day trip to Miami Beach
+        destination:
+          type: string
+          example: Miami, FL
+        startDate:
+          type: string
+          format: date
+          example: 2025-06-15
+        endDate:
+          type: string
+          format: date
+          example: 2025-06-20
+        numberOfTravelers:
+          type: integer
+          example: 2
+        budgetMin:
+          type: number
+          example: 1000.00
+        budgetMax:
+          type: number
+          example: 2000.00
+        currency:
+          type: string
+          example: USD
+        interests:
+          type: array
+          items:
+            type: string
+          example: [beach, nightlife, dining]
+        status:
+          type: string
+          enum: [draft, published, shared, archived]
+          example: published
+        isAiGenerated:
+          type: boolean
+          example: true
+        shareToken:
+          type: string
+          example: share_abc123
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
+
+    CreateItineraryDto:
+      type: object
+      required:
+        - title
+        - destination
+        - startDate
+        - endDate
+        - numberOfTravelers
+      properties:
+        title:
+          type: string
+          example: Miami Beach Vacation
+        description:
+          type: string
+          example: A wonderful 5-day trip to Miami Beach
+        destination:
+          type: string
+          example: Miami, FL
+        startDate:
+          type: string
+          format: date
+          example: 2025-06-15
+        endDate:
+          type: string
+          format: date
+          example: 2025-06-20
+        numberOfTravelers:
+          type: integer
+          minimum: 1
+          example: 2
+        budgetMin:
+          type: number
+          example: 1000.00
+        budgetMax:
+          type: number
+          example: 2000.00
+        interests:
+          type: array
+          items:
+            type: string
+          example: [beach, nightlife, dining]
+
+    ItineraryItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: itinerary_item_123
+        itineraryId:
+          type: string
+          example: itinerary_123
+        type:
+          type: string
+          enum: [accommodation, activity, transport, dining, other]
+          example: accommodation
+        title:
+          type: string
+          example: Check-in at Luxury Ocean View Resort
+        description:
+          type: string
+          example: Arrive and check into the hotel
+        dayNumber:
+          type: integer
+          example: 1
+        startTime:
+          type: string
+          example: '14:00'
+        endTime:
+          type: string
+          example: '15:00'
+        estimatedCost:
+          type: number
+          example: 199.99
+        currency:
+          type: string
+          example: USD
+        location:
+          type: string
+          example: 123 Beach Road, Miami
+        propertyId:
+          type: string
+          example: 789e0123-e45b-67d8-a901-426614174000
+        externalUrl:
+          type: string
+          format: uri
+          example: https://booking.com/hotel/luxury-ocean-view.html
+        sortOrder:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-15T12:00:00Z
 
     ErrorResponse:
       type: object

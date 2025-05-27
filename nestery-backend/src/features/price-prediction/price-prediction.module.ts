@@ -10,12 +10,7 @@ import { Property } from '../../properties/entities/property.entity';
  * Module for price prediction functionality
  */
 @Module({
-  imports: [
-    HttpModule,
-    ConfigModule,
-    CoreModule,
-    TypeOrmModule.forFeature([Property])
-  ],
+  imports: [HttpModule, ConfigModule, CoreModule, TypeOrmModule.forFeature([Property])],
   providers: [PricePredictionService],
   exports: [PricePredictionService],
 })

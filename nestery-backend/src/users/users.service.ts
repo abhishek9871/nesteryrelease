@@ -102,7 +102,9 @@ export class UsersService {
    */
   async updateLastLogin(id: string): Promise<void> {
     try {
-      await this.usersRepository.update(id, { lastLoginAt: new Date() });
+      // Note: lastLoginAt field was removed from User entity
+      // This functionality should be tracked via a separate UserSession entity
+      // await this.usersRepository.update(id, { lastLoginAt: new Date() });
     } catch (error) {
       this.exceptionService.handleException(error);
     }
@@ -136,7 +138,9 @@ export class UsersService {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
-      user.isPremium = isPremium;
+      // Note: isPremium field was removed from User entity
+      // Premium status should be managed via PremiumSubscription entity
+      // user.isPremium = isPremium;
       return await this.usersRepository.save(user);
     } catch (error) {
       this.exceptionService.handleException(error);

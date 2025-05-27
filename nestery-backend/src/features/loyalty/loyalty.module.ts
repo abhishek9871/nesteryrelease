@@ -18,7 +18,7 @@ import { BookingEntity } from '../../bookings/entities/booking.entity';
     ConfigModule,
     CoreModule,
     UsersModule,
-    TypeOrmModule.forFeature([UserEntity, BookingEntity])
+    TypeOrmModule.forFeature([UserEntity, BookingEntity]),
   ],
   controllers: [LoyaltyController],
   providers: [LoyaltyService],

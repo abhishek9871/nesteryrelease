@@ -16,7 +16,7 @@ import { Booking } from '../../bookings/entities/booking.entity';
     HttpModule,
     ConfigModule,
     CoreModule,
-    TypeOrmModule.forFeature([Property, User, Booking])
+    TypeOrmModule.forFeature([Property, User, Booking]),
   ],
   providers: [RecommendationService],
   exports: [RecommendationService],

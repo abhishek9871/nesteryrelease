@@ -52,11 +52,12 @@ export class UsersController {
     return {
       id: user.id,
       email: user.email,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       profilePicture: user.profilePicture,
       phoneNumber: user.phoneNumber,
-      isPremium: user.isPremium,
+      loyaltyTier: user.loyaltyTier,
       loyaltyPoints: user.loyaltyPoints,
       createdAt: user.createdAt,
     };
@@ -79,7 +80,8 @@ export class UsersController {
     return {
       id: updatedUser.id,
       email: updatedUser.email,
-      name: updatedUser.name,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
       profilePicture: updatedUser.profilePicture,
       phoneNumber: updatedUser.phoneNumber,
     };
@@ -98,9 +100,10 @@ export class UsersController {
     return users.map(user => ({
       id: user.id,
       email: user.email,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
-      isPremium: user.isPremium,
+      loyaltyTier: user.loyaltyTier,
       createdAt: user.createdAt,
     }));
   }
@@ -124,11 +127,12 @@ export class UsersController {
     return {
       id: user.id,
       email: user.email,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       profilePicture: user.profilePicture,
       phoneNumber: user.phoneNumber,
-      isPremium: user.isPremium,
+      loyaltyTier: user.loyaltyTier,
       loyaltyPoints: user.loyaltyPoints,
       createdAt: user.createdAt,
     };
