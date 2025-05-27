@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { LoggerService } from '../core/logger/logger.service';
+import { ExceptionService } from '../core/exception/exception.service';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -27,6 +29,7 @@ describe('AuthService', () => {
 
   const mockJwtService = {
     sign: jest.fn(),
+    verify: jest.fn(),
   };
 
   const mockConfigService = {
@@ -48,6 +51,21 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: LoggerService,
+          useValue: {
+            setContext: jest.fn(),
+            log: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
+        {
+          provide: ExceptionService,
+          useValue: {
+            handleException: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -77,7 +95,7 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('should return user object when credentials are valid', async () => {
-      mockUsersService.findByEmail.mockResolvedValue(mockUser);
+      mockUsersService.findById.mockResolvedValue(mockUser);
 
       const result = await service.validateUser({
         sub: 'test-id',
@@ -85,14 +103,8 @@ describe('AuthService', () => {
         role: 'user',
       });
 
-      expect(result).toEqual({
-        id: mockUser.id,
-        email: mockUser.email,
-        name: mockUser.name,
-        role: mockUser.role,
-      });
-      expect(mockUsersService.findByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(bcrypt.compare).toHaveBeenCalledWith('correct_password', mockUser.password);
+      expect(result).toEqual(mockUser);
+      expect(mockUsersService.findById).toHaveBeenCalledWith('test-id');
     });
 
     it('should throw an error when user is not found', async () => {

@@ -152,11 +152,11 @@ describe('LoyaltyService', () => {
     it('should redeem points for a reward', async () => {
       const userId = 'test-user-id';
       const rewardId = 'reward1';
-      const pointsRequired = 500;
+      const pointsRequired = 2000; // reward1 requires 2000 points
 
       const mockUser = {
         id: userId,
-        loyaltyPoints: 1000,
+        loyaltyPoints: 2500, // User has enough points
       };
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
@@ -166,7 +166,7 @@ describe('LoyaltyService', () => {
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
-      expect(result.remainingPoints).toBe(500);
+      expect(result.remainingPoints).toBe(500); // 2500 - 2000 = 500
       expect(result.reward).toBeDefined();
       expect(result.reward.id).toBe(rewardId);
       expect(result.reward.pointsRequired).toBe(pointsRequired);

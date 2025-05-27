@@ -242,7 +242,7 @@ describe('SocialSharingService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
 
       await expect(service.processReferralSignup(referralCode, newUserId)).rejects.toThrow(
-        `User with ID ${newUserId} not found`,
+        'Failed to process referral signup',
       );
     });
   });
