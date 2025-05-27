@@ -41,6 +41,7 @@ class Constants {
   // API Endpoints
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
+  static const String refreshTokenEndpoint = '/auth/refresh-token';
   static const String userProfileEndpoint = '/users/profile';
   static const String propertiesEndpoint = '/properties';
   static const String bookingsEndpoint = '/bookings';
@@ -54,9 +55,6 @@ class Constants {
   static const String userKey = 'user_data';
   static const String themeKey = 'app_theme';
   static const String onboardingKey = 'onboarding_completed';
-
-  // Additional API Endpoints
-  static const String refreshTokenEndpoint = '/auth/refresh';
 
   // Timeouts
   static const int connectionTimeout = 30000; // 30 seconds
