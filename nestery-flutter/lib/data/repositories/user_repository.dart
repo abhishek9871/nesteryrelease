@@ -1,9 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/user.dart';
-import 'package:nestery_flutter/models/loyalty.dart';
-import 'package:nestery_flutter/models/search_dtos.dart';
-import 'package:nestery_flutter/models/response_models.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
 import 'package:nestery_flutter/utils/either.dart';
@@ -81,12 +78,12 @@ class UserRepository {
   }
 
   // Change password
-  Future<bool> changePassword({
+  Future<Either<ApiException, bool>> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
     try {
-      await _apiClient.put(
+      await _apiClient.put<Map<String, dynamic>>(
         '${Constants.userProfileEndpoint}/password',
         data: {
           'currentPassword': currentPassword,
@@ -94,36 +91,49 @@ class UserRepository {
         },
       );
 
-      return true;
-    } on ApiException {
-      rethrow;
+      return Either.right(true);
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get loyalty points
-  Future<Map<String, dynamic>> getLoyaltyPoints() async {
+  Future<Either<ApiException, Map<String, dynamic>>> getLoyaltyPoints() async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.loyaltyEndpoint,
       );
 
-      return response;
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        return Either.right(response.data!);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get loyalty transactions
-  Future<List<Map<String, dynamic>>> getLoyaltyTransactions({
+  Future<Either<ApiException, List<Map<String, dynamic>>>> getLoyaltyTransactions({
     int page = 1,
     int limit = Constants.defaultPageSize,
   }) async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.loyaltyEndpoint}/transactions',
         queryParameters: {
           'page': page,
@@ -131,74 +141,119 @@ class UserRepository {
         },
       );
 
-      return List<Map<String, dynamic>>.from(response['data']);
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final transactions = List<Map<String, dynamic>>.from(response.data!['data']);
+        return Either.right(transactions);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get available rewards
-  Future<List<Map<String, dynamic>>> getAvailableRewards() async {
+  Future<Either<ApiException, List<Map<String, dynamic>>>> getAvailableRewards() async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.loyaltyEndpoint}/rewards',
       );
 
-      return List<Map<String, dynamic>>.from(response);
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['data'] != null) {
+        final rewards = List<Map<String, dynamic>>.from(response.data!['data']);
+        return Either.right(rewards);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Redeem reward
-  Future<Map<String, dynamic>> redeemReward(String rewardId) async {
+  Future<Either<ApiException, Map<String, dynamic>>> redeemReward(String rewardId) async {
     try {
-      final response = await _apiClient.post(
+      final response = await _apiClient.post<Map<String, dynamic>>(
         '${Constants.loyaltyEndpoint}/rewards/$rewardId/redeem',
       );
 
-      return response;
-    } on ApiException {
-      rethrow;
+      if (response.data != null) {
+        return Either.right(response.data!);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Get user's referral code
-  Future<String> getReferralCode() async {
+  Future<Either<ApiException, String>> getReferralCode() async {
     try {
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.socialSharingEndpoint}/referral-code',
       );
 
-      return response['referralCode'];
-    } on ApiException {
-      rethrow;
+      if (response.data != null && response.data!['referralCode'] != null) {
+        return Either.right(response.data!['referralCode']);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 
   // Apply referral code
-  Future<bool> applyReferralCode(String referralCode) async {
+  Future<Either<ApiException, bool>> applyReferralCode(String referralCode) async {
     try {
-      await _apiClient.post(
+      await _apiClient.post<Map<String, dynamic>>(
         '${Constants.socialSharingEndpoint}/apply-referral',
         data: {
           'referralCode': referralCode,
         },
       );
 
-      return true;
-    } on ApiException {
-      rethrow;
+      return Either.right(true);
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
     } catch (e) {
-      throw ApiException(message: e.toString(), statusCode: 500);
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
     }
   }
 }

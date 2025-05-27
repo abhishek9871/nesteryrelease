@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/utils/constants.dart';
@@ -42,18 +43,25 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.recommendationsEndpoint,
       );
 
+      if (response.data != null && response.data!['data'] != null) {
+        state = state.copyWith(
+          recommendations: List<Map<String, dynamic>>.from(response.data!['data']),
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(
+          recommendations: [],
+          isLoading: false,
+        );
+      }
+    } on DioException catch (e) {
       state = state.copyWith(
-        recommendations: List<Map<String, dynamic>>.from(response),
         isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
+        error: ApiException.fromDioError(e).message,
       );
     } catch (e) {
       state = state.copyWith(
@@ -68,18 +76,25 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.recommendationsEndpoint}/property/$propertyId',
       );
 
+      if (response.data != null && response.data!['data'] != null) {
+        state = state.copyWith(
+          recommendations: List<Map<String, dynamic>>.from(response.data!['data']),
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(
+          recommendations: [],
+          isLoading: false,
+        );
+      }
+    } on DioException catch (e) {
       state = state.copyWith(
-        recommendations: List<Map<String, dynamic>>.from(response),
         isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
+        error: ApiException.fromDioError(e).message,
       );
     } catch (e) {
       state = state.copyWith(
@@ -100,7 +115,7 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final response = await _apiClient.post(
+      final response = await _apiClient.post<Map<String, dynamic>>(
         '${Constants.recommendationsEndpoint}/trip-weaver',
         data: {
           'destination': destination,
@@ -113,13 +128,13 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
 
       state = state.copyWith(isLoading: false);
 
-      return response;
-    } on ApiException catch (e) {
+      return response.data ?? {};
+    } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.message,
+        error: ApiException.fromDioError(e).message,
       );
-      return {'error': e.message};
+      return {'error': ApiException.fromDioError(e).message};
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -179,7 +194,7 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.pricePredictionEndpoint,
         queryParameters: {
           'propertyId': propertyId,
@@ -190,13 +205,13 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
       );
 
       state = state.copyWith(
-        prediction: response,
+        prediction: response.data,
         isLoading: false,
       );
-    } on ApiException catch (e) {
+    } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.message,
+        error: ApiException.fromDioError(e).message,
       );
     } catch (e) {
       state = state.copyWith(
@@ -215,7 +230,7 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final response = await _apiClient.get(
+      final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.pricePredictionEndpoint}/trends',
         queryParameters: {
           'location': location,
@@ -226,13 +241,13 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
 
       state = state.copyWith(isLoading: false);
 
-      return response;
-    } on ApiException catch (e) {
+      return response.data ?? {};
+    } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.message,
+        error: ApiException.fromDioError(e).message,
       );
-      return {'error': e.message};
+      return {'error': ApiException.fromDioError(e).message};
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

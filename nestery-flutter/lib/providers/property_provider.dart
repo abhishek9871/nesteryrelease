@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/property_repository.dart';
 import 'package:nestery_flutter/models/property.dart';
-import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/models/search_dtos.dart';
 
 // Property search state
 class PropertySearchState {
@@ -92,41 +92,45 @@ class PropertySearchNotifier extends StateNotifier<PropertySearchState> {
         );
       }
 
-      final properties = await _propertyRepository.searchProperties(
-        location: location ?? state.filters['location'],
+      // Create SearchPropertiesDto
+      final searchDto = SearchPropertiesDto(
+        city: location ?? state.filters['location'],
         checkIn: checkIn ?? state.filters['checkIn'],
         checkOut: checkOut ?? state.filters['checkOut'],
         guests: guests ?? state.filters['guests'],
-        minPrice: minPrice ?? state.filters['minPrice'],
-        maxPrice: maxPrice ?? state.filters['maxPrice'],
+        priceMin: minPrice ?? state.filters['minPrice'],
+        priceMax: maxPrice ?? state.filters['maxPrice'],
         amenities: amenities ?? state.filters['amenities'],
-        propertyType: propertyType ?? state.filters['propertyType'],
-        minRating: minRating ?? state.filters['minRating'],
-        sortBy: sortBy ?? state.filters['sortBy'],
-        sortOrder: sortOrder ?? state.filters['sortOrder'],
         page: reset ? 1 : state.currentPage + 1,
       );
 
-      // Update state with new results
-      if (reset) {
-        state = state.copyWith(
-          properties: properties,
-          isLoading: false,
-          hasMore: properties.length >= 10, // Assuming page size is 10
-          currentPage: 1,
-        );
-      } else {
-        state = state.copyWith(
-          properties: [...state.properties, ...properties],
-          isLoading: false,
-          hasMore: properties.length >= 10, // Assuming page size is 10
-          currentPage: state.currentPage + 1,
-        );
-      }
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
+      final result = await _propertyRepository.searchProperties(searchDto);
+
+      result.fold(
+        (failure) {
+          state = state.copyWith(
+            isLoading: false,
+            error: failure.message,
+          );
+        },
+        (properties) {
+          // Update state with new results
+          if (reset) {
+            state = state.copyWith(
+              properties: properties,
+              isLoading: false,
+              hasMore: properties.length >= 10, // Assuming page size is 10
+              currentPage: 1,
+            );
+          } else {
+            state = state.copyWith(
+              properties: [...state.properties, ...properties],
+              isLoading: false,
+              hasMore: properties.length >= 10, // Assuming page size is 10
+              currentPage: state.currentPage + 1,
+            );
+          }
+        },
       );
     } catch (e) {
       state = state.copyWith(
@@ -206,26 +210,24 @@ class FeaturedPropertiesNotifier extends StateNotifier<FeaturedPropertiesState> 
 
   // Load featured properties
   Future<void> loadFeaturedProperties() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      final properties = await _propertyRepository.getFeaturedProperties();
+    final result = await _propertyRepository.getFeaturedProperties();
 
-      state = state.copyWith(
-        properties: properties,
-        isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (properties) {
+        state = state.copyWith(
+          properties: properties,
+          isLoading: false,
+        );
+      },
+    );
   }
 
   // Clear error
@@ -282,31 +284,29 @@ class PropertyDetailsNotifier extends StateNotifier<PropertyDetailsState> {
 
   // Load property details
   Future<void> loadPropertyDetails(String propertyId) async {
-    try {
-      state = PropertyDetailsState(isLoading: true);
+    state = PropertyDetailsState(isLoading: true);
 
-      final property = await _propertyRepository.getPropertyDetails(propertyId);
+    final result = await _propertyRepository.getPropertyDetails(propertyId);
 
-      state = state.copyWith(
-        property: property,
-        isLoading: false,
-      );
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (property) {
+        state = state.copyWith(
+          property: property,
+          isLoading: false,
+        );
 
-      // Load additional data in parallel
-      loadPropertyAvailability(propertyId);
-      loadPropertyReviews(propertyId);
-      loadSimilarProperties(propertyId);
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+        // Load additional data in parallel
+        loadPropertyAvailability(propertyId);
+        loadPropertyReviews(propertyId);
+        loadSimilarProperties(propertyId);
+      },
+    );
   }
 
   // Load property availability
@@ -315,46 +315,56 @@ class PropertyDetailsNotifier extends StateNotifier<PropertyDetailsState> {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    try {
-      final now = DateTime.now();
-      final start = startDate ?? now;
-      final end = endDate ?? now.add(const Duration(days: 30));
+    final now = DateTime.now();
+    final start = startDate ?? now;
+    final end = endDate ?? now.add(const Duration(days: 30));
 
-      final availability = await _propertyRepository.getPropertyAvailability(
-        propertyId,
-        startDate: start,
-        endDate: end,
-      );
+    final result = await _propertyRepository.getPropertyAvailability(
+      propertyId,
+      startDate: start,
+      endDate: end,
+    );
 
-      state = state.copyWith(availability: availability);
-    } catch (e) {
-      // Don't update error state, just log it
-      print('Error loading availability: $e');
-    }
+    result.fold(
+      (failure) {
+        // Don't update error state for auxiliary data, just ignore
+      },
+      (availability) {
+        // Convert List<PropertyAvailability> to Map for state compatibility
+        final availabilityMap = {
+          'data': availability.map((a) => a.toJson()).toList(),
+        };
+        state = state.copyWith(availability: availabilityMap);
+      },
+    );
   }
 
   // Load property reviews
   Future<void> loadPropertyReviews(String propertyId) async {
-    try {
-      final reviews = await _propertyRepository.getPropertyReviews(propertyId);
+    final result = await _propertyRepository.getPropertyReviews(propertyId);
 
-      state = state.copyWith(reviews: reviews);
-    } catch (e) {
-      // Don't update error state, just log it
-      print('Error loading reviews: $e');
-    }
+    result.fold(
+      (failure) {
+        // Don't update error state for auxiliary data, just ignore
+      },
+      (reviews) {
+        state = state.copyWith(reviews: reviews);
+      },
+    );
   }
 
   // Load similar properties
   Future<void> loadSimilarProperties(String propertyId) async {
-    try {
-      final similarProperties = await _propertyRepository.getSimilarProperties(propertyId);
+    final result = await _propertyRepository.getSimilarProperties(propertyId);
 
-      state = state.copyWith(similarProperties: similarProperties);
-    } catch (e) {
-      // Don't update error state, just log it
-      print('Error loading similar properties: $e');
-    }
+    result.fold(
+      (failure) {
+        // Don't update error state for auxiliary data, just ignore
+      },
+      (similarProperties) {
+        state = state.copyWith(similarProperties: similarProperties);
+      },
+    );
   }
 
   // Clear error
@@ -407,26 +417,26 @@ class TrendingDestinationsNotifier extends StateNotifier<TrendingDestinationsSta
 
   // Load trending destinations
   Future<void> loadTrendingDestinations() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      final destinations = await _propertyRepository.getTrendingDestinations();
+    final result = await _propertyRepository.getTrendingDestinations();
 
-      state = state.copyWith(
-        destinations: destinations,
-        isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (destinations) {
+        // Convert List<TrendingDestination> to List<Map<String, dynamic>>
+        final destinationMaps = destinations.map((d) => d.toJson()).toList();
+        state = state.copyWith(
+          destinations: destinationMaps,
+          isLoading: false,
+        );
+      },
+    );
   }
 
   // Clear error

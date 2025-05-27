@@ -3,7 +3,7 @@ import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/booking_repository.dart';
 import 'package:nestery_flutter/models/booking.dart';
 import 'package:nestery_flutter/models/enums.dart';
-import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/models/search_dtos.dart';
 
 // Booking state
 class BookingsState {
@@ -71,31 +71,36 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
         );
       }
 
-      final bookings = await _bookingRepository.getUserBookings(
+      final result = await _bookingRepository.getUserBookings(
         status: status ?? state.filterStatus,
         page: reset ? 1 : state.currentPage + 1,
       );
 
-      // Update state with new results
-      if (reset) {
-        state = state.copyWith(
-          bookings: bookings,
-          isLoading: false,
-          hasMore: bookings.length >= 10, // Assuming page size is 10
-          currentPage: 1,
-        );
-      } else {
-        state = state.copyWith(
-          bookings: [...state.bookings, ...bookings],
-          isLoading: false,
-          hasMore: bookings.length >= 10, // Assuming page size is 10
-          currentPage: state.currentPage + 1,
-        );
-      }
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
+      result.fold(
+        (failure) {
+          state = state.copyWith(
+            isLoading: false,
+            error: failure.message,
+          );
+        },
+        (bookings) {
+          // Update state with new results
+          if (reset) {
+            state = state.copyWith(
+              bookings: bookings,
+              isLoading: false,
+              hasMore: bookings.length >= 10, // Assuming page size is 10
+              currentPage: 1,
+            );
+          } else {
+            state = state.copyWith(
+              bookings: [...state.bookings, ...bookings],
+              isLoading: false,
+              hasMore: bookings.length >= 10, // Assuming page size is 10
+              currentPage: state.currentPage + 1,
+            );
+          }
+        },
       );
     } catch (e) {
       state = state.copyWith(
@@ -164,59 +169,53 @@ class BookingDetailsNotifier extends StateNotifier<BookingDetailsState> {
 
   // Load booking details
   Future<void> loadBookingDetails(String bookingId) async {
-    try {
-      state = BookingDetailsState(isLoading: true);
+    state = BookingDetailsState(isLoading: true);
 
-      final booking = await _bookingRepository.getBookingDetails(bookingId);
+    final result = await _bookingRepository.getBookingDetails(bookingId);
 
-      state = state.copyWith(
-        booking: booking,
-        isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (booking) {
+        state = state.copyWith(
+          booking: booking,
+          isLoading: false,
+        );
+      },
+    );
   }
 
   // Cancel booking
   Future<bool> cancelBooking({String? reason}) async {
-    try {
-      if (state.booking == null) return false;
+    if (state.booking == null) return false;
 
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      final updatedBooking = await _bookingRepository.cancelBooking(
-        state.booking!.id,
-        reason: reason,
-      );
+    final result = await _bookingRepository.cancelBooking(
+      state.booking!.id,
+      reason: reason,
+    );
 
-      state = state.copyWith(
-        booking: updatedBooking,
-        isLoading: false,
-      );
-
-      return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (updatedBooking) {
+        state = state.copyWith(
+          booking: updatedBooking,
+          isLoading: false,
+        );
+        return true;
+      },
+    );
   }
 
   // Update booking
@@ -226,38 +225,38 @@ class BookingDetailsNotifier extends StateNotifier<BookingDetailsState> {
     int? numberOfGuests,
     String? specialRequests,
   }) async {
-    try {
-      if (state.booking == null) return false;
+    if (state.booking == null) return false;
 
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      final updatedBooking = await _bookingRepository.updateBooking(
-        state.booking!.id,
-        checkInDate: checkInDate,
-        checkOutDate: checkOutDate,
-        numberOfGuests: numberOfGuests,
-        specialRequests: specialRequests,
-      );
+    final updateDto = UpdateBookingDto(
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guests: numberOfGuests,
+      specialRequests: specialRequests,
+    );
 
-      state = state.copyWith(
-        booking: updatedBooking,
-        isLoading: false,
-      );
+    final result = await _bookingRepository.updateBooking(
+      state.booking!.id,
+      updateDto,
+    );
 
-      return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (updatedBooking) {
+        state = state.copyWith(
+          booking: updatedBooking,
+          isLoading: false,
+        );
+        return true;
+      },
+    );
   }
 
   // Clear error
@@ -319,41 +318,36 @@ class CreateBookingNotifier extends StateNotifier<CreateBookingState> {
     required String paymentMethod,
     Map<String, dynamic>? paymentDetails,
   }) async {
-    try {
-      state = CreateBookingState(isLoading: true);
+    state = CreateBookingState(isLoading: true);
 
-      final booking = await _bookingRepository.createBooking(
-        propertyId: propertyId,
-        checkInDate: checkInDate,
-        checkOutDate: checkOutDate,
-        numberOfGuests: numberOfGuests,
-        specialRequests: specialRequests,
-        paymentMethod: paymentMethod,
-        paymentDetails: paymentDetails,
-      );
+    final createDto = CreateBookingDto(
+      propertyId: propertyId,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guests: numberOfGuests,
+      specialRequests: specialRequests,
+    );
 
-      state = state.copyWith(
-        booking: booking,
-        isLoading: false,
-        isSuccess: true,
-      );
+    final result = await _bookingRepository.createBooking(createDto);
 
-      return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-        isSuccess: false,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-        isSuccess: false,
-      );
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+          isSuccess: false,
+        );
+        return false;
+      },
+      (booking) {
+        state = state.copyWith(
+          booking: booking,
+          isLoading: false,
+          isSuccess: true,
+        );
+        return true;
+      },
+    );
   }
 
   // Clear error

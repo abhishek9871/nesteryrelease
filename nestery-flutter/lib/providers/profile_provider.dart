@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/user_repository.dart';
 import 'package:nestery_flutter/models/user.dart';
-import 'package:nestery_flutter/utils/api_exception.dart';
 
 // User profile state
 class UserProfileState {
@@ -47,26 +46,24 @@ class UserProfileNotifier extends StateNotifier<UserProfileState> {
 
   // Load user profile
   Future<void> loadUserProfile() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      final user = await _userRepository.getUserProfile();
+    final result = await _userRepository.getUserProfile();
 
-      state = state.copyWith(
-        user: user,
-        isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (user) {
+        state = state.copyWith(
+          user: user,
+          isLoading: false,
+        );
+      },
+    );
   }
 
   // Update user profile
@@ -77,36 +74,32 @@ class UserProfileNotifier extends StateNotifier<UserProfileState> {
     String? profilePicture,
     Map<String, dynamic>? preferences,
   }) async {
-    try {
-      state = state.copyWith(isUpdating: true, error: null);
+    state = state.copyWith(isUpdating: true, error: null);
 
-      final updatedUser = await _userRepository.updateUserProfile(
-        firstName: firstName,
-        lastName: lastName,
-        phoneNumber: phoneNumber,
-        profilePicture: profilePicture,
-        preferences: preferences,
-      );
+    final result = await _userRepository.updateUserProfile(
+      firstName: firstName,
+      lastName: lastName,
+      phoneNumber: phoneNumber,
+      profilePicture: profilePicture,
+      preferences: preferences,
+    );
 
-      state = state.copyWith(
-        user: updatedUser,
-        isUpdating: false,
-      );
-
-      return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isUpdating: false,
-        error: e.message,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isUpdating: false,
-        error: e.toString(),
-      );
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isUpdating: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (updatedUser) {
+        state = state.copyWith(
+          user: updatedUser,
+          isUpdating: false,
+        );
+        return true;
+      },
+    );
   }
 
   // Change password
@@ -114,30 +107,26 @@ class UserProfileNotifier extends StateNotifier<UserProfileState> {
     required String currentPassword,
     required String newPassword,
   }) async {
-    try {
-      state = state.copyWith(isUpdating: true, error: null);
+    state = state.copyWith(isUpdating: true, error: null);
 
-      final success = await _userRepository.changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
+    final result = await _userRepository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
 
-      state = state.copyWith(isUpdating: false);
-
-      return success;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isUpdating: false,
-        error: e.message,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isUpdating: false,
-        error: e.toString(),
-      );
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isUpdating: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (success) {
+        state = state.copyWith(isUpdating: false);
+        return success;
+      },
+    );
   }
 
   // Clear error
@@ -201,76 +190,94 @@ class LoyaltyNotifier extends StateNotifier<LoyaltyState> {
 
   // Load loyalty data
   Future<void> loadLoyaltyData() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      // Load loyalty points and transactions in parallel
-      final loyaltyData = await _userRepository.getLoyaltyPoints();
-      final transactions = await _userRepository.getLoyaltyTransactions();
-      final rewards = await _userRepository.getAvailableRewards();
+    // Load loyalty points and transactions in parallel
+    final loyaltyDataResult = await _userRepository.getLoyaltyPoints();
+    final transactionsResult = await _userRepository.getLoyaltyTransactions();
+    final rewardsResult = await _userRepository.getAvailableRewards();
 
-      state = state.copyWith(
-        points: loyaltyData['points'] ?? 0,
-        tier: loyaltyData['tier'] ?? 'bronze',
-        transactions: transactions,
-        availableRewards: rewards,
-        isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+    // Handle all results
+    loyaltyDataResult.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (loyaltyData) {
+        transactionsResult.fold(
+          (failure) {
+            state = state.copyWith(
+              isLoading: false,
+              error: failure.message,
+            );
+          },
+          (transactions) {
+            rewardsResult.fold(
+              (failure) {
+                state = state.copyWith(
+                  isLoading: false,
+                  error: failure.message,
+                );
+              },
+              (rewards) {
+                state = state.copyWith(
+                  points: loyaltyData['points'] ?? 0,
+                  tier: loyaltyData['tier'] ?? 'bronze',
+                  transactions: transactions,
+                  availableRewards: rewards,
+                  isLoading: false,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   // Redeem reward
   Future<bool> redeemReward(String rewardId) async {
-    try {
-      state = state.copyWith(isRedeeming: true, error: null);
+    state = state.copyWith(isRedeeming: true, error: null);
 
-      final result = await _userRepository.redeemReward(rewardId);
+    final result = await _userRepository.redeemReward(rewardId);
 
-      // Update state with new points
-      state = state.copyWith(
-        points: result['remainingPoints'] ?? state.points,
-        isRedeeming: false,
-      );
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isRedeeming: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (redeemResult) {
+        // Update state with new points
+        state = state.copyWith(
+          points: redeemResult['remainingPoints'] ?? state.points,
+          isRedeeming: false,
+        );
 
-      // Reload transactions to reflect the redemption
-      loadTransactions();
+        // Reload transactions to reflect the redemption
+        loadTransactions();
 
-      return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isRedeeming: false,
-        error: e.message,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isRedeeming: false,
-        error: e.toString(),
-      );
-      return false;
-    }
+        return true;
+      },
+    );
   }
 
   // Load transactions
   Future<void> loadTransactions() async {
-    try {
-      final transactions = await _userRepository.getLoyaltyTransactions();
+    final result = await _userRepository.getLoyaltyTransactions();
 
-      state = state.copyWith(transactions: transactions);
-    } catch (e) {
-      // Don't update error state, just log it
-      print('Error loading transactions: $e');
-    }
+    result.fold(
+      (failure) {
+        // Don't update error state for auxiliary data, just ignore
+      },
+      (transactions) {
+        state = state.copyWith(transactions: transactions);
+      },
+    );
   }
 
   // Clear error
@@ -326,56 +333,49 @@ class ReferralNotifier extends StateNotifier<ReferralState> {
 
   // Load referral code
   Future<void> loadReferralCode() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null);
 
-      final referralCode = await _userRepository.getReferralCode();
+    final result = await _userRepository.getReferralCode();
 
-      state = state.copyWith(
-        referralCode: referralCode,
-        isLoading: false,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (referralCode) {
+        state = state.copyWith(
+          referralCode: referralCode,
+          isLoading: false,
+        );
+      },
+    );
   }
 
   // Apply referral code
   Future<bool> applyReferralCode(String referralCode) async {
-    try {
-      state = state.copyWith(isApplying: true, error: null, applySuccess: false);
+    state = state.copyWith(isApplying: true, error: null, applySuccess: false);
 
-      final success = await _userRepository.applyReferralCode(referralCode);
+    final result = await _userRepository.applyReferralCode(referralCode);
 
-      state = state.copyWith(
-        isApplying: false,
-        applySuccess: success,
-      );
-
-      return success;
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isApplying: false,
-        error: e.message,
-        applySuccess: false,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isApplying: false,
-        error: e.toString(),
-        applySuccess: false,
-      );
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isApplying: false,
+          error: failure.message,
+          applySuccess: false,
+        );
+        return false;
+      },
+      (success) {
+        state = state.copyWith(
+          isApplying: false,
+          applySuccess: success,
+        );
+        return success;
+      },
+    );
   }
 
   // Clear error
