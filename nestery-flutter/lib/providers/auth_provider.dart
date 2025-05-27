@@ -55,17 +55,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> checkAuthStatus() async {
     try {
       state = state.copyWith(isLoading: true);
-      
-      final token = await _secureStorage.read(key: AppConstants.tokenKey);
+
+      final token = await _secureStorage.read(key: Constants.tokenKey);
       if (token == null) {
         state = state.copyWith(isAuthenticated: false, isLoading: false);
         return;
       }
-      
+
       // Get user profile
-      final userData = await _apiClient.get(AppConstants.userProfileEndpoint);
+      final userData = await _apiClient.get(Constants.userProfileEndpoint);
       final user = User.fromJson(userData);
-      
+
       state = state.copyWith(
         isAuthenticated: true,
         isLoading: false,
@@ -74,10 +74,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on ApiException catch (e) {
       // If token is invalid, clear it
       if (e.isAuthError) {
-        await _secureStorage.delete(key: AppConstants.tokenKey);
-        await _secureStorage.delete(key: AppConstants.refreshTokenKey);
+        await _secureStorage.delete(key: Constants.tokenKey);
+        await _secureStorage.delete(key: Constants.refreshTokenKey);
       }
-      
+
       state = state.copyWith(
         isAuthenticated: false,
         isLoading: false,
@@ -96,36 +96,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String email, String password) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      
+
       final response = await _apiClient.post(
-        AppConstants.loginEndpoint,
+        Constants.loginEndpoint,
         data: {
           'email': email,
           'password': password,
         },
       );
-      
+
       // Save tokens
       await _secureStorage.write(
-        key: AppConstants.tokenKey,
+        key: Constants.tokenKey,
         value: response['accessToken'],
       );
-      
+
       await _secureStorage.write(
-        key: AppConstants.refreshTokenKey,
+        key: Constants.refreshTokenKey,
         value: response['refreshToken'],
       );
-      
+
       // Get user profile
-      final userData = await _apiClient.get(AppConstants.userProfileEndpoint);
+      final userData = await _apiClient.get(Constants.userProfileEndpoint);
       final user = User.fromJson(userData);
-      
+
       state = state.copyWith(
         isAuthenticated: true,
         isLoading: false,
         user: user,
       );
-      
+
       return true;
     } on ApiException catch (e) {
       state = state.copyWith(
@@ -148,9 +148,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> register(String firstName, String lastName, String email, String password) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      
+
       final response = await _apiClient.post(
-        AppConstants.registerEndpoint,
+        Constants.registerEndpoint,
         data: {
           'firstName': firstName,
           'lastName': lastName,
@@ -158,28 +158,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'password': password,
         },
       );
-      
+
       // Save tokens
       await _secureStorage.write(
-        key: AppConstants.tokenKey,
+        key: Constants.tokenKey,
         value: response['accessToken'],
       );
-      
+
       await _secureStorage.write(
-        key: AppConstants.refreshTokenKey,
+        key: Constants.refreshTokenKey,
         value: response['refreshToken'],
       );
-      
+
       // Get user profile
-      final userData = await _apiClient.get(AppConstants.userProfileEndpoint);
+      final userData = await _apiClient.get(Constants.userProfileEndpoint);
       final user = User.fromJson(userData);
-      
+
       state = state.copyWith(
         isAuthenticated: true,
         isLoading: false,
         user: user,
       );
-      
+
       return true;
     } on ApiException catch (e) {
       state = state.copyWith(
@@ -202,12 +202,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     try {
       state = state.copyWith(isLoading: true);
-      
+
       // Clear tokens
       await _apiClient.clearTokens();
-      await _secureStorage.delete(key: AppConstants.tokenKey);
-      await _secureStorage.delete(key: AppConstants.refreshTokenKey);
-      
+      await _secureStorage.delete(key: Constants.tokenKey);
+      await _secureStorage.delete(key: Constants.refreshTokenKey);
+
       state = state.copyWith(
         isAuthenticated: false,
         isLoading: false,
@@ -225,19 +225,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> updateProfile(Map<String, dynamic> userData) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      
+
       final response = await _apiClient.put(
-        AppConstants.userProfileEndpoint,
+        Constants.userProfileEndpoint,
         data: userData,
       );
-      
+
       final updatedUser = User.fromJson(response);
-      
+
       state = state.copyWith(
         isLoading: false,
         user: updatedUser,
       );
-      
+
       return true;
     } on ApiException catch (e) {
       state = state.copyWith(

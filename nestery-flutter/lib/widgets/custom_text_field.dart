@@ -49,7 +49,7 @@ class CustomTextField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,8 +117,8 @@ class CustomTextField extends ConsumerWidget {
               ),
             ),
             filled: true,
-            fillColor: enabled 
-                ? theme.colorScheme.surface 
+            fillColor: enabled
+                ? theme.colorScheme.surface
                 : theme.colorScheme.surfaceVariant,
           ),
         ),
@@ -154,7 +154,7 @@ class SearchTextField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return TextFormField(
       controller: controller,
       autofocus: autofocus,
@@ -221,7 +221,7 @@ class DatePickerField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -249,7 +249,7 @@ class DatePickerField extends ConsumerWidget {
                       return Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: ColorScheme.light(
-                            primary: AppConstants.primaryColor,
+                            primary: Constants.primaryColor,
                             onPrimary: Colors.white,
                             surface: theme.colorScheme.surface,
                             onSurface: theme.colorScheme.onSurface,
@@ -259,7 +259,7 @@ class DatePickerField extends ConsumerWidget {
                       );
                     },
                   );
-                  
+
                   if (picked != null) {
                     controller.text = '${picked.day}/${picked.month}/${picked.year}';
                     if (onDateSelected != null) {
@@ -309,8 +309,8 @@ class DatePickerField extends ConsumerWidget {
               ),
             ),
             filled: true,
-            fillColor: enabled 
-                ? theme.colorScheme.surface 
+            fillColor: enabled
+                ? theme.colorScheme.surface
                 : theme.colorScheme.surfaceVariant,
           ),
         ),

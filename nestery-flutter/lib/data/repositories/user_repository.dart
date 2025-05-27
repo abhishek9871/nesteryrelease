@@ -12,9 +12,9 @@ class UserRepository {
   Future<User> getUserProfile() async {
     try {
       final response = await _apiClient.get(
-        AppConstants.userProfileEndpoint,
+        Constants.userProfileEndpoint,
       );
-      
+
       return User.fromJson(response);
     } on ApiException {
       rethrow;
@@ -33,18 +33,18 @@ class UserRepository {
   }) async {
     try {
       final Map<String, dynamic> data = {};
-      
+
       if (firstName != null) data['firstName'] = firstName;
       if (lastName != null) data['lastName'] = lastName;
       if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
       if (profilePicture != null) data['profilePicture'] = profilePicture;
       if (preferences != null) data['preferences'] = preferences;
-      
+
       final response = await _apiClient.put(
-        AppConstants.userProfileEndpoint,
+        Constants.userProfileEndpoint,
         data: data,
       );
-      
+
       return User.fromJson(response);
     } on ApiException {
       rethrow;
@@ -60,13 +60,13 @@ class UserRepository {
   }) async {
     try {
       await _apiClient.put(
-        '${AppConstants.userProfileEndpoint}/password',
+        '${Constants.userProfileEndpoint}/password',
         data: {
           'currentPassword': currentPassword,
           'newPassword': newPassword,
         },
       );
-      
+
       return true;
     } on ApiException {
       rethrow;
@@ -79,9 +79,9 @@ class UserRepository {
   Future<Map<String, dynamic>> getLoyaltyPoints() async {
     try {
       final response = await _apiClient.get(
-        AppConstants.loyaltyEndpoint,
+        Constants.loyaltyEndpoint,
       );
-      
+
       return response;
     } on ApiException {
       rethrow;
@@ -93,17 +93,17 @@ class UserRepository {
   // Get loyalty transactions
   Future<List<Map<String, dynamic>>> getLoyaltyTransactions({
     int page = 1,
-    int limit = AppConstants.defaultPageSize,
+    int limit = Constants.defaultPageSize,
   }) async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.loyaltyEndpoint}/transactions',
+        '${Constants.loyaltyEndpoint}/transactions',
         queryParameters: {
           'page': page,
           'limit': limit,
         },
       );
-      
+
       return List<Map<String, dynamic>>.from(response['data']);
     } on ApiException {
       rethrow;
@@ -116,9 +116,9 @@ class UserRepository {
   Future<List<Map<String, dynamic>>> getAvailableRewards() async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.loyaltyEndpoint}/rewards',
+        '${Constants.loyaltyEndpoint}/rewards',
       );
-      
+
       return List<Map<String, dynamic>>.from(response);
     } on ApiException {
       rethrow;
@@ -131,9 +131,9 @@ class UserRepository {
   Future<Map<String, dynamic>> redeemReward(String rewardId) async {
     try {
       final response = await _apiClient.post(
-        '${AppConstants.loyaltyEndpoint}/rewards/$rewardId/redeem',
+        '${Constants.loyaltyEndpoint}/rewards/$rewardId/redeem',
       );
-      
+
       return response;
     } on ApiException {
       rethrow;
@@ -146,9 +146,9 @@ class UserRepository {
   Future<String> getReferralCode() async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.socialSharingEndpoint}/referral-code',
+        '${Constants.socialSharingEndpoint}/referral-code',
       );
-      
+
       return response['referralCode'];
     } on ApiException {
       rethrow;
@@ -161,12 +161,12 @@ class UserRepository {
   Future<bool> applyReferralCode(String referralCode) async {
     try {
       await _apiClient.post(
-        '${AppConstants.socialSharingEndpoint}/apply-referral',
+        '${Constants.socialSharingEndpoint}/apply-referral',
         data: {
           'referralCode': referralCode,
         },
       );
-      
+
       return true;
     } on ApiException {
       rethrow;

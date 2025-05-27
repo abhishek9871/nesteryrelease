@@ -7,18 +7,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class BookingComService {
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  
+
   // Singleton pattern
   static final BookingComService _instance = BookingComService._internal();
-  
+
   factory BookingComService() {
     return _instance;
   }
-  
+
   BookingComService._internal() {
     _initializeDio();
   }
-  
+
   void _initializeDio() {
     _dio.options.baseUrl = 'https://distribution-xml.booking.com/3.1';
     _dio.options.connectTimeout = const Duration(seconds: 10);
@@ -27,14 +27,14 @@ class BookingComService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    
+
     // Add interceptors for logging, error handling, etc.
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Add API key to all requests
-        final apiKey = dotenv.env['BOOKING_COM_API_KEY'] ?? AppConstants.bookingComApiKey;
+        final apiKey = dotenv.env['BOOKING_COM_API_KEY'] ?? Constants.bookingComApiKey;
         options.queryParameters['apiKey'] = apiKey;
-        
+
         return handler.next(options);
       },
       onResponse: (response, handler) {
@@ -45,7 +45,7 @@ class BookingComService {
       },
     ));
   }
-  
+
   // Search for hotels
   Future<Map<String, dynamic>> searchHotels({
     required String location,
@@ -80,7 +80,7 @@ class BookingComService {
           'currency': 'USD',
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -88,7 +88,7 @@ class BookingComService {
       throw ApiException(message: 'Failed to search hotels: $e');
     }
   }
-  
+
   // Get hotel details
   Future<Map<String, dynamic>> getHotelDetails({
     required String hotelId,
@@ -104,7 +104,7 @@ class BookingComService {
           'currency': currency ?? 'USD',
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -112,7 +112,7 @@ class BookingComService {
       throw ApiException(message: 'Failed to get hotel details: $e');
     }
   }
-  
+
   // Get room availability
   Future<Map<String, dynamic>> getRoomAvailability({
     required String hotelId,
@@ -135,7 +135,7 @@ class BookingComService {
           'currency': currency ?? 'USD',
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -143,7 +143,7 @@ class BookingComService {
       throw ApiException(message: 'Failed to get room availability: $e');
     }
   }
-  
+
   // Create booking
   Future<Map<String, dynamic>> createBooking({
     required String hotelId,
@@ -181,7 +181,7 @@ class BookingComService {
           'currency': currency ?? 'USD',
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -189,7 +189,7 @@ class BookingComService {
       throw ApiException(message: 'Failed to create booking: $e');
     }
   }
-  
+
   // Get booking details
   Future<Map<String, dynamic>> getBookingDetails({
     required String bookingId,
@@ -198,7 +198,7 @@ class BookingComService {
       final response = await _dio.get(
         '/bookings/$bookingId',
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -206,7 +206,7 @@ class BookingComService {
       throw ApiException(message: 'Failed to get booking details: $e');
     }
   }
-  
+
   // Cancel booking
   Future<Map<String, dynamic>> cancelBooking({
     required String bookingId,
@@ -215,7 +215,7 @@ class BookingComService {
       final response = await _dio.delete(
         '/bookings/$bookingId',
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -223,7 +223,7 @@ class BookingComService {
       throw ApiException(message: 'Failed to cancel booking: $e');
     }
   }
-  
+
   // Helper method to format date
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

@@ -43,7 +43,7 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
       state = state.copyWith(isLoading: true, error: null);
 
       final response = await _apiClient.get(
-        AppConstants.recommendationsEndpoint,
+        Constants.recommendationsEndpoint,
       );
 
       state = state.copyWith(
@@ -69,7 +69,7 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
       state = state.copyWith(isLoading: true, error: null);
 
       final response = await _apiClient.get(
-        '${AppConstants.recommendationsEndpoint}/property/$propertyId',
+        '${Constants.recommendationsEndpoint}/property/$propertyId',
       );
 
       state = state.copyWith(
@@ -101,7 +101,7 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
       state = state.copyWith(isLoading: true, error: null);
 
       final response = await _apiClient.post(
-        '${AppConstants.recommendationsEndpoint}/trip-weaver',
+        '${Constants.recommendationsEndpoint}/trip-weaver',
         data: {
           'destination': destination,
           'startDate': startDate.toIso8601String(),
@@ -180,7 +180,7 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
       state = state.copyWith(isLoading: true, error: null);
 
       final response = await _apiClient.get(
-        AppConstants.pricePredictionEndpoint,
+        Constants.pricePredictionEndpoint,
         queryParameters: {
           'propertyId': propertyId,
           'checkInDate': checkInDate.toIso8601String(),
@@ -216,7 +216,7 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
       state = state.copyWith(isLoading: true, error: null);
 
       final response = await _apiClient.get(
-        '${AppConstants.pricePredictionEndpoint}/trends',
+        '${Constants.pricePredictionEndpoint}/trends',
         queryParameters: {
           'location': location,
           'startDate': startDate.toIso8601String(),

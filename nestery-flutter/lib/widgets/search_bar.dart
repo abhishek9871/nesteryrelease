@@ -40,7 +40,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -124,7 +124,7 @@ class FilterChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -189,15 +189,15 @@ class FilterSheet extends ConsumerStatefulWidget {
 
 class _FilterSheetState extends ConsumerState<FilterSheet> {
   late Map<String, dynamic> _filters;
-  
+
   // Price range
   late RangeValues _priceRange;
   final double _minPrice = 0;
   final double _maxPrice = 10000;
-  
+
   // Rating
   late double _minRating;
-  
+
   // Property types
   late List<String> _selectedPropertyTypes;
   final List<String> _propertyTypes = [
@@ -207,7 +207,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
     'Villa',
     'Hostel',
   ];
-  
+
   // Amenities
   late List<String> _selectedAmenities;
   final List<String> _amenities = [
@@ -220,38 +220,38 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
     'spa',
     'restaurant',
   ];
-  
+
   // Sort options
   late String _sortBy;
   late String _sortOrder;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize filters from props
     _filters = Map<String, dynamic>.from(widget.initialFilters);
-    
+
     // Initialize price range
     _priceRange = RangeValues(
       _filters['minPrice'] ?? _minPrice,
       _filters['maxPrice'] ?? _maxPrice,
     );
-    
+
     // Initialize rating
     _minRating = _filters['minRating'] ?? 0.0;
-    
+
     // Initialize property types
     _selectedPropertyTypes = List<String>.from(_filters['propertyTypes'] ?? []);
-    
+
     // Initialize amenities
     _selectedAmenities = List<String>.from(_filters['amenities'] ?? []);
-    
+
     // Initialize sort options
     _sortBy = _filters['sortBy'] ?? 'price';
     _sortOrder = _filters['sortOrder'] ?? 'asc';
   }
-  
+
   void _applyFilters() {
     // Update filters map
     _filters['minPrice'] = _priceRange.start;
@@ -261,14 +261,14 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
     _filters['amenities'] = _selectedAmenities;
     _filters['sortBy'] = _sortBy;
     _filters['sortOrder'] = _sortOrder;
-    
+
     // Call onApply callback
     widget.onApply(_filters);
-    
+
     // Close sheet
     Navigator.of(context).pop();
   }
-  
+
   void _resetFilters() {
     setState(() {
       _priceRange = RangeValues(_minPrice, _maxPrice);
@@ -283,7 +283,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -319,7 +319,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Price range
           Text(
             'Price Range',
@@ -357,7 +357,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Rating
           Text(
             'Minimum Rating',
@@ -396,7 +396,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                     Icon(
                       Icons.star,
                       size: 16,
-                      color: AppConstants.accentColor,
+                      color: Constants.accentColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -411,7 +411,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Property types
           Text(
             'Property Type',
@@ -441,7 +441,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-          
+
           // Amenities
           Text(
             'Amenities',
@@ -456,7 +456,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             children: _amenities.map((amenity) {
               final isSelected = _selectedAmenities.contains(amenity);
               IconData? icon;
-              
+
               // Assign icons based on amenity
               switch (amenity) {
                 case 'wifi':
@@ -484,7 +484,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                   icon = Icons.restaurant_menu;
                   break;
               }
-              
+
               return FilterChip(
                 label: amenity.substring(0, 1).toUpperCase() + amenity.substring(1),
                 isSelected: isSelected,
@@ -502,7 +502,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-          
+
           // Sort options
           Text(
             'Sort By',
@@ -583,7 +583,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Apply button
           SizedBox(
             width: double.infinity,

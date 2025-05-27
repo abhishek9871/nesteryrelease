@@ -12,23 +12,23 @@ class BookingRepository {
   Future<List<Booking>> getUserBookings({
     BookingStatus? status,
     int page = 1,
-    int limit = AppConstants.defaultPageSize,
+    int limit = Constants.defaultPageSize,
   }) async {
     try {
       final Map<String, dynamic> queryParams = {
         'page': page,
         'limit': limit,
       };
-      
+
       if (status != null) {
         queryParams['status'] = _bookingStatusToString(status);
       }
-      
+
       final response = await _apiClient.get(
-        AppConstants.bookingsEndpoint,
+        Constants.bookingsEndpoint,
         queryParameters: queryParams,
       );
-      
+
       return (response['data'] as List)
           .map((json) => Booking.fromJson(json))
           .toList();
@@ -43,9 +43,9 @@ class BookingRepository {
   Future<Booking> getBookingDetails(String bookingId) async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.bookingsEndpoint}/$bookingId',
+        '${Constants.bookingsEndpoint}/$bookingId',
       );
-      
+
       return Booking.fromJson(response);
     } on ApiException {
       rethrow;
@@ -66,7 +66,7 @@ class BookingRepository {
   }) async {
     try {
       final response = await _apiClient.post(
-        AppConstants.bookingsEndpoint,
+        Constants.bookingsEndpoint,
         data: {
           'propertyId': propertyId,
           'checkInDate': checkInDate.toIso8601String(),
@@ -77,7 +77,7 @@ class BookingRepository {
           'paymentDetails': paymentDetails,
         },
       );
-      
+
       return Booking.fromJson(response);
     } on ApiException {
       rethrow;
@@ -90,10 +90,10 @@ class BookingRepository {
   Future<Booking> cancelBooking(String bookingId, {String? reason}) async {
     try {
       final response = await _apiClient.patch(
-        '${AppConstants.bookingsEndpoint}/$bookingId/cancel',
+        '${Constants.bookingsEndpoint}/$bookingId/cancel',
         data: reason != null ? {'reason': reason} : null,
       );
-      
+
       return Booking.fromJson(response);
     } on ApiException {
       rethrow;
@@ -112,17 +112,17 @@ class BookingRepository {
   }) async {
     try {
       final Map<String, dynamic> data = {};
-      
+
       if (checkInDate != null) data['checkInDate'] = checkInDate.toIso8601String();
       if (checkOutDate != null) data['checkOutDate'] = checkOutDate.toIso8601String();
       if (numberOfGuests != null) data['numberOfGuests'] = numberOfGuests;
       if (specialRequests != null) data['specialRequests'] = specialRequests;
-      
+
       final response = await _apiClient.patch(
-        '${AppConstants.bookingsEndpoint}/$bookingId',
+        '${Constants.bookingsEndpoint}/$bookingId',
         data: data,
       );
-      
+
       return Booking.fromJson(response);
     } on ApiException {
       rethrow;

@@ -19,7 +19,7 @@ class LoadingOverlay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Stack(
       children: [
         child,
@@ -32,7 +32,7 @@ class LoadingOverlay extends ConsumerWidget {
                 children: [
                   CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppConstants.primaryColor,
+                      Constants.primaryColor,
                     ),
                   ),
                   if (loadingText != null) ...[
@@ -69,7 +69,7 @@ class CustomProgressIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return SizedBox(
       width: size,
       height: size,

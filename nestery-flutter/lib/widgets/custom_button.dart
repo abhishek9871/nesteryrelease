@@ -33,13 +33,13 @@ class CustomButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     // Determine colors based on theme and props
-    final bgColor = backgroundColor ?? 
+    final bgColor = backgroundColor ??
                     (isOutlined ? Colors.transparent : theme.colorScheme.primary);
-    final txtColor = textColor ?? 
+    final txtColor = textColor ??
                      (isOutlined ? theme.colorScheme.primary : Colors.white);
-    
+
     return SizedBox(
       width: width,
       height: height,
@@ -51,8 +51,8 @@ class CustomButton extends ConsumerWidget {
           padding: padding ?? const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
-            side: isOutlined 
-                ? BorderSide(color: theme.colorScheme.primary) 
+            side: isOutlined
+                ? BorderSide(color: theme.colorScheme.primary)
                 : BorderSide.none,
           ),
           elevation: isOutlined ? 0 : 2,
@@ -109,7 +109,7 @@ class CustomIconButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Container(
       width: size,
       height: size,
@@ -162,7 +162,7 @@ class CustomTextButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final color = textColor ?? theme.colorScheme.primary;
-    
+
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
@@ -219,10 +219,10 @@ class GradientButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = gradientColors ?? [
-      AppConstants.primaryColor,
-      AppConstants.secondaryColor,
+      Constants.primaryColor,
+      Constants.secondaryColor,
     ];
-    
+
     return Container(
       width: width,
       height: height,

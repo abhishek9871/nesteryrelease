@@ -12,9 +12,9 @@ class PropertyRepository {
   Future<List<Property>> getFeaturedProperties() async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.propertiesEndpoint}/featured',
+        '${Constants.propertiesEndpoint}/featured',
       );
-      
+
       return (response as List)
           .map((json) => Property.fromJson(json))
           .toList();
@@ -39,14 +39,14 @@ class PropertyRepository {
     String? sortBy,
     String? sortOrder,
     int page = 1,
-    int limit = AppConstants.defaultPageSize,
+    int limit = Constants.defaultPageSize,
   }) async {
     try {
       final Map<String, dynamic> queryParams = {
         'page': page,
         'limit': limit,
       };
-      
+
       if (location != null) queryParams['location'] = location;
       if (checkIn != null) queryParams['checkIn'] = checkIn.toIso8601String();
       if (checkOut != null) queryParams['checkOut'] = checkOut.toIso8601String();
@@ -58,12 +58,12 @@ class PropertyRepository {
       if (minRating != null) queryParams['minRating'] = minRating;
       if (sortBy != null) queryParams['sortBy'] = sortBy;
       if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
-      
+
       final response = await _apiClient.get(
-        AppConstants.propertiesEndpoint,
+        Constants.propertiesEndpoint,
         queryParameters: queryParams,
       );
-      
+
       return (response['data'] as List)
           .map((json) => Property.fromJson(json))
           .toList();
@@ -78,9 +78,9 @@ class PropertyRepository {
   Future<Property> getPropertyDetails(String propertyId) async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.propertiesEndpoint}/$propertyId',
+        '${Constants.propertiesEndpoint}/$propertyId',
       );
-      
+
       return Property.fromJson(response);
     } on ApiException {
       rethrow;
@@ -97,13 +97,13 @@ class PropertyRepository {
   }) async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.propertiesEndpoint}/$propertyId/availability',
+        '${Constants.propertiesEndpoint}/$propertyId/availability',
         queryParameters: {
           'startDate': startDate.toIso8601String(),
           'endDate': endDate.toIso8601String(),
         },
       );
-      
+
       return response;
     } on ApiException {
       rethrow;
@@ -116,17 +116,17 @@ class PropertyRepository {
   Future<Map<String, dynamic>> getPropertyReviews(
     String propertyId, {
     int page = 1,
-    int limit = AppConstants.defaultPageSize,
+    int limit = Constants.defaultPageSize,
   }) async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.propertiesEndpoint}/$propertyId/reviews',
+        '${Constants.propertiesEndpoint}/$propertyId/reviews',
         queryParameters: {
           'page': page,
           'limit': limit,
         },
       );
-      
+
       return response;
     } on ApiException {
       rethrow;
@@ -139,9 +139,9 @@ class PropertyRepository {
   Future<List<Property>> getSimilarProperties(String propertyId) async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.propertiesEndpoint}/$propertyId/similar',
+        '${Constants.propertiesEndpoint}/$propertyId/similar',
       );
-      
+
       return (response as List)
           .map((json) => Property.fromJson(json))
           .toList();
@@ -156,9 +156,9 @@ class PropertyRepository {
   Future<List<Map<String, dynamic>>> getTrendingDestinations() async {
     try {
       final response = await _apiClient.get(
-        '${AppConstants.propertiesEndpoint}/trending-destinations',
+        '${Constants.propertiesEndpoint}/trending-destinations',
       );
-      
+
       return List<Map<String, dynamic>>.from(response);
     } on ApiException {
       rethrow;

@@ -24,7 +24,7 @@ class PropertyCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: onTap ?? () {
         // Navigate to property details
@@ -140,7 +140,7 @@ class PropertyCard extends ConsumerWidget {
                       ignoreGestures: true,
                       itemBuilder: (context, _) => Icon(
                         Icons.star,
-                        color: AppConstants.accentColor,
+                        color: Constants.accentColor,
                       ),
                       onRatingUpdate: (_) {},
                     ),
@@ -251,7 +251,7 @@ class PropertyCard extends ConsumerWidget {
                           Icon(
                             Icons.star,
                             size: 16,
-                            color: AppConstants.accentColor,
+                            color: Constants.accentColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -308,7 +308,7 @@ class PropertyCard extends ConsumerWidget {
   Widget _buildSourceBadge(ThemeData theme, {bool small = false}) {
     Color badgeColor;
     String sourceText;
-    
+
     switch (property.sourceType.toLowerCase()) {
       case 'booking.com':
         badgeColor = Colors.blue;
@@ -319,14 +319,14 @@ class PropertyCard extends ConsumerWidget {
         sourceText = 'OYO';
         break;
       case 'direct':
-        badgeColor = AppConstants.primaryColor;
+        badgeColor = Constants.primaryColor;
         sourceText = 'Direct';
         break;
       default:
         badgeColor = Colors.grey;
         sourceText = property.sourceType;
     }
-    
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: small ? 6 : 8,
@@ -404,29 +404,29 @@ class PropertyCard extends ConsumerWidget {
     final amenities = property.amenities ?? [];
     final iconSize = small ? 14.0 : 18.0;
     final maxIcons = small ? 3 : 4;
-    
+
     List<Widget> amenityIcons = [];
-    
+
     if (amenities.contains('wifi')) {
       amenityIcons.add(Icon(Icons.wifi, size: iconSize, color: theme.colorScheme.onSurfaceVariant));
     }
-    
+
     if (amenities.contains('pool')) {
       amenityIcons.add(Icon(Icons.pool, size: iconSize, color: theme.colorScheme.onSurfaceVariant));
     }
-    
+
     if (amenities.contains('parking')) {
       amenityIcons.add(Icon(Icons.local_parking, size: iconSize, color: theme.colorScheme.onSurfaceVariant));
     }
-    
+
     if (amenities.contains('breakfast')) {
       amenityIcons.add(Icon(Icons.restaurant, size: iconSize, color: theme.colorScheme.onSurfaceVariant));
     }
-    
+
     if (amenities.contains('ac')) {
       amenityIcons.add(Icon(Icons.ac_unit, size: iconSize, color: theme.colorScheme.onSurfaceVariant));
     }
-    
+
     // Limit the number of icons shown
     if (amenityIcons.length > maxIcons) {
       amenityIcons = amenityIcons.sublist(0, maxIcons);
@@ -437,7 +437,7 @@ class PropertyCard extends ConsumerWidget {
         ),
       ));
     }
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: amenityIcons.map((icon) {

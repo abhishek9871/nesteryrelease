@@ -25,26 +25,26 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
-  
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   File? _profileImage;
   bool _isEditing = false;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load user profile when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userProfileProvider.notifier).loadUserProfile();
     });
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -54,25 +54,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     _phoneController.dispose();
     super.dispose();
   }
-  
+
   void _populateFormFields(User user) {
     _firstNameController.text = user.firstName;
     _lastNameController.text = user.lastName;
     _emailController.text = user.email;
     _phoneController.text = user.phone ?? '';
   }
-  
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
+
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
       });
     }
   }
-  
+
   void _toggleEditMode(User user) {
     setState(() {
       _isEditing = !_isEditing;
@@ -81,25 +81,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       }
     });
   }
-  
+
   void _saveProfile() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
     final updatedProfile = {
       'firstName': _firstNameController.text,
       'lastName': _lastNameController.text,
       'phone': _phoneController.text,
       'profileImage': _profileImage,
     };
-    
+
     ref.read(updateProfileProvider.notifier).updateProfile(updatedProfile).then((success) {
       if (success) {
         setState(() {
           _isEditing = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile updated successfully'),
@@ -109,7 +109,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       }
     });
   }
-  
+
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
@@ -146,7 +146,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     final profileState = ref.watch(userProfileProvider);
     final user = profileState.user;
     final updateState = ref.watch(updateProfileProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -166,7 +166,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 children: [
                   // Profile header
                   _buildProfileHeader(user, theme),
-                  
+
                   // Tab bar
                   TabBar(
                     controller: _tabController,
@@ -179,7 +179,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                       Tab(text: 'Support'),
                     ],
                   ),
-                  
+
                   // Tab content
                   Expanded(
                     child: TabBarView(
@@ -189,10 +189,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                         _isEditing
                             ? _buildEditProfileForm(user, theme)
                             : _buildProfileDetails(user, theme),
-                        
+
                         // Settings tab
                         _buildSettingsTab(theme),
-                        
+
                         // Support tab
                         _buildSupportTab(theme),
                       ],
@@ -203,18 +203,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildProfileHeader(User? user, ThemeData theme) {
     if (user == null) return const SizedBox(height: 200);
-    
+
     return Container(
       height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppConstants.primaryColor,
-            AppConstants.secondaryColor,
+            Constants.primaryColor,
+            Constants.secondaryColor,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -238,7 +238,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                     ? Text(
                         '${user.firstName[0]}${user.lastName[0]}',
                         style: theme.textTheme.headlineMedium?.copyWith(
-                          color: AppConstants.primaryColor,
+                          color: Constants.primaryColor,
                         ),
                       )
                     : null,
@@ -266,7 +266,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // User name
           Text(
             '${user.firstName} ${user.lastName}',
@@ -276,7 +276,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             ),
           ),
           const SizedBox(height: 4),
-          
+
           // User email
           Text(
             user.email,
@@ -288,10 +288,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildProfileDetails(User? user, ThemeData theme) {
     if (user == null) return const SizedBox();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -310,7 +310,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Personal information
           SectionTitle(
             title: 'Personal Information',
@@ -340,7 +340,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             isLast: true,
           ),
           const SizedBox(height: 24),
-          
+
           // Account information
           SectionTitle(
             title: 'Account Information',
@@ -367,7 +367,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             isLast: true,
           ),
           const SizedBox(height: 24),
-          
+
           // Preferences
           SectionTitle(
             title: 'Preferences',
@@ -387,7 +387,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             isLast: true,
           ),
           const SizedBox(height: 24),
-          
+
           // Stats
           SectionTitle(
             title: 'Stats',
@@ -429,10 +429,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildEditProfileForm(User? user, ThemeData theme) {
     if (user == null) return const SizedBox();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -459,7 +459,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               ],
             ),
             const SizedBox(height: 24),
-            
+
             // Form fields
             CustomTextField(
               label: 'First Name',
@@ -504,7 +504,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 24),
-            
+
             // Password change section
             SectionTitle(
               title: 'Change Password',
@@ -539,10 +539,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildSettingsTab(ThemeData theme) {
     final isDarkMode = ref.watch(themeProvider);
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -585,7 +585,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               underline: const SizedBox(),
             ),
           ),
-          
+
           // Notifications
           SectionTitle(
             title: 'Notifications',
@@ -629,7 +629,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               activeColor: theme.colorScheme.primary,
             ),
           ),
-          
+
           // Privacy
           SectionTitle(
             title: 'Privacy',
@@ -661,7 +661,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               activeColor: theme.colorScheme.primary,
             ),
           ),
-          
+
           // App info
           SectionTitle(
             title: 'App Info',
@@ -709,7 +709,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildSupportTab(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -753,7 +753,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               launchUrl(Uri.parse('https://nestery.com/report'));
             },
           ),
-          
+
           // Feedback
           SectionTitle(
             title: 'Feedback',
@@ -781,7 +781,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               launchUrl(Uri.parse('https://nestery.com/feedback'));
             },
           ),
-          
+
           // Share
           SectionTitle(
             title: 'Share',
@@ -812,7 +812,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               launchUrl(Uri.parse('https://nestery.com/refer'));
             },
           ),
-          
+
           // Social media
           SectionTitle(
             title: 'Follow Us',
@@ -865,7 +865,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildInfoItem(
     ThemeData theme,
     String label,
@@ -898,7 +898,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildStatCard(
     ThemeData theme,
     String label,
@@ -936,7 +936,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildSettingItem(
     ThemeData theme,
     String title,
@@ -962,7 +962,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       contentPadding: EdgeInsets.zero,
     );
   }
-  
+
   Widget _buildSupportItem(
     ThemeData theme,
     String title,
@@ -999,7 +999,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       contentPadding: EdgeInsets.zero,
     );
   }
-  
+
   Widget _buildSocialButton(
     ThemeData theme,
     String label,
@@ -1033,7 +1033,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       ],
     );
   }
-  
+
   Widget _buildErrorState(String error) {
     return Center(
       child: Padding(

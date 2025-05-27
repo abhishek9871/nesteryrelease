@@ -7,18 +7,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class OyoService {
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  
+
   // Singleton pattern
   static final OyoService _instance = OyoService._internal();
-  
+
   factory OyoService() {
     return _instance;
   }
-  
+
   OyoService._internal() {
     _initializeDio();
   }
-  
+
   void _initializeDio() {
     _dio.options.baseUrl = 'https://partner-api.oyorooms.com/v2';
     _dio.options.connectTimeout = const Duration(seconds: 10);
@@ -27,18 +27,18 @@ class OyoService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    
+
     // Add interceptors for logging, error handling, etc.
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Add API key to all requests
-        final apiKey = dotenv.env['OYO_API_KEY'] ?? AppConstants.oyoApiKey;
+        final apiKey = dotenv.env['OYO_API_KEY'] ?? Constants.oyoApiKey;
         options.headers['X-API-KEY'] = apiKey;
-        
+
         // Add partner ID to all requests
-        final partnerId = dotenv.env['OYO_PARTNER_ID'] ?? AppConstants.oyoPartnerId;
+        final partnerId = dotenv.env['OYO_PARTNER_ID'] ?? Constants.oyoPartnerId;
         options.headers['X-PARTNER-ID'] = partnerId;
-        
+
         return handler.next(options);
       },
       onResponse: (response, handler) {
@@ -49,7 +49,7 @@ class OyoService {
       },
     ));
   }
-  
+
   // Search for hotels
   Future<Map<String, dynamic>> searchHotels({
     required String location,
@@ -81,7 +81,7 @@ class OyoService {
           'include_details': true,
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       // Fallback to B2B aggregator if OYO API fails
@@ -108,7 +108,7 @@ class OyoService {
       throw ApiException(message: 'Failed to search hotels: $e');
     }
   }
-  
+
   // Get hotel details
   Future<Map<String, dynamic>> getHotelDetails({
     required String hotelId,
@@ -123,7 +123,7 @@ class OyoService {
           'include_policies': true,
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       // Fallback to B2B aggregator if OYO API fails
@@ -140,7 +140,7 @@ class OyoService {
       throw ApiException(message: 'Failed to get hotel details: $e');
     }
   }
-  
+
   // Get room availability
   Future<Map<String, dynamic>> getRoomAvailability({
     required String hotelId,
@@ -160,7 +160,7 @@ class OyoService {
           'rooms': rooms ?? 1,
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       // Fallback to B2B aggregator if OYO API fails
@@ -182,7 +182,7 @@ class OyoService {
       throw ApiException(message: 'Failed to get room availability: $e');
     }
   }
-  
+
   // Create booking
   Future<Map<String, dynamic>> createBooking({
     required String hotelId,
@@ -217,7 +217,7 @@ class OyoService {
           'special_requests': specialRequests,
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       // Fallback to B2B aggregator if OYO API fails
@@ -245,7 +245,7 @@ class OyoService {
       throw ApiException(message: 'Failed to create booking: $e');
     }
   }
-  
+
   // Get booking details
   Future<Map<String, dynamic>> getBookingDetails({
     required String bookingId,
@@ -254,7 +254,7 @@ class OyoService {
       final response = await _dio.get(
         '/bookings/$bookingId',
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       // Fallback to B2B aggregator if OYO API fails
@@ -271,7 +271,7 @@ class OyoService {
       throw ApiException(message: 'Failed to get booking details: $e');
     }
   }
-  
+
   // Cancel booking
   Future<Map<String, dynamic>> cancelBooking({
     required String bookingId,
@@ -280,7 +280,7 @@ class OyoService {
       final response = await _dio.delete(
         '/bookings/$bookingId',
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       // Fallback to B2B aggregator if OYO API fails
@@ -297,7 +297,7 @@ class OyoService {
       throw ApiException(message: 'Failed to cancel booking: $e');
     }
   }
-  
+
   // Fallback to B2B aggregator
   Future<Map<String, dynamic>> _fallbackToAggregator({
     required String method,
@@ -312,18 +312,18 @@ class OyoService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    
+
     // Add API key and secret to all requests
-    final apiKey = dotenv.env['HOTELBEDS_API_KEY'] ?? AppConstants.hotelbedsApiKey;
-    final apiSecret = dotenv.env['HOTELBEDS_API_SECRET'] ?? AppConstants.hotelbedsApiSecret;
-    
+    final apiKey = dotenv.env['HOTELBEDS_API_KEY'] ?? Constants.hotelbedsApiKey;
+    final apiSecret = dotenv.env['HOTELBEDS_API_SECRET'] ?? Constants.hotelbedsApiSecret;
+
     // Generate signature (X-Signature) based on API key, secret, and timestamp
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     final signature = _generateSignature(apiKey, apiSecret, timestamp);
-    
+
     aggregatorDio.options.headers['Api-Key'] = apiKey;
     aggregatorDio.options.headers['X-Signature'] = signature;
-    
+
     try {
       // Map OYO method to Hotelbeds method
       switch (method) {
@@ -354,13 +354,13 @@ class OyoService {
             },
           );
           return _mapHotelbedsToOyoResponse(response.data, 'searchHotels');
-          
+
         case 'getHotelDetails':
           final response = await aggregatorDio.get(
             '/hotels/${params['hotelId']}',
           );
           return _mapHotelbedsToOyoResponse(response.data, 'getHotelDetails');
-          
+
         case 'getRoomAvailability':
           final response = await aggregatorDio.post(
             '/hotels',
@@ -382,7 +382,7 @@ class OyoService {
             },
           );
           return _mapHotelbedsToOyoResponse(response.data, 'getRoomAvailability');
-          
+
         case 'createBooking':
           final response = await aggregatorDio.post(
             '/bookings',
@@ -411,19 +411,19 @@ class OyoService {
             },
           );
           return _mapHotelbedsToOyoResponse(response.data, 'createBooking');
-          
+
         case 'getBookingDetails':
           final response = await aggregatorDio.get(
             '/bookings/${params['bookingId']}',
           );
           return _mapHotelbedsToOyoResponse(response.data, 'getBookingDetails');
-          
+
         case 'cancelBooking':
           final response = await aggregatorDio.delete(
             '/bookings/${params['bookingId']}',
           );
           return _mapHotelbedsToOyoResponse(response.data, 'cancelBooking');
-          
+
         default:
           throw ApiException(message: 'Unsupported method: $method');
       }
@@ -433,7 +433,7 @@ class OyoService {
       throw ApiException(message: 'Failed to fallback to aggregator: $e');
     }
   }
-  
+
   // Map Hotelbeds response to OYO response format
   Map<String, dynamic> _mapHotelbedsToOyoResponse(Map<String, dynamic> data, String method) {
     // This is a simplified mapping, in a real implementation this would be more comprehensive
@@ -455,7 +455,7 @@ class OyoService {
             'amenities': hotel['facilities'],
           }).toList(),
         };
-        
+
       case 'getHotelDetails':
         final hotel = data['hotel'];
         return {
@@ -474,7 +474,7 @@ class OyoService {
             'policies': hotel['policies'],
           },
         };
-        
+
       case 'getRoomAvailability':
         return {
           'status': 'success',
@@ -488,7 +488,7 @@ class OyoService {
             'amenities': room['facilities'],
           }).toList(),
         };
-        
+
       case 'createBooking':
         return {
           'status': 'success',
@@ -506,7 +506,7 @@ class OyoService {
             'currency': data['booking']['currency'],
           },
         };
-        
+
       case 'getBookingDetails':
         return {
           'status': 'success',
@@ -524,7 +524,7 @@ class OyoService {
             'currency': data['booking']['currency'],
           },
         };
-        
+
       case 'cancelBooking':
         return {
           'status': 'success',
@@ -533,19 +533,19 @@ class OyoService {
           'cancellation_fee': data['booking']['cancellationFee'],
           'refund_amount': data['booking']['refundAmount'],
         };
-        
+
       default:
         return data;
     }
   }
-  
+
   // Generate signature for Hotelbeds API
   String _generateSignature(String apiKey, String apiSecret, String timestamp) {
     // In a real implementation, this would use a proper hashing algorithm
     // For now, we'll just return a placeholder
     return 'signature-placeholder';
   }
-  
+
   // Helper method to format date
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

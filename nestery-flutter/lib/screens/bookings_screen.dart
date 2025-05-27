@@ -19,18 +19,18 @@ class BookingsScreen extends ConsumerStatefulWidget {
 class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load bookings when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userBookingsProvider.notifier).loadUserBookings();
     });
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -41,7 +41,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bookingsState = ref.watch(userBookingsProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Bookings'),
@@ -73,7 +73,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               'You don\'t have any upcoming bookings. Start exploring properties to book your next stay!',
               () => ref.read(userBookingsProvider.notifier).loadUserBookings(),
             ),
-            
+
             // Past bookings
             _buildBookingsList(
               context,
@@ -84,7 +84,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               'You don\'t have any past bookings. Book your first stay with Nestery!',
               () => ref.read(userBookingsProvider.notifier).loadUserBookings(),
             ),
-            
+
             // Cancelled bookings
             _buildBookingsList(
               context,
@@ -100,7 +100,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   Widget _buildBookingsList(
     BuildContext context,
     List<Booking> bookings,
@@ -113,11 +113,11 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     if (error != null) {
       return _buildErrorState(error, onRetry);
     }
-    
+
     if (bookings.isEmpty && !isLoading) {
       return _buildEmptyState(emptyTitle, emptyMessage);
     }
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         onRetry();
@@ -132,10 +132,10 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   Widget _buildBookingCard(BuildContext context, Booking booking) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -187,7 +187,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     ),
                   ),
                 ),
-                
+
                 // Source badge
                 Positioned(
                   top: 16,
@@ -210,7 +210,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     ),
                   ),
                 ),
-                
+
                 // Gradient overlay for text readability
                 Positioned(
                   bottom: 0,
@@ -234,7 +234,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     ),
                   ),
                 ),
-                
+
                 // Property name and location
                 Positioned(
                   bottom: 16,
@@ -279,7 +279,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               ],
             ),
           ),
-          
+
           // Booking details
           Padding(
             padding: const EdgeInsets.all(16),
@@ -307,7 +307,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   ],
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Dates
                 Row(
                   children: [
@@ -359,7 +359,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   ],
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Guests and total
                 Row(
                   children: [
@@ -407,7 +407,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Action buttons
                 Row(
                   children: [
@@ -457,7 +457,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   Widget _buildEmptyState(String title, String message) {
     return Center(
       child: Padding(
@@ -498,7 +498,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   Widget _buildErrorState(String error, VoidCallback onRetry) {
     return Center(
       child: Padding(
@@ -537,7 +537,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -552,10 +552,10 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
         return Colors.grey;
     }
   }
-  
+
   void _showCancellationDialog(BuildContext context, Booking booking) {
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -592,13 +592,13 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              
+
               // Cancel booking
               ref.read(cancelBookingProvider.notifier).cancelBooking(booking.id).then((success) {
                 if (success) {
                   // Refresh bookings list
                   ref.read(userBookingsProvider.notifier).loadUserBookings();
-                  
+
                   // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -618,12 +618,12 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   void _showReviewDialog(BuildContext context, Booking booking) {
     final theme = Theme.of(context);
     final ratingProvider = StateProvider<double>((ref) => 5.0);
     final commentController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -641,7 +641,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               child: Consumer(
                 builder: (context, ref, _) {
                   final rating = ref.watch(ratingProvider);
-                  
+
                   return Column(
                     children: [
                       Text(
@@ -662,7 +662,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                               },
                               child: Icon(
                                 i <= rating ? Icons.star : Icons.star_border,
-                                color: AppConstants.accentColor,
+                                color: Constants.accentColor,
                                 size: 32,
                               ),
                             ),
@@ -696,11 +696,11 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           Consumer(
             builder: (context, ref, _) {
               final rating = ref.watch(ratingProvider);
-              
+
               return ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  
+
                   // Submit review
                   ref.read(submitReviewProvider.notifier).submitReview(
                     bookingId: booking.id,
@@ -727,7 +727,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       ),
     );
   }
-  
+
   String _getRatingText(double rating) {
     if (rating >= 5) return 'Excellent';
     if (rating >= 4) return 'Very Good';
@@ -735,7 +735,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     if (rating >= 2) return 'Fair';
     return 'Poor';
   }
-  
+
   Color _getRatingColor(double rating) {
     if (rating >= 4) return Colors.green;
     if (rating >= 3) return Colors.blue;

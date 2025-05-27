@@ -11,22 +11,22 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 Future<void> main() async {
   // Ensure Flutter is initialized
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Keep splash screen until initialization is complete
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  
+
   // Load environment variables
   await dotenv.load(fileName: ".env");
-  
+
   // Initialize Firebase
   await Firebase.initializeApp();
-  
+
   // Initialize app constants
-  AppConstants.initialize();
-  
+  Constants.initialize();
+
   // Remove splash screen
   FlutterNativeSplash.remove();
-  
+
   runApp(
     // Enable Riverpod for the entire app
     const ProviderScope(
@@ -42,17 +42,17 @@ class NesteryApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch theme mode changes
     final themeMode = ref.watch(themeProvider);
-    
+
     return MaterialApp.router(
       title: 'Nestery',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
-      
+
       // Light theme
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppConstants.primaryColor,
+          seedColor: Constants.primaryColor,
           brightness: Brightness.light,
         ),
         textTheme: GoogleFonts.poppinsTextTheme(
@@ -87,12 +87,12 @@ class NesteryApp extends ConsumerWidget {
           ),
         ),
       ),
-      
+
       // Dark theme
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppConstants.primaryColor,
+          seedColor: Constants.primaryColor,
           brightness: Brightness.dark,
         ),
         textTheme: GoogleFonts.poppinsTextTheme(
@@ -130,7 +130,7 @@ class NesteryApp extends ConsumerWidget {
           ),
         ),
       ),
-      
+
       // Use GoRouter for navigation
       routerConfig: AppRouter.router,
     );

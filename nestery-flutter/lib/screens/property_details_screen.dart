@@ -29,21 +29,21 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
   late TabController _tabController;
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
   final DateFormat _shortDateFormat = DateFormat('MMM dd');
-  
+
   // Booking dates
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
   int _guestCount = 1;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load property details when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(propertyDetailsProvider(widget.propertyId).notifier).loadPropertyDetails();
-      
+
       // Set default check-in and check-out dates
       final now = DateTime.now();
       setState(() {
@@ -52,22 +52,22 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       });
     });
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   int get _nightCount {
     if (_checkInDate == null || _checkOutDate == null) return 0;
     return _checkOutDate!.difference(_checkInDate!).inDays;
   }
-  
+
   double get _totalPrice {
     final propertyDetails = ref.watch(propertyDetailsProvider(widget.propertyId));
     if (propertyDetails.property == null || _nightCount == 0) return 0;
-    
+
     final basePrice = propertyDetails.property!.basePrice * _nightCount;
     final taxesAndFees = basePrice * 0.15; // Assuming 15% taxes and fees
     return basePrice + taxesAndFees;
@@ -78,7 +78,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
     final theme = Theme.of(context);
     final propertyDetails = ref.watch(propertyDetailsProvider(widget.propertyId));
     final property = propertyDetails.property;
-    
+
     return Scaffold(
       body: LoadingOverlay(
         isLoading: propertyDetails.isLoading,
@@ -133,7 +133,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                       ),
                     ],
                   ),
-                  
+
                   // Property details
                   SliverToBoxAdapter(
                     child: Padding(
@@ -163,7 +163,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                                   ignoreGestures: true,
                                   itemBuilder: (context, _) => Icon(
                                     Icons.star,
-                                    color: AppConstants.accentColor,
+                                    color: Constants.accentColor,
                                   ),
                                   onRatingUpdate: (_) {},
                                 ),
@@ -178,7 +178,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                             ],
                           ),
                           const SizedBox(height: 8),
-                          
+
                           // Property location
                           Row(
                             children: [
@@ -199,7 +199,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                             ],
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Property price
                           Row(
                             children: [
@@ -237,7 +237,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                             ],
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Booking dates selection
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -513,7 +513,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                       ),
                     ),
                   ),
-                  
+
                   // Tab bar
                   SliverPersistentHeader(
                     delegate: _SliverAppBarDelegate(
@@ -531,7 +531,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                     ),
                     pinned: true,
                   ),
-                  
+
                   // Tab content
                   SliverFillRemaining(
                     child: TabBarView(
@@ -539,10 +539,10 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                       children: [
                         // Details tab
                         _buildDetailsTab(property, theme),
-                        
+
                         // Amenities tab
                         _buildAmenitiesTab(property, theme),
-                        
+
                         // Location tab
                         _buildLocationTab(property, theme),
                       ],
@@ -553,7 +553,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       ),
     );
   }
-  
+
   Widget _buildPropertyImageGallery(Property? property) {
     if (property == null) {
       return Container(
@@ -563,9 +563,9 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
         ),
       );
     }
-    
+
     final images = property.images ?? [property.thumbnailImage];
-    
+
     if (images.isEmpty) {
       return Container(
         color: Colors.grey[300],
@@ -574,7 +574,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
         ),
       );
     }
-    
+
     return PageView.builder(
       itemCount: images.length,
       itemBuilder: (context, index) {
@@ -598,10 +598,10 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       },
     );
   }
-  
+
   Widget _buildDetailsTab(Property? property, ThemeData theme) {
     if (property == null) return const SizedBox();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -620,7 +620,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
-          
+
           // Property details
           Text(
             'Property Details',
@@ -660,7 +660,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             property.area != null ? '${property.area} sq ft' : 'Not specified',
           ),
           const SizedBox(height: 24),
-          
+
           // House rules
           Text(
             'House Rules',
@@ -705,7 +705,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             true,
           ),
           const SizedBox(height: 24),
-          
+
           // Cancellation policy
           Text(
             'Cancellation Policy',
@@ -719,7 +719,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
-          
+
           // Host information
           if (property.host != null) ...[
             Text(
@@ -764,7 +764,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                           Icon(
                             Icons.star,
                             size: 16,
-                            color: AppConstants.accentColor,
+                            color: Constants.accentColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -787,7 +787,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             ),
             const SizedBox(height: 24),
           ],
-          
+
           // Reviews
           Text(
             'Reviews',
@@ -848,7 +848,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                           ignoreGestures: true,
                           itemBuilder: (context, _) => Icon(
                             Icons.star,
-                            color: AppConstants.accentColor,
+                            color: Constants.accentColor,
                           ),
                           onRatingUpdate: (_) {},
                         ),
@@ -897,7 +897,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       ),
     );
   }
-  
+
   Widget _buildPropertyDetailItem(ThemeData theme, IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -937,7 +937,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       ),
     );
   }
-  
+
   Widget _buildHouseRuleItem(ThemeData theme, IconData icon, String label, String value, bool isAllowed) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -984,12 +984,12 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       ),
     );
   }
-  
+
   Widget _buildAmenitiesTab(Property? property, ThemeData theme) {
     if (property == null) return const SizedBox();
-    
+
     final amenities = property.amenities ?? [];
-    
+
     // Group amenities by category
     final Map<String, List<String>> amenitiesByCategory = {
       'Basic': [],
@@ -999,7 +999,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       'Safety': [],
       'Other': [],
     };
-    
+
     for (final amenity in amenities) {
       if (['wifi', 'ac', 'heating', 'washer', 'dryer'].contains(amenity)) {
         amenitiesByCategory['Basic']!.add(amenity);
@@ -1015,7 +1015,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
         amenitiesByCategory['Other']!.add(amenity);
       }
     }
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1023,9 +1023,9 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
         children: amenitiesByCategory.entries.map((entry) {
           final category = entry.key;
           final categoryAmenities = entry.value;
-          
+
           if (categoryAmenities.isEmpty) return const SizedBox();
-          
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1049,7 +1049,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                 itemBuilder: (context, index) {
                   final amenity = categoryAmenities[index];
                   IconData icon;
-                  
+
                   // Assign icons based on amenity
                   switch (amenity) {
                     case 'wifi':
@@ -1094,7 +1094,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                     default:
                       icon = Icons.check_circle_outline;
                   }
-                  
+
                   return Row(
                     children: [
                       Icon(
@@ -1120,10 +1120,10 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       ),
     );
   }
-  
+
   Widget _buildLocationTab(Property? property, ThemeData theme) {
     if (property == null) return const SizedBox();
-    
+
     return Column(
       children: [
         // Map
@@ -1169,7 +1169,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                   ),
                 ),
         ),
-        
+
         // Location details
         Container(
           padding: const EdgeInsets.all(16),
@@ -1217,7 +1217,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       ],
     );
   }
-  
+
   Widget _buildErrorState(String error) {
     return Center(
       child: Padding(

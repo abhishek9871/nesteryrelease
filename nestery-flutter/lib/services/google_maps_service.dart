@@ -8,18 +8,18 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class GoogleMapsService {
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  
+
   // Singleton pattern
   static final GoogleMapsService _instance = GoogleMapsService._internal();
-  
+
   factory GoogleMapsService() {
     return _instance;
   }
-  
+
   GoogleMapsService._internal() {
     _initializeDio();
   }
-  
+
   void _initializeDio() {
     _dio.options.baseUrl = 'https://maps.googleapis.com/maps/api';
     _dio.options.connectTimeout = const Duration(seconds: 10);
@@ -28,14 +28,14 @@ class GoogleMapsService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    
+
     // Add interceptors for logging, error handling, etc.
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Add API key to all requests
-        final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? AppConstants.googleMapsApiKey;
+        final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? Constants.googleMapsApiKey;
         options.queryParameters['key'] = apiKey;
-        
+
         return handler.next(options);
       },
       onResponse: (response, handler) {
@@ -46,7 +46,7 @@ class GoogleMapsService {
       },
     ));
   }
-  
+
   // Geocode an address to get coordinates
   Future<Map<String, dynamic>> geocodeAddress(String address) async {
     try {
@@ -56,16 +56,16 @@ class GoogleMapsService {
           'address': address,
         },
       );
-      
+
       if (response.data['status'] != 'OK') {
         throw ApiException(message: 'Geocoding failed: ${response.data['status']}');
       }
-      
+
       final results = response.data['results'];
       if (results.isEmpty) {
         throw ApiException(message: 'No results found for address: $address');
       }
-      
+
       final location = results[0]['geometry']['location'];
       return {
         'lat': location['lat'],
@@ -78,7 +78,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to geocode address: $e');
     }
   }
-  
+
   // Reverse geocode coordinates to get address
   Future<Map<String, dynamic>> reverseGeocode(LatLng coordinates) async {
     try {
@@ -88,16 +88,16 @@ class GoogleMapsService {
           'latlng': '${coordinates.latitude},${coordinates.longitude}',
         },
       );
-      
+
       if (response.data['status'] != 'OK') {
         throw ApiException(message: 'Reverse geocoding failed: ${response.data['status']}');
       }
-      
+
       final results = response.data['results'];
       if (results.isEmpty) {
         throw ApiException(message: 'No results found for coordinates: $coordinates');
       }
-      
+
       return {
         'formatted_address': results[0]['formatted_address'],
         'address_components': results[0]['address_components'],
@@ -108,7 +108,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to reverse geocode: $e');
     }
   }
-  
+
   // Get directions between two points
   Future<Map<String, dynamic>> getDirections({
     required LatLng origin,
@@ -134,11 +134,11 @@ class GoogleMapsService {
               : null,
         },
       );
-      
+
       if (response.data['status'] != 'OK') {
         throw ApiException(message: 'Directions request failed: ${response.data['status']}');
       }
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -146,7 +146,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to get directions: $e');
     }
   }
-  
+
   // Get places nearby
   Future<Map<String, dynamic>> getNearbyPlaces({
     required LatLng location,
@@ -166,11 +166,11 @@ class GoogleMapsService {
           'language': language,
         },
       );
-      
+
       if (response.data['status'] != 'OK' && response.data['status'] != 'ZERO_RESULTS') {
         throw ApiException(message: 'Nearby places request failed: ${response.data['status']}');
       }
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -178,7 +178,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to get nearby places: $e');
     }
   }
-  
+
   // Get place details
   Future<Map<String, dynamic>> getPlaceDetails({
     required String placeId,
@@ -193,11 +193,11 @@ class GoogleMapsService {
           'fields': 'name,formatted_address,geometry,photos,rating,reviews,types,website,formatted_phone_number,opening_hours',
         },
       );
-      
+
       if (response.data['status'] != 'OK') {
         throw ApiException(message: 'Place details request failed: ${response.data['status']}');
       }
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -205,7 +205,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to get place details: $e');
     }
   }
-  
+
   // Get distance matrix
   Future<Map<String, dynamic>> getDistanceMatrix({
     required List<LatLng> origins,
@@ -225,11 +225,11 @@ class GoogleMapsService {
           'language': language,
         },
       );
-      
+
       if (response.data['status'] != 'OK') {
         throw ApiException(message: 'Distance matrix request failed: ${response.data['status']}');
       }
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -237,7 +237,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to get distance matrix: $e');
     }
   }
-  
+
   // Get autocomplete predictions
   Future<Map<String, dynamic>> getPlaceAutocomplete({
     required String input,
@@ -263,11 +263,11 @@ class GoogleMapsService {
           'language': language,
         },
       );
-      
+
       if (response.data['status'] != 'OK' && response.data['status'] != 'ZERO_RESULTS') {
         throw ApiException(message: 'Place autocomplete request failed: ${response.data['status']}');
       }
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -275,7 +275,7 @@ class GoogleMapsService {
       throw ApiException(message: 'Failed to get place autocomplete: $e');
     }
   }
-  
+
   // Get static map image URL
   String getStaticMapUrl({
     required LatLng center,
@@ -288,8 +288,8 @@ class GoogleMapsService {
     String format = 'png',
     String language = 'en',
   }) {
-    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? AppConstants.googleMapsApiKey;
-    
+    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? Constants.googleMapsApiKey;
+
     String url = 'https://maps.googleapis.com/maps/api/staticmap?';
     url += 'center=${center.latitude},${center.longitude}';
     url += '&zoom=$zoom';
@@ -297,7 +297,7 @@ class GoogleMapsService {
     url += '&maptype=$mapType';
     url += '&format=$format';
     url += '&language=$language';
-    
+
     // Add markers
     if (markers != null && markers.isNotEmpty) {
       for (final marker in markers) {
@@ -307,24 +307,24 @@ class GoogleMapsService {
         url += '${marker['lat']},${marker['lng']}';
       }
     }
-    
+
     // Add paths
     if (paths != null && paths.isNotEmpty) {
       for (final path in paths) {
         url += '&path=';
         if (path['color'] != null) url += 'color:${path['color']}|';
         if (path['weight'] != null) url += 'weight:${path['weight']}|';
-        
+
         final points = path['points'] as List<LatLng>;
         url += points.map((point) => '${point.latitude},${point.longitude}').join('|');
       }
     }
-    
+
     url += '&key=$apiKey';
-    
+
     return url;
   }
-  
+
   // Get route using the new Routes API (replacing Directions API)
   Future<Map<String, dynamic>> getRoute({
     required LatLng origin,
@@ -368,7 +368,7 @@ class GoogleMapsService {
           'units': units,
         },
       );
-      
+
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);

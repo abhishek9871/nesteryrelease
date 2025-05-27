@@ -6,20 +6,20 @@ import 'package:nestery_flutter/utils/api_exception.dart';
 class ApiClient {
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  
+
   ApiClient() {
-    _dio.options.baseUrl = AppConstants.apiBaseUrl;
+    _dio.options.baseUrl = Constants.apiBaseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 30);
     _dio.options.receiveTimeout = const Duration(seconds: 30);
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    
+
     // Add request interceptor for auth token
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await _secureStorage.read(key: AppConstants.tokenKey);
+        final token = await _secureStorage.read(key: Constants.tokenKey);
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -54,16 +54,16 @@ class ApiClient {
         }
       },
     ));
-    
+
     // Add logging interceptor for development
-    if (AppConstants.environment == 'development') {
+    if (Constants.environment == 'development') {
       _dio.interceptors.add(LogInterceptor(
         requestBody: true,
         responseBody: true,
       ));
     }
   }
-  
+
   // GET request
   Future<dynamic> get(String path, {Map<String, dynamic>? queryParameters}) async {
     try {
@@ -75,7 +75,7 @@ class ApiClient {
       throw ApiException(message: e.toString(), statusCode: 500);
     }
   }
-  
+
   // POST request
   Future<dynamic> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
@@ -87,7 +87,7 @@ class ApiClient {
       throw ApiException(message: e.toString(), statusCode: 500);
     }
   }
-  
+
   // PUT request
   Future<dynamic> put(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
@@ -99,7 +99,7 @@ class ApiClient {
       throw ApiException(message: e.toString(), statusCode: 500);
     }
   }
-  
+
   // PATCH request
   Future<dynamic> patch(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
@@ -111,7 +111,7 @@ class ApiClient {
       throw ApiException(message: e.toString(), statusCode: 500);
     }
   }
-  
+
   // DELETE request
   Future<dynamic> delete(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
@@ -123,53 +123,53 @@ class ApiClient {
       throw ApiException(message: e.toString(), statusCode: 500);
     }
   }
-  
+
   // Token refresh logic
   Future<bool> _refreshToken() async {
     try {
-      final refreshToken = await _secureStorage.read(key: AppConstants.refreshTokenKey);
+      final refreshToken = await _secureStorage.read(key: Constants.refreshTokenKey);
       if (refreshToken == null) {
         return false;
       }
-      
+
       // Create a new Dio instance to avoid interceptors loop
       final refreshDio = Dio(BaseOptions(
-        baseUrl: AppConstants.apiBaseUrl,
+        baseUrl: Constants.apiBaseUrl,
         headers: {'Content-Type': 'application/json'},
       ));
-      
+
       final response = await refreshDio.post('/auth/refresh', data: {
         'refreshToken': refreshToken,
       });
-      
+
       if (response.statusCode == 200 && response.data['accessToken'] != null) {
         await _secureStorage.write(
-          key: AppConstants.tokenKey,
+          key: Constants.tokenKey,
           value: response.data['accessToken'],
         );
-        
+
         if (response.data['refreshToken'] != null) {
           await _secureStorage.write(
-            key: AppConstants.refreshTokenKey,
+            key: Constants.refreshTokenKey,
             value: response.data['refreshToken'],
           );
         }
-        
+
         return true;
       }
-      
+
       return false;
     } catch (e) {
       // If refresh fails, clear tokens and return false
-      await _secureStorage.delete(key: AppConstants.tokenKey);
-      await _secureStorage.delete(key: AppConstants.refreshTokenKey);
+      await _secureStorage.delete(key: Constants.tokenKey);
+      await _secureStorage.delete(key: Constants.refreshTokenKey);
       return false;
     }
   }
-  
+
   // Method to clear all auth tokens (for logout)
   Future<void> clearTokens() async {
-    await _secureStorage.delete(key: AppConstants.tokenKey);
-    await _secureStorage.delete(key: AppConstants.refreshTokenKey);
+    await _secureStorage.delete(key: Constants.tokenKey);
+    await _secureStorage.delete(key: Constants.refreshTokenKey);
   }
 }

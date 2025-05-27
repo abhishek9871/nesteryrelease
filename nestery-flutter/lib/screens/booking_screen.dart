@@ -32,22 +32,22 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _specialRequestsController = TextEditingController();
-  
+
   String _selectedPaymentMethod = 'credit_card';
   bool _savePaymentInfo = false;
   bool _agreeToTerms = false;
-  
+
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Load property details when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final propertyId = widget.bookingData['propertyId'] as String;
       ref.read(propertyDetailsProvider(propertyId).notifier).loadPropertyDetails();
-      
+
       // Pre-fill user information if available
       final userProfile = ref.read(Provider<Map<String, dynamic>?>((ref) => null));
       if (userProfile != null) {
@@ -58,7 +58,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       }
     });
   }
-  
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -76,14 +76,14 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final propertyDetails = ref.watch(propertyDetailsProvider(propertyId));
     final property = propertyDetails.property;
     final createBookingState = ref.watch(createBookingProvider);
-    
+
     final checkInDate = widget.bookingData['checkInDate'] as DateTime;
     final checkOutDate = widget.bookingData['checkOutDate'] as DateTime;
     final guestCount = widget.bookingData['guestCount'] as int;
     final totalPrice = widget.bookingData['totalPrice'] as double;
-    
+
     final nightCount = checkOutDate.difference(checkInDate).inDays;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complete Your Booking'),
@@ -108,7 +108,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             // Property summary
                             _buildPropertySummary(property, theme),
                             const SizedBox(height: 24),
-                            
+
                             // Booking details
                             SectionTitle(
                               title: 'Booking Details',
@@ -137,7 +137,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               '$nightCount ${nightCount == 1 ? 'night' : 'nights'}',
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Guest information
                             SectionTitle(
                               title: 'Guest Information',
@@ -209,7 +209,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               hint: 'Any special requests or preferences?',
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Payment method
                             SectionTitle(
                               title: 'Payment Method',
@@ -243,7 +243,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               contentPadding: EdgeInsets.zero,
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Price breakdown
                             SectionTitle(
                               title: 'Price Details',
@@ -253,7 +253,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             const SizedBox(height: 16),
                             _buildPriceBreakdown(property, nightCount, totalPrice, theme),
                             const SizedBox(height: 24),
-                            
+
                             // Terms and conditions
                             CheckboxListTile(
                               value: _agreeToTerms,
@@ -294,7 +294,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               controlAffinity: ListTileControlAffinity.leading,
                               contentPadding: EdgeInsets.zero,
                             ),
-                            
+
                             // Error message
                             if (createBookingState.error != null) ...[
                               const SizedBox(height: 16),
@@ -323,7 +323,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                                 ),
                               ),
                             ],
-                            
+
                             // Success message
                             if (createBookingState.isSuccess) ...[
                               const SizedBox(height: 16),
@@ -352,13 +352,13 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                                 ),
                               ),
                             ],
-                            
+
                             const SizedBox(height: 100), // Space for bottom button
                           ],
                         ),
                       ),
                     ),
-                    
+
                     // Bottom button
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -412,10 +412,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildPropertySummary(Property? property, ThemeData theme) {
     if (property == null) return const SizedBox();
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -493,7 +493,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     Icon(
                       Icons.star,
                       size: 14,
-                      color: AppConstants.accentColor,
+                      color: Constants.accentColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -530,7 +530,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildBookingDetailItem(ThemeData theme, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -553,7 +553,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildPaymentMethodSelector(ThemeData theme) {
     return Column(
       children: [
@@ -588,7 +588,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ],
     );
   }
-  
+
   Widget _buildPaymentMethodOption(
     ThemeData theme,
     String value,
@@ -597,7 +597,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     IconData icon,
   ) {
     final isSelected = _selectedPaymentMethod == value;
-    
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -671,7 +671,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildCreditCardForm(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -739,7 +739,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ],
     );
   }
-  
+
   Widget _buildPayPalForm(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -764,7 +764,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildApplePayForm(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -789,7 +789,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildGooglePayForm(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -814,13 +814,13 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildPriceBreakdown(Property? property, int nightCount, double totalPrice, ThemeData theme) {
     if (property == null) return const SizedBox();
-    
+
     final basePrice = property.basePrice * nightCount;
     final taxesAndFees = totalPrice - basePrice;
-    
+
     return Column(
       children: [
         _buildPriceItem(
@@ -845,7 +845,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ],
     );
   }
-  
+
   Widget _buildPriceItem(ThemeData theme, String label, String value, bool isTotal) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -875,7 +875,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   Widget _buildErrorState(String error) {
     return Center(
       child: Padding(
@@ -913,12 +913,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ),
     );
   }
-  
+
   void _confirmBooking(String propertyId, DateTime checkInDate, DateTime checkOutDate, int guestCount, double totalPrice) {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
     if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -928,10 +928,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       );
       return;
     }
-    
+
     // Prepare payment details based on selected method
     Map<String, dynamic> paymentDetails = {};
-    
+
     if (_selectedPaymentMethod == 'credit_card') {
       // In a real app, you would collect and validate card details
       paymentDetails = {
@@ -945,7 +945,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         'type': _selectedPaymentMethod,
       };
     }
-    
+
     // Create booking
     ref.read(createBookingProvider.notifier).createBooking(
       propertyId: propertyId,

@@ -20,7 +20,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _selectedCategory = 'All';
   final List<String> _categories = ['All', 'Hotels', 'Apartments', 'Villas', 'Resorts'];
-  
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     final featuredProperties = ref.watch(featuredPropertiesProvider);
     final recommendedProperties = ref.watch(recommendedPropertiesProvider);
-    
+
     return Scaffold(
       body: SafeArea(
         child: LoadingOverlay(
@@ -84,7 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ],
                 ),
-                
+
                 // Search Bar
                 SliverToBoxAdapter(
                   child: Padding(
@@ -117,7 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Categories
                 SliverToBoxAdapter(
                   child: CategorySelector(
@@ -131,7 +131,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                 ),
-                
+
                 // Featured Properties
                 SliverToBoxAdapter(
                   child: SectionTitle(
@@ -142,7 +142,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                 ),
-                
+
                 // Featured Properties List
                 SliverToBoxAdapter(
                   child: SizedBox(
@@ -174,7 +174,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       child: const PropertyCardShimmer(),
                                     );
                                   }
-                                  
+
                                   final property = featuredProperties.properties[index];
                                   return Container(
                                     width: 280,
@@ -190,7 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                   ),
                 ),
-                
+
                 // Recommended Properties
                 SliverToBoxAdapter(
                   child: SectionTitle(
@@ -201,7 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                 ),
-                
+
                 // Recommended Properties List
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
@@ -212,7 +212,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: PropertyCardShimmer(isHorizontal: true),
                         );
                       }
-                      
+
                       if (recommendedProperties.error != null) {
                         return ErrorRetryWidget(
                           message: recommendedProperties.error!,
@@ -221,7 +221,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           },
                         );
                       }
-                      
+
                       if (recommendedProperties.properties.isEmpty) {
                         return const EmptyStateWidget(
                           title: 'No Recommendations Yet',
@@ -229,7 +229,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           icon: Icons.recommend_outlined,
                         );
                       }
-                      
+
                       final property = recommendedProperties.properties[index];
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -249,7 +249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             : recommendedProperties.properties.length,
                   ),
                 ),
-                
+
                 // Special Offers
                 SliverToBoxAdapter(
                   child: Padding(
@@ -259,8 +259,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppConstants.primaryColor,
-                            AppConstants.secondaryColor,
+                            Constants.primaryColor,
+                            Constants.secondaryColor,
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -304,7 +304,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     // Navigate to special offers
                                   },
                                   backgroundColor: Colors.white,
-                                  textColor: AppConstants.primaryColor,
+                                  textColor: Constants.primaryColor,
                                   height: 36,
                                 ),
                               ],
@@ -315,7 +315,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Bottom padding
                 const SliverToBoxAdapter(
                   child: SizedBox(height: 16),
