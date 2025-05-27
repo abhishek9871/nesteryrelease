@@ -69,13 +69,13 @@ describe('PricePredictionService', () => {
       const mockProperties = [
         {
           id: 'property1',
-          pricePerNight: 150,
-          rating: 4.5,
+          basePrice: 150,
+          metadata: { rating: 4.5 },
         },
         {
           id: 'property2',
-          pricePerNight: 180,
-          rating: 4.8,
+          basePrice: 180,
+          metadata: { rating: 4.8 },
         },
       ];
 

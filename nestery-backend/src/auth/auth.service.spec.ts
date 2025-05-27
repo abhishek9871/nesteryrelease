@@ -8,6 +8,13 @@ import { ExceptionService } from '../core/exception/exception.service';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
+// Mock bcrypt module
+jest.mock('bcrypt', () => ({
+  compare: jest.fn(),
+  hash: jest.fn(),
+  genSalt: jest.fn(),
+}));
+
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
@@ -16,7 +23,8 @@ describe('AuthService', () => {
     id: 'test-id',
     email: 'test@example.com',
     password: 'hashed_password',
-    name: 'Test User',
+    firstName: 'Test',
+    lastName: 'User',
     role: 'user',
   };
 
@@ -76,10 +84,12 @@ describe('AuthService', () => {
     // Reset mocks
     jest.clearAllMocks();
 
-    // Mock bcrypt compare
-    jest.spyOn(bcrypt, 'compare').mockImplementation((password, _hash) => {
+    // Setup bcrypt mocks
+    (bcrypt.compare as jest.Mock).mockImplementation((password, _hash) => {
       return Promise.resolve(password === 'correct_password');
     });
+    (bcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
 
     // Mock config service
     mockConfigService.get.mockImplementation(key => {
@@ -139,7 +149,8 @@ describe('AuthService', () => {
         user: {
           id: mockUser.id,
           email: mockUser.email,
-          name: mockUser.name,
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
           role: mockUser.role,
         },
         accessToken: 'access_token',
@@ -160,7 +171,8 @@ describe('AuthService', () => {
       const newUser = {
         id: 'new-id',
         email: registerDto.email,
-        name: registerDto.name,
+        firstName: 'New',
+        lastName: 'User',
         role: 'user',
       };
 
@@ -172,7 +184,13 @@ describe('AuthService', () => {
       const result = await service.register(registerDto);
 
       expect(result).toEqual({
-        user: newUser,
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role,
+        },
         accessToken: 'access_token',
         refreshToken: 'refresh_token',
       });
@@ -205,7 +223,7 @@ describe('AuthService', () => {
         role: mockUser.role,
       };
 
-      jest.spyOn(jwtService, 'verify').mockReturnValue(payload);
+      mockJwtService.verify.mockReturnValue(payload);
       mockUsersService.findById.mockResolvedValue(mockUser);
       mockJwtService.sign.mockReturnValueOnce('new_access_token');
 
@@ -215,7 +233,7 @@ describe('AuthService', () => {
         accessToken: 'new_access_token',
       });
       expect(mockUsersService.findById).toHaveBeenCalledWith(payload.sub);
-      expect(jwtService.sign).toHaveBeenCalledTimes(1);
+      expect(mockJwtService.sign).toHaveBeenCalledTimes(1);
     });
 
     it('should throw an error if user not found during refresh', async () => {
@@ -226,7 +244,7 @@ describe('AuthService', () => {
         role: 'user',
       };
 
-      jest.spyOn(jwtService, 'verify').mockReturnValue(payload);
+      mockJwtService.verify.mockReturnValue(payload);
       mockUsersService.findById.mockResolvedValue(null);
 
       await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
