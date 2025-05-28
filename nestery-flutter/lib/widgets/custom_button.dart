@@ -16,7 +16,7 @@ class CustomButton extends ConsumerWidget {
   final EdgeInsets? padding;
 
   const CustomButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.isLoading = false,
@@ -28,7 +28,7 @@ class CustomButton extends ConsumerWidget {
     this.icon,
     this.borderRadius = 12.0,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -97,14 +97,14 @@ class CustomIconButton extends ConsumerWidget {
   final String? tooltip;
 
   const CustomIconButton({
-    Key? key,
+    super.key,
     required this.icon,
     required this.onPressed,
     this.backgroundColor,
     this.iconColor,
     this.size = 40,
     this.tooltip,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

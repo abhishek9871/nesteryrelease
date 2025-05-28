@@ -37,18 +37,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _passwordController.text,
     );
 
-    if (success) {
-      // Navigate to home screen on successful login
-      Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
-    } else {
-      // Show error message
-      final authState = ref.read(authProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authState.errorMessage ?? 'Login failed'),
-          backgroundColor: Constants.errorColor,
-        ),
-      );
+    if (mounted) {
+      if (success) {
+        // Navigate to home screen on successful login
+        Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
+      } else {
+        // Show error message
+        final authState = ref.read(authProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authState.errorMessage ?? 'Login failed'),
+            backgroundColor: Constants.errorColor,
+          ),
+        );
+      }
     }
   }
 

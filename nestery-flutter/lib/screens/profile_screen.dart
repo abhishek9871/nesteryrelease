@@ -451,7 +451,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 CustomButton(
                   text: 'Cancel',
                   onPressed: () => _toggleEditMode(user),
-                  backgroundColor: Colors.grey.withOpacity(0.2),
+                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
                   textColor: theme.colorScheme.onSurface,
                   height: 40,
                 ),
@@ -915,7 +915,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -981,7 +981,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.1),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -1022,7 +1022,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

@@ -13,12 +13,12 @@ class PropertyCard extends ConsumerWidget {
   final bool showFavoriteButton;
 
   const PropertyCard({
-    Key? key,
+    super.key,
     required this.property,
     this.isHorizontal = false,
     this.onTap,
     this.showFavoriteButton = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -375,7 +375,7 @@ class PropertyCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(small ? 14 : 18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

@@ -22,9 +22,9 @@ class ApiClient {
 
   void _setupDio() {
     _dio.options.baseUrl = Constants.apiBaseUrl;
-    _dio.options.connectTimeout = Duration(milliseconds: Constants.connectionTimeout);
-    _dio.options.receiveTimeout = Duration(milliseconds: Constants.receiveTimeout);
-    _dio.options.sendTimeout = Duration(milliseconds: Constants.connectionTimeout);
+    _dio.options.connectTimeout = const Duration(milliseconds: Constants.connectionTimeout);
+    _dio.options.receiveTimeout = const Duration(milliseconds: Constants.receiveTimeout);
+    _dio.options.sendTimeout = const Duration(milliseconds: Constants.connectionTimeout);
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

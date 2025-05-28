@@ -38,12 +38,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please agree to the Terms and Conditions'),
-          backgroundColor: Constants.errorColor,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please agree to the Terms and Conditions'),
+            backgroundColor: Constants.errorColor,
+          ),
+        );
+      }
       return;
     }
 
@@ -59,18 +61,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _passwordController.text,
     );
 
-    if (success) {
-      // Navigate to home screen on successful registration
-      Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
-    } else {
-      // Show error message
-      final authState = ref.read(authProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authState.errorMessage ?? 'Registration failed'),
-          backgroundColor: Constants.errorColor,
-        ),
-      );
+    if (mounted) {
+      if (success) {
+        // Navigate to home screen on successful registration
+        Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
+      } else {
+        // Show error message
+        final authState = ref.read(authProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authState.errorMessage ?? 'Registration failed'),
+            backgroundColor: Constants.errorColor,
+          ),
+        );
+      }
     }
   }
 

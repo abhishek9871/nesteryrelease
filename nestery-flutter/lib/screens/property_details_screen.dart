@@ -94,7 +94,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                     leading: Container(
                       margin: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
@@ -106,7 +106,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                       Container(
                         margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -119,7 +119,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                       Container(
                         margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -240,7 +240,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Column(
@@ -870,7 +870,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                     Icon(
                       Icons.rate_review_outlined,
                       size: 64,
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -905,7 +905,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -946,8 +946,8 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             height: 40,
             decoration: BoxDecoration(
               color: isAllowed
-                  ? theme.colorScheme.primary.withOpacity(0.1)
-                  : theme.colorScheme.error.withOpacity(0.1),
+                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                  : theme.colorScheme.error.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -1155,7 +1155,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             color: theme.colorScheme.surface,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -4),
               ),
