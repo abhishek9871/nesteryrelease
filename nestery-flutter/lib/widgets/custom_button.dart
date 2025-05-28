@@ -150,13 +150,13 @@ class CustomTextButton extends ConsumerWidget {
   final bool iconAfterText;
 
   const CustomTextButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.textColor,
     this.icon,
     this.iconAfterText = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -204,7 +204,7 @@ class GradientButton extends ConsumerWidget {
   final double borderRadius;
 
   const GradientButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.isLoading = false,
@@ -213,7 +213,7 @@ class GradientButton extends ConsumerWidget {
     this.height,
     this.icon,
     this.borderRadius = 12.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -235,7 +235,7 @@ class GradientButton extends ConsumerWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: colors.first.withOpacity(0.3),
+            color: colors.first.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

@@ -224,7 +224,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                       borderRadius: const BorderRadius.only(
@@ -510,7 +510,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               color: Colors.red,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Error Loading Bookings',
               style: TextStyle(
                 fontSize: 20,

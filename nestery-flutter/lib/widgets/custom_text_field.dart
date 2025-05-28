@@ -24,7 +24,7 @@ class CustomTextField extends ConsumerWidget {
   final EdgeInsetsGeometry? contentPadding;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.label,
     this.hint,
     required this.controller,
@@ -44,7 +44,7 @@ class CustomTextField extends ConsumerWidget {
     this.readOnly = false,
     this.onTap,
     this.contentPadding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -139,7 +139,7 @@ class SearchTextField extends ConsumerWidget {
   final VoidCallback? onTap;
 
   const SearchTextField({
-    Key? key,
+    super.key,
     required this.controller,
     this.hint = 'Search',
     this.onSearch,
@@ -149,7 +149,7 @@ class SearchTextField extends ConsumerWidget {
     this.focusNode,
     this.readOnly = false,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -188,7 +188,7 @@ class SearchTextField extends ConsumerWidget {
           borderSide: BorderSide.none,
         ),
         filled: true,
-        fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       ),
     );
   }
@@ -206,7 +206,7 @@ class DatePickerField extends ConsumerWidget {
   final bool enabled;
 
   const DatePickerField({
-    Key? key,
+    super.key,
     required this.label,
     this.hint,
     required this.controller,
@@ -216,7 +216,7 @@ class DatePickerField extends ConsumerWidget {
     this.validator,
     this.onDateSelected,
     this.enabled = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -311,7 +311,7 @@ class DatePickerField extends ConsumerWidget {
             filled: true,
             fillColor: enabled
                 ? theme.colorScheme.surface
-                : theme.colorScheme.surfaceVariant,
+                : theme.colorScheme.surfaceContainerHighest,
           ),
         ),
       ],

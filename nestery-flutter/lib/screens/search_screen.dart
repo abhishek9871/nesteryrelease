@@ -519,7 +519,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? theme.colorScheme.primary.withOpacity(0.1)
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
                                     : theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(

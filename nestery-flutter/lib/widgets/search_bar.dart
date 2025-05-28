@@ -393,7 +393,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.star,
                       size: 16,
                       color: Constants.accentColor,

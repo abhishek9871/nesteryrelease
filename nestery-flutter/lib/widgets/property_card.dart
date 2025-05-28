@@ -36,7 +36,7 @@ class PropertyCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -137,7 +137,7 @@ class PropertyCard extends ConsumerWidget {
                       itemCount: 5,
                       itemSize: 16,
                       ignoreGestures: true,
-                      itemBuilder: (context, _) => Icon(
+                      itemBuilder: (context, _) => const Icon(
                         Icons.star,
                         color: Constants.accentColor,
                       ),
@@ -247,7 +247,7 @@ class PropertyCard extends ConsumerWidget {
                     if (property.starRating != null)
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.star,
                             size: 16,
                             color: Constants.accentColor,

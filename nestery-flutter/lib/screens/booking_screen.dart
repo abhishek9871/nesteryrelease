@@ -108,7 +108,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             const SizedBox(height: 24),
 
                             // Booking details
-                            SectionTitle(
+                            const SectionTitle(
                               title: 'Booking Details',
                               showSeeAll: false,
                               padding: EdgeInsets.zero,
@@ -137,7 +137,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             const SizedBox(height: 24),
 
                             // Guest information
-                            SectionTitle(
+                            const SectionTitle(
                               title: 'Guest Information',
                               showSeeAll: false,
                               padding: EdgeInsets.zero,
@@ -209,7 +209,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             const SizedBox(height: 24),
 
                             // Payment method
-                            SectionTitle(
+                            const SectionTitle(
                               title: 'Payment Method',
                               showSeeAll: false,
                               padding: EdgeInsets.zero,
@@ -243,7 +243,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             const SizedBox(height: 24),
 
                             // Price breakdown
-                            SectionTitle(
+                            const SectionTitle(
                               title: 'Price Details',
                               showSeeAll: false,
                               padding: EdgeInsets.zero,
@@ -299,7 +299,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.error.withOpacity(0.1),
+                                  color: theme.colorScheme.error.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -328,7 +328,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
+                                  color: Colors.green.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -364,7 +364,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         color: theme.colorScheme.surface,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, -4),
                           ),
@@ -417,7 +417,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -488,7 +488,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.star,
                       size: 14,
                       color: Constants.accentColor,
@@ -617,7 +617,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ),
           borderRadius: BorderRadius.circular(12),
           color: isSelected
-              ? theme.colorScheme.primary.withOpacity(0.1)
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
               : null,
         ),
         margin: const EdgeInsets.only(bottom: 12),
@@ -742,7 +742,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -767,7 +767,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -792,7 +792,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -887,7 +887,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               color: Colors.red,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Error Loading Property',
               style: TextStyle(
                 fontSize: 20,
@@ -958,7 +958,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         // Navigate to confirmation page after a short delay
         Future.delayed(const Duration(seconds: 2), () {
           final booking = ref.read(createBookingProvider).booking;
-          if (booking != null) {
+          if (booking != null && mounted) {
             context.go('/booking/confirmation', extra: booking);
           }
         });

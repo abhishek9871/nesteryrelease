@@ -94,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -298,7 +298,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Container(
                       height: 150,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [
                             Constants.primaryColor,
                             Constants.secondaryColor,

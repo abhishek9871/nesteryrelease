@@ -9,12 +9,12 @@ class LoadingOverlay extends ConsumerWidget {
   final Color? backgroundColor;
 
   const LoadingOverlay({
-    Key? key,
+    super.key,
     required this.child,
     required this.isLoading,
     this.loadingText,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,12 +25,12 @@ class LoadingOverlay extends ConsumerWidget {
         child,
         if (isLoading)
           Container(
-            color: backgroundColor ?? Colors.black.withOpacity(0.5),
+            color: backgroundColor ?? Colors.black.withValues(alpha: 0.5),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(
+                  const CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
                       Constants.primaryColor,
                     ),
@@ -60,11 +60,11 @@ class CustomProgressIndicator extends ConsumerWidget {
   final double strokeWidth;
 
   const CustomProgressIndicator({
-    Key? key,
+    super.key,
     this.size = 40,
     this.color,
     this.strokeWidth = 4.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,11 +89,11 @@ class ShimmerLoading extends StatefulWidget {
   final Duration duration;
 
   const ShimmerLoading({
-    Key? key,
+    super.key,
     required this.child,
     required this.isLoading,
     this.duration = const Duration(milliseconds: 1500),
-  }) : super(key: key);
+  });
 
   @override
   State<ShimmerLoading> createState() => _ShimmerLoadingState();
@@ -173,9 +173,9 @@ class PropertyCardShimmer extends StatelessWidget {
   final bool isHorizontal;
 
   const PropertyCardShimmer({
-    Key? key,
+    super.key,
     this.isHorizontal = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

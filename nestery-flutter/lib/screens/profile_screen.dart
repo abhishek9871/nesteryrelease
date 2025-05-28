@@ -217,7 +217,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
             Constants.primaryColor,
             Constants.secondaryColor,
@@ -287,7 +287,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           Text(
             user.email,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
         ],
@@ -318,7 +318,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           const SizedBox(height: 24),
 
           // Personal information
-          SectionTitle(
+          const SectionTitle(
             title: 'Personal Information',
             showSeeAll: false,
             padding: EdgeInsets.zero,
@@ -348,7 +348,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           const SizedBox(height: 24),
 
           // Account information
-          SectionTitle(
+          const SectionTitle(
             title: 'Account Information',
             showSeeAll: false,
             padding: EdgeInsets.zero,
@@ -373,7 +373,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           const SizedBox(height: 24),
 
           // Preferences
-          SectionTitle(
+          const SectionTitle(
             title: 'Preferences',
             showSeeAll: false,
             padding: EdgeInsets.zero,
@@ -393,7 +393,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           const SizedBox(height: 24),
 
           // Stats
-          SectionTitle(
+          const SectionTitle(
             title: 'Stats',
             showSeeAll: false,
             padding: EdgeInsets.zero,
@@ -510,7 +510,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             const SizedBox(height: 24),
 
             // Password change section
-            SectionTitle(
+            const SectionTitle(
               title: 'Change Password',
               showSeeAll: false,
               padding: EdgeInsets.zero,
@@ -556,7 +556,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Appearance
-          SectionTitle(
+          const SectionTitle(
             title: 'Appearance',
             showSeeAll: false,
             padding: EdgeInsets.zero,
@@ -594,10 +594,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
 
           // Notifications
-          SectionTitle(
+          const SectionTitle(
             title: 'Notifications',
             showSeeAll: false,
-            padding: const EdgeInsets.only(top: 24),
+            padding: EdgeInsets.only(top: 24),
           ),
           const SizedBox(height: 16),
           _buildSettingItem(
@@ -638,10 +638,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
 
           // Privacy
-          SectionTitle(
+          const SectionTitle(
             title: 'Privacy',
             showSeeAll: false,
-            padding: const EdgeInsets.only(top: 24),
+            padding: EdgeInsets.only(top: 24),
           ),
           const SizedBox(height: 16),
           _buildSettingItem(
@@ -670,10 +670,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
 
           // App info
-          SectionTitle(
+          const SectionTitle(
             title: 'App Info',
             showSeeAll: false,
-            padding: const EdgeInsets.only(top: 24),
+            padding: EdgeInsets.only(top: 24),
           ),
           const SizedBox(height: 16),
           _buildSettingItem(
