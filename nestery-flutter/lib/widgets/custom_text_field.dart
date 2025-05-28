@@ -119,7 +119,7 @@ class CustomTextField extends ConsumerWidget {
             filled: true,
             fillColor: enabled
                 ? theme.colorScheme.surface
-                : theme.colorScheme.surfaceVariant,
+                : theme.colorScheme.surfaceContainerHighest,
           ),
         ),
       ],

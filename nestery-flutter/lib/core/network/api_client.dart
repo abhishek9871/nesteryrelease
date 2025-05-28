@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
@@ -84,7 +85,7 @@ class ApiClient {
         requestHeader: true,
         responseHeader: false,
         error: true,
-        logPrint: (obj) => print('[API] $obj'),
+        logPrint: (obj) => debugPrint('[API] $obj'),
       ));
     }
   }

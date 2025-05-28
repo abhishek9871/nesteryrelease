@@ -12,7 +12,7 @@ class SearchBar extends ConsumerStatefulWidget {
   final VoidCallback? onTap;
 
   const SearchBar({
-    Key? key,
+    super.key,
     this.hint = 'Search destinations, hotels...',
     this.onSearch,
     this.onFilterTap,
@@ -20,7 +20,7 @@ class SearchBar extends ConsumerStatefulWidget {
     this.autofocus = false,
     this.readOnly = false,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SearchBar> createState() => _SearchBarState();
@@ -47,7 +47,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -114,12 +114,12 @@ class FilterChip extends ConsumerWidget {
   final IconData? icon;
 
   const FilterChip({
-    Key? key,
+    super.key,
     required this.label,
     required this.isSelected,
     required this.onTap,
     this.icon,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -135,7 +135,7 @@ class FilterChip extends ConsumerWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary
-              : theme.colorScheme.surfaceVariant,
+              : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
@@ -178,10 +178,10 @@ class FilterSheet extends ConsumerStatefulWidget {
   final Function(Map<String, dynamic>) onApply;
 
   const FilterSheet({
-    Key? key,
+    super.key,
     required this.initialFilters,
     required this.onApply,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<FilterSheet> createState() => _FilterSheetState();
@@ -388,7 +388,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant,
+                  color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

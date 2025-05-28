@@ -64,12 +64,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     // Set default dates if not provided
-    if (_checkInDate == null) {
-      _checkInDate = DateTime.now().add(const Duration(days: 1));
-    }
-    if (_checkOutDate == null) {
-      _checkOutDate = DateTime.now().add(const Duration(days: 3));
-    }
+    _checkInDate ??= DateTime.now().add(const Duration(days: 1));
+    _checkOutDate ??= DateTime.now().add(const Duration(days: 3));
 
     // Load search results when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {

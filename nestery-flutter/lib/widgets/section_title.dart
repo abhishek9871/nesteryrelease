@@ -9,13 +9,13 @@ class SectionTitle extends ConsumerWidget {
   final EdgeInsetsGeometry padding;
 
   const SectionTitle({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     this.onSeeAllPressed,
     this.showSeeAll = true,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,12 +74,12 @@ class CategorySelector extends ConsumerWidget {
   final EdgeInsetsGeometry padding;
 
   const CategorySelector({
-    Key? key,
+    super.key,
     required this.categories,
     this.selectedCategory,
     required this.onCategorySelected,
     this.padding = const EdgeInsets.symmetric(horizontal: 16),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -104,7 +104,7 @@ class CategorySelector extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.surfaceVariant,
+                      : theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 alignment: Alignment.center,
@@ -134,13 +134,13 @@ class EmptyStateWidget extends ConsumerWidget {
   final VoidCallback? onButtonPressed;
 
   const EmptyStateWidget({
-    Key? key,
+    super.key,
     required this.title,
     required this.message,
     this.icon = Icons.search_off,
     this.buttonText,
     this.onButtonPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -155,7 +155,7 @@ class EmptyStateWidget extends ConsumerWidget {
             Icon(
               icon,
               size: 80,
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -207,10 +207,10 @@ class ErrorRetryWidget extends ConsumerWidget {
   final VoidCallback onRetry;
 
   const ErrorRetryWidget({
-    Key? key,
+    super.key,
     required this.message,
     required this.onRetry,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

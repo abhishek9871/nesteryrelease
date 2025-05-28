@@ -106,12 +106,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           _isEditing = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     });
   }
@@ -131,9 +133,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              final navigator = Navigator.of(context);
+              final router = GoRouter.of(context);
+              navigator.pop();
               ref.read(authProvider.notifier).logout().then((_) {
-                context.go('/login');
+                if (mounted) {
+                  router.go('/login');
+                }
               });
             },
             style: ElevatedButton.styleFrom(
