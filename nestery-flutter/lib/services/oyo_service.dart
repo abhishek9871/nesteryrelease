@@ -2,11 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 class OyoService {
   final Dio _dio = Dio();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // Singleton pattern
   static final OyoService _instance = OyoService._internal();

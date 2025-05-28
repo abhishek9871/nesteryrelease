@@ -2,12 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class GoogleMapsService {
   final Dio _dio = Dio();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // Singleton pattern
   static final GoogleMapsService _instance = GoogleMapsService._internal();
@@ -129,9 +127,7 @@ class GoogleMapsService {
           'alternatives': alternatives.toString(),
           'units': units,
           'language': language,
-          'waypoints': waypoints != null
-              ? waypoints.map((point) => '${point.latitude},${point.longitude}').join('|')
-              : null,
+          'waypoints': waypoints?.map((point) => '${point.latitude},${point.longitude}').join('|'),
         },
       );
 

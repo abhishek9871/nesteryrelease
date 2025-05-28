@@ -216,8 +216,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     return Container(
       height: 200,
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: [
             Constants.primaryColor,
             Constants.secondaryColor,
@@ -724,7 +724,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Help center
-          SectionTitle(
+          const SectionTitle(
             title: 'Help Center',
             showSeeAll: false,
             padding: EdgeInsets.zero,
@@ -762,10 +762,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
 
           // Feedback
-          SectionTitle(
+          const SectionTitle(
             title: 'Feedback',
             showSeeAll: false,
-            padding: const EdgeInsets.only(top: 24),
+            padding: EdgeInsets.only(top: 24),
           ),
           const SizedBox(height: 16),
           _buildSupportItem(
@@ -790,10 +790,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
 
           // Share
-          SectionTitle(
+          const SectionTitle(
             title: 'Share',
             showSeeAll: false,
-            padding: const EdgeInsets.only(top: 24),
+            padding: EdgeInsets.only(top: 24),
           ),
           const SizedBox(height: 16),
           _buildSupportItem(
@@ -821,10 +821,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
 
           // Social media
-          SectionTitle(
+          const SectionTitle(
             title: 'Follow Us',
             showSeeAll: false,
-            padding: const EdgeInsets.only(top: 24),
+            padding: EdgeInsets.only(top: 24),
           ),
           const SizedBox(height: 16),
           Row(

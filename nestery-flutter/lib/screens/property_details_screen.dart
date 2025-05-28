@@ -16,9 +16,9 @@ class PropertyDetailsScreen extends ConsumerStatefulWidget {
   final String propertyId;
 
   const PropertyDetailsScreen({
-    Key? key,
+    super.key,
     required this.propertyId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<PropertyDetailsScreen> createState() => _PropertyDetailsScreenState();
@@ -159,7 +159,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                                   itemCount: 5,
                                   itemSize: 20,
                                   ignoreGestures: true,
-                                  itemBuilder: (context, _) => Icon(
+                                  itemBuilder: (context, _) => const Icon(
                                     Icons.star,
                                     color: Constants.accentColor,
                                   ),
@@ -578,7 +578,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       itemBuilder: (context, index) {
         final imageUrl = images[index];
         return CachedNetworkImage(
-          imageUrl: imageUrl ?? '',
+          imageUrl: imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
             color: Colors.grey[300],
@@ -614,7 +614,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
           ),
           const SizedBox(height: 8),
           Text(
-            property.description ?? 'No description available.',
+            property.description,
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
@@ -631,7 +631,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             theme,
             Icons.home_outlined,
             'Property Type',
-            property.propertyType ?? 'Not specified',
+            property.propertyType,
           ),
           _buildPropertyDetailItem(
             theme,
@@ -649,7 +649,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             theme,
             Icons.people_outline,
             'Max Guests',
-            '${property.maxGuests ?? 0}',
+            '${property.maxGuests}',
           ),
           _buildPropertyDetailItem(
             theme,
@@ -759,7 +759,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.star,
                             size: 16,
                             color: Constants.accentColor,
@@ -837,14 +837,14 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                           ),
                         ),
                         RatingBar.builder(
-                          initialRating: (review.rating ?? 0).toDouble(),
+                          initialRating: review.rating.toDouble(),
                           minRating: 1,
                           direction: Axis.horizontal,
                           allowHalfRating: true,
                           itemCount: 5,
                           itemSize: 16,
                           ignoreGestures: true,
-                          itemBuilder: (context, _) => Icon(
+                          itemBuilder: (context, _) => const Icon(
                             Icons.star,
                             color: Constants.accentColor,
                           ),
@@ -1209,7 +1209,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
               color: Colors.red,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Error Loading Property',
               style: TextStyle(
                 fontSize: 20,
