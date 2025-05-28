@@ -197,4 +197,99 @@ class AuthRepository {
 
     return await this.refreshToken(RefreshTokenDto(refreshToken: refreshToken));
   }
+
+  /// Send forgot password email
+  Future<Either<ApiException, Map<String, dynamic>>> forgotPassword(String email) async {
+    try {
+      // Validate email format
+      if (email.trim().isEmpty) {
+        return Either.left(ApiException(
+          message: 'Email is required',
+          statusCode: 400,
+        ));
+      }
+
+      if (!Constants.emailPattern.hasMatch(email.trim())) {
+        return Either.left(ApiException(
+          message: 'Please enter a valid email address',
+          statusCode: 400,
+        ));
+      }
+
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        Constants.forgotPasswordEndpoint,
+        data: {'email': email.trim()},
+      );
+
+      if (response.data != null) {
+        return Either.right(response.data!);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
+    } catch (e) {
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
+    }
+  }
+
+  /// Reset password with token
+  Future<Either<ApiException, Map<String, dynamic>>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      // Validate inputs
+      if (token.trim().isEmpty) {
+        return Either.left(ApiException(
+          message: 'Reset token is required',
+          statusCode: 400,
+        ));
+      }
+
+      if (newPassword.trim().isEmpty) {
+        return Either.left(ApiException(
+          message: 'New password is required',
+          statusCode: 400,
+        ));
+      }
+
+      if (!Constants.passwordPattern.hasMatch(newPassword)) {
+        return Either.left(ApiException(
+          message: 'Password must be at least 8 characters with letters and numbers',
+          statusCode: 400,
+        ));
+      }
+
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        Constants.resetPasswordEndpoint,
+        data: {
+          'token': token.trim(),
+          'newPassword': newPassword,
+        },
+      );
+
+      if (response.data != null) {
+        return Either.right(response.data!);
+      } else {
+        return Either.left(ApiException(
+          message: 'Invalid response from server',
+          statusCode: 500,
+        ));
+      }
+    } on DioException catch (e) {
+      return Either.left(ApiException.fromDioError(e));
+    } catch (e) {
+      return Either.left(ApiException(
+        message: e.toString(),
+        statusCode: 500,
+      ));
+    }
+  }
 }

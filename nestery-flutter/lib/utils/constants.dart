@@ -42,9 +42,13 @@ class Constants {
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
   static const String refreshTokenEndpoint = '/auth/refresh-token';
+  static const String forgotPasswordEndpoint = '/auth/forgot-password';
+  static const String resetPasswordEndpoint = '/auth/reset-password';
   static const String userProfileEndpoint = '/users/profile';
   static const String propertiesEndpoint = '/properties';
   static const String bookingsEndpoint = '/bookings';
+  static const String reviewsEndpoint = '/reviews';
+  static const String trendingDestinationsEndpoint = '/properties/trending-destinations';
   static const String loyaltyEndpoint = '/loyalty';
   static const String socialSharingEndpoint = '/social';
   static const String recommendationsEndpoint = '/recommendations';
@@ -117,6 +121,9 @@ class Constants {
   static const String propertyDetailsRoute = '/home/property';
   static const String bookingRoute = '/home/property/book';
   static const String bookingConfirmationRoute = '/home/property/confirmation';
+  static const String forgotPasswordRoute = '/forgot-password';
+  static const String resetPasswordRoute = '/reset-password';
+  static const String termsConditionsRoute = '/terms-conditions';
 
   // Initialize constants from environment variables
   static void initialize() {

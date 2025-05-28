@@ -6,6 +6,7 @@ import 'package:nestery_flutter/models/enums.dart';
 import 'package:nestery_flutter/models/search_dtos.dart';
 import 'package:nestery_flutter/providers/repository_providers.dart';
 import 'package:nestery_flutter/data/repositories/booking_repository.dart';
+import 'package:nestery_flutter/data/repositories/review_repository.dart';
 
 /// Missing providers that are referenced in UI but not yet implemented
 
@@ -120,17 +121,34 @@ final cancelBookingProvider = StateNotifierProvider<CancelBookingNotifier, Async
 
 /// Submit Review State Notifier
 class SubmitReviewNotifier extends AsyncNotifier<bool> {
+  ReviewRepository? _reviewRepository;
+
+  void setRepository(ReviewRepository repository) {
+    _reviewRepository = repository;
+  }
+
   Future<bool> submitReview({
-    required String bookingId,
+    String? bookingId,
     required String propertyId,
-    required double rating,
+    required int rating,
     required String comment,
   }) async {
+    if (_reviewRepository == null) {
+      throw Exception('ReviewRepository not initialized');
+    }
+
     await execute(() async {
-      // TODO: Implement review submission when ReviewRepository is created
-      // For now, simulate success
-      await Future.delayed(const Duration(seconds: 1));
-      return true;
+      final result = await _reviewRepository!.submitReview(
+        propertyId: propertyId,
+        rating: rating,
+        comment: comment,
+        bookingId: bookingId,
+      );
+
+      return result.fold(
+        (error) => throw error,
+        (review) => true,
+      );
     });
     return state.data ?? false;
   }
@@ -138,7 +156,10 @@ class SubmitReviewNotifier extends AsyncNotifier<bool> {
 
 /// Submit Review Provider - handles review submission
 final submitReviewProvider = StateNotifierProvider<SubmitReviewNotifier, AsyncNotifierState<bool>>((ref) {
-  return SubmitReviewNotifier();
+  final reviewRepository = ref.watch(reviewRepositoryProvider);
+  final notifier = SubmitReviewNotifier();
+  notifier.setRepository(reviewRepository);
+  return notifier;
 });
 
 /// Update Profile Provider - handles profile updates
@@ -204,18 +225,47 @@ final userProfileProvider = FutureProvider<User>((ref) async {
 
 /// Property Availability Provider - provides property availability information
 final propertyAvailabilityProvider = FutureProvider.family<Map<String, dynamic>, Map<String, dynamic>>((ref, params) async {
-  // TODO: Implement when PropertyRepository.getPropertyAvailability is fixed
-  // For now, return empty availability
-  return <String, dynamic>{};
+  final propertyRepository = ref.watch(propertyRepositoryProvider);
+
+  final propertyId = params['propertyId'] as String;
+  final startDate = DateTime.parse(params['startDate'] as String);
+  final endDate = DateTime.parse(params['endDate'] as String);
+
+  final result = await propertyRepository.getPropertyAvailability(
+    propertyId,
+    startDate: startDate,
+    endDate: endDate,
+  );
+
+  return result.fold(
+    (error) => throw error,
+    (availability) {
+      // Convert List<PropertyAvailability> to Map for state compatibility
+      return {
+        'data': availability.map((a) => a.toJson()).toList(),
+        'propertyId': propertyId,
+        'startDate': startDate.toIso8601String().split('T')[0],
+        'endDate': endDate.toIso8601String().split('T')[0],
+      };
+    },
+  );
 });
 
 
 
 /// Trending Destinations Provider - provides trending destinations
 final trendingDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  // TODO: Implement when TrendingDestination model is properly integrated
-  // For now, return empty list
-  return <Map<String, dynamic>>[];
+  final propertyRepository = ref.watch(propertyRepositoryProvider);
+
+  final result = await propertyRepository.getTrendingDestinations();
+
+  return result.fold(
+    (error) => throw error,
+    (destinations) {
+      // Convert List<TrendingDestination> to List<Map<String, dynamic>> for compatibility
+      return destinations.map((destination) => destination.toJson()).toList();
+    },
+  );
 });
 
 /// Create Booking Provider - handles booking creation

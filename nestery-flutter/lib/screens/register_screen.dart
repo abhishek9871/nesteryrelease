@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
+import 'package:go_router/go_router.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -234,8 +236,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   style: TextStyle(
                                     color: Theme.of(context).primaryColor,
                                     fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
                                   ),
-                                  // TODO: Implement terms and conditions screen
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      context.push(Constants.termsConditionsRoute);
+                                    },
                                 ),
                               ],
                             ),

@@ -706,7 +706,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     ref.read(submitReviewProvider.notifier).submitReview(
                       bookingId: booking.id,
                       propertyId: booking.property!.id,
-                      rating: rating,
+                      rating: rating.round(),
                       comment: commentController.text,
                     ).then((success) {
                       if (success && context.mounted) {

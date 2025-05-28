@@ -102,6 +102,21 @@ class PropertyRepository {
     required DateTime endDate,
   }) async {
     try {
+      // Validate date range
+      if (startDate.isAfter(endDate)) {
+        return Either.left(ApiException(
+          message: 'Start date must be before end date',
+          statusCode: 400,
+        ));
+      }
+
+      if (startDate.isBefore(DateTime.now().subtract(const Duration(days: 1)))) {
+        return Either.left(ApiException(
+          message: 'Start date cannot be in the past',
+          statusCode: 400,
+        ));
+      }
+
       final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/$propertyId/availability',
         queryParameters: {
@@ -191,6 +206,8 @@ class PropertyRepository {
       ));
     }
   }
+
+
 
   // Get trending destinations
   Future<Either<ApiException, List<TrendingDestination>>> getTrendingDestinations() async {

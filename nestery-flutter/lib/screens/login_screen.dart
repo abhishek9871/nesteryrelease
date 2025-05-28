@@ -5,6 +5,7 @@ import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -164,7 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // Forgot password
                         TextButton(
                           onPressed: () {
-                            // TODO: Implement forgot password
+                            context.push(Constants.forgotPasswordRoute);
                           },
                           child: const Text('Forgot Password?'),
                         ),
