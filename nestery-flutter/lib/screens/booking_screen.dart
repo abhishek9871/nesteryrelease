@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/models/booking.dart';
 import 'package:nestery_flutter/models/property.dart';
 import 'package:nestery_flutter/providers/booking_provider.dart';
 import 'package:nestery_flutter/providers/property_provider.dart';
@@ -17,9 +16,9 @@ class BookingScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> bookingData;
 
   const BookingScreen({
-    Key? key,
+    super.key,
     required this.bookingData,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<BookingScreen> createState() => _BookingScreenState();
@@ -45,8 +44,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
     // Load property details when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final propertyId = widget.bookingData['propertyId'] as String;
-      ref.read(propertyDetailsProvider(propertyId).notifier).loadPropertyDetails();
+      // Property details are automatically loaded by the provider
 
       // Pre-fill user information if available
       final userProfile = ref.read(Provider<Map<String, dynamic>?>((ref) => null));
@@ -397,9 +395,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           Expanded(
                             child: GradientButton(
                               text: 'Confirm Booking',
-                              onPressed: _agreeToTerms && !createBookingState.isLoading
+                              onPressed: (_agreeToTerms && !createBookingState.isLoading)
                                   ? () => _confirmBooking(propertyId, checkInDate, checkOutDate, guestCount, totalPrice)
-                                  : null,
+                                  : () {},
                               isLoading: createBookingState.isLoading,
                             ),
                           ),

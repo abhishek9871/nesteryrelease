@@ -16,7 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -94,7 +94,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       'profileImage': _profileImage,
     };
 
-    ref.read(updateProfileProvider.notifier).updateProfile(updatedProfile).then((success) {
+    // Use the profile provider to update profile
+    ref.read(userProfileProvider.notifier).updateUserProfile(
+      firstName: updatedProfile['firstName'] as String?,
+      lastName: updatedProfile['lastName'] as String?,
+      phoneNumber: updatedProfile['phone'] as String?,
+      profilePicture: (_profileImage?.path),
+    ).then((success) {
       if (success) {
         setState(() {
           _isEditing = false;
@@ -145,7 +151,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     final theme = Theme.of(context);
     final profileState = ref.watch(userProfileProvider);
     final user = profileState.user;
-    final updateState = ref.watch(updateProfileProvider);
+    // Remove the updateState watch since we're using userProfileProvider
 
     return Scaffold(
       appBar: AppBar(
@@ -159,7 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         ],
       ),
       body: LoadingOverlay(
-        isLoading: profileState.isLoading || updateState.isLoading,
+        isLoading: profileState.isLoading || profileState.isUpdating,
         child: user == null && !profileState.isLoading
             ? _buildErrorState(profileState.error ?? 'Failed to load profile')
             : Column(
@@ -230,9 +236,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 radius: 50,
                 backgroundColor: Colors.white,
                 backgroundImage: _profileImage != null
-                    ? FileImage(_profileImage!)
+                    ? FileImage(_profileImage!) as ImageProvider
                     : user.profilePicture != null
-                        ? NetworkImage(user.profilePicture!)
+                        ? NetworkImage(user.profilePicture!) as ImageProvider
                         : null,
                 child: user.profilePicture == null && _profileImage == null
                     ? Text(
@@ -351,9 +357,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           _buildInfoItem(
             theme,
             'Member Since',
-            user.createdAt != null
-                ? '${user.createdAt!.month}/${user.createdAt!.day}/${user.createdAt!.year}'
-                : 'Unknown',
+            '${user.createdAt.month}/${user.createdAt.day}/${user.createdAt.year}',
           ),
           _buildInfoItem(
             theme,
@@ -363,7 +367,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           _buildInfoItem(
             theme,
             'Loyalty Points',
-            '${user.loyaltyPoints ?? 0} points',
+            '${user.loyaltyPoints} points',
             isLast: true,
           ),
           const SizedBox(height: 24),
@@ -514,16 +518,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             const SizedBox(height: 16),
             CustomTextField(
               label: 'Current Password',
+              controller: TextEditingController(),
               obscureText: true,
             ),
             const SizedBox(height: 16),
             CustomTextField(
               label: 'New Password',
+              controller: TextEditingController(),
               obscureText: true,
             ),
             const SizedBox(height: 16),
             CustomTextField(
               label: 'Confirm New Password',
+              controller: TextEditingController(),
               obscureText: true,
             ),
             const SizedBox(height: 16),
@@ -560,7 +567,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             'Dark Mode',
             'Switch between light and dark theme',
             trailing: Switch(
-              value: isDarkMode,
+              value: isDarkMode == ThemeMode.dark,
               onChanged: (value) {
                 ref.read(themeProvider.notifier).toggleTheme();
               },

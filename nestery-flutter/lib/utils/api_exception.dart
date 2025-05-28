@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 
 class ApiException implements Exception {
@@ -37,8 +38,8 @@ class ApiException implements Exception {
         // Try to extract error message from response
         if (error.response?.data != null) {
           if (error.response!.data is Map) {
-            message = error.response!.data['message'] ?? 
-                     error.response!.data['error'] ?? 
+            message = error.response!.data['message'] ??
+                     error.response!.data['error'] ??
                      'Server error';
             code = error.response!.data['code'];
             data = error.response!.data;
@@ -83,10 +84,10 @@ class ApiException implements Exception {
 
   // Helper method to check if this is a network-related error
   bool get isNetworkError {
-    return statusCode == 408 || 
-           statusCode == 503 || 
-           code == 'timeout' || 
-           code == 'connection_error' || 
+    return statusCode == 408 ||
+           statusCode == 503 ||
+           code == 'timeout' ||
+           code == 'connection_error' ||
            code == 'no_connection';
   }
 

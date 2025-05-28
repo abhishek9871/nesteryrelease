@@ -2,13 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Theme state enum
-enum ThemeMode {
-  light,
-  dark,
-  system,
-}
-
 // Theme provider to manage app theme
 class ThemeNotifier extends StateNotifier<ThemeMode> {
   final SharedPreferences _prefs;
@@ -51,17 +44,3 @@ final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
   final prefs = SharedPreferences.getInstance();
   return ThemeNotifier(prefs as SharedPreferences);
 });
-
-// Extension to convert ThemeMode enum to Flutter's ThemeMode
-extension ThemeModeExtension on ThemeMode {
-  flutter.ThemeMode toFlutterThemeMode() {
-    switch (this) {
-      case ThemeMode.light:
-        return flutter.ThemeMode.light;
-      case ThemeMode.dark:
-        return flutter.ThemeMode.dark;
-      case ThemeMode.system:
-        return flutter.ThemeMode.system;
-    }
-  }
-}

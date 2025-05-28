@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/models/property.dart';
+
 import 'package:nestery_flutter/providers/property_provider.dart';
-import 'package:nestery_flutter/utils/constants.dart';
+
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/property_card.dart';
-import 'package:nestery_flutter/widgets/section_title.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -15,9 +15,9 @@ class SearchScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? initialFilters;
 
   const SearchScreen({
-    Key? key,
+    super.key,
     this.initialFilters,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -26,7 +26,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _dateFormat = DateFormat('MMM dd, yyyy');
-  
+
   // Search filters
   String _location = '';
   DateTime? _checkInDate;
@@ -36,7 +36,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   List<String> _selectedAmenities = [];
   String _selectedPropertyType = 'All';
   double _minRating = 0;
-  
+
   // Filter options
   final List<String> _propertyTypes = ['All', 'Hotel', 'Apartment', 'Villa', 'Resort', 'Hostel'];
   final List<Map<String, dynamic>> _amenities = [
@@ -51,18 +51,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     {'id': 'kitchen', 'name': 'Kitchen', 'icon': Icons.kitchen},
     {'id': 'washer', 'name': 'Washer', 'icon': Icons.local_laundry_service},
   ];
-  
+
   bool _isFilterVisible = false;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Apply initial filters if provided
     if (widget.initialFilters != null) {
       _applyInitialFilters();
     }
-    
+
     // Set default dates if not provided
     if (_checkInDate == null) {
       _checkInDate = DateTime.now().add(const Duration(days: 1));
@@ -70,56 +70,56 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_checkOutDate == null) {
       _checkOutDate = DateTime.now().add(const Duration(days: 3));
     }
-    
+
     // Load search results when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _performSearch();
     });
   }
-  
+
   void _applyInitialFilters() {
     final filters = widget.initialFilters!;
-    
+
     if (filters.containsKey('location')) {
       _location = filters['location'];
       _searchController.text = _location;
     }
-    
+
     if (filters.containsKey('checkInDate')) {
       _checkInDate = filters['checkInDate'];
     }
-    
+
     if (filters.containsKey('checkOutDate')) {
       _checkOutDate = filters['checkOutDate'];
     }
-    
+
     if (filters.containsKey('guestCount')) {
       _guestCount = filters['guestCount'];
     }
-    
+
     if (filters.containsKey('priceRange')) {
       _priceRange = filters['priceRange'];
     }
-    
+
     if (filters.containsKey('amenities')) {
       _selectedAmenities = List<String>.from(filters['amenities']);
     }
-    
+
     if (filters.containsKey('propertyType')) {
       _selectedPropertyType = filters['propertyType'];
     }
-    
+
     if (filters.containsKey('minRating')) {
       _minRating = filters['minRating'];
     }
   }
-  
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-  
+
   void _performSearch() {
     // Prepare search parameters
     final searchParams = {
@@ -133,16 +133,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       'propertyType': _selectedPropertyType == 'All' ? null : _selectedPropertyType,
       'minRating': _minRating,
     };
-    
-    // Perform search
-    ref.read(searchPropertiesProvider.notifier).searchProperties(searchParams);
+
+    // Perform search using property search provider
+    ref.read(propertySearchProvider.notifier).searchProperties(
+      location: searchParams['query'] as String?,
+      checkIn: searchParams['checkInDate'] as DateTime?,
+      checkOut: searchParams['checkOutDate'] as DateTime?,
+      guests: searchParams['guestCount'] as int?,
+      minPrice: searchParams['minPrice'] as double?,
+      maxPrice: searchParams['maxPrice'] as double?,
+      amenities: searchParams['amenities'] as List<String>?,
+      propertyType: searchParams['propertyType'] as String?,
+      minRating: searchParams['minRating'] as double?,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final searchResults = ref.watch(searchPropertiesProvider);
-    
+    final searchResults = ref.watch(propertySearchProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
@@ -159,12 +169,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 children: [
                   Expanded(
                     child: CustomTextField(
+                      label: 'Search destinations',
                       controller: _searchController,
                       hint: 'Search destinations',
                       prefixIcon: const Icon(Icons.search),
-                      onSubmitted: (value) {
+                      onEditingComplete: () {
                         setState(() {
-                          _location = value;
+                          _location = _searchController.text;
                         });
                         _performSearch();
                       },
@@ -187,7 +198,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ],
               ),
             ),
-            
+
             // Filters
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -319,7 +330,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Guests
                       Text(
                         'Guests',
@@ -384,7 +395,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Price range
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -418,7 +429,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           });
                         },
                       ),
-                      
+
                       // Property type
                       Text(
                         'Property Type',
@@ -435,7 +446,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           itemBuilder: (context, index) {
                             final type = _propertyTypes[index];
                             final isSelected = _selectedPropertyType == type;
-                            
+
                             return GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -476,7 +487,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Amenities
                       Text(
                         'Amenities',
@@ -490,7 +501,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         runSpacing: 8,
                         children: _amenities.map((amenity) {
                           final isSelected = _selectedAmenities.contains(amenity['id']);
-                          
+
                           return GestureDetector(
                             onTap: () {
                               setState(() {
@@ -546,7 +557,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         }).toList(),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Apply filters button
                       SizedBox(
                         width: double.infinity,
@@ -566,7 +577,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
               ),
             ),
-            
+
             // Search results
             Expanded(
               child: searchResults.error != null
@@ -601,7 +612,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
     );
   }
-  
+
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -650,7 +661,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
     );
   }
-  
+
   Widget _buildErrorState(String error, VoidCallback onRetry) {
     return Center(
       child: Padding(

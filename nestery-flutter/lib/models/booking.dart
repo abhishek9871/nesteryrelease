@@ -20,6 +20,11 @@ class Booking {
   final String? supplierBookingReference;
   final DateTime createdAt;
 
+  // Additional fields expected by UI
+  final String? paymentMethod;
+  final String? paymentStatus;
+  final String? specialRequests;
+
   // Optional related objects
   final Property? property;
   final User? user;
@@ -41,6 +46,9 @@ class Booking {
     this.supplierId,
     this.supplierBookingReference,
     required this.createdAt,
+    this.paymentMethod,
+    this.paymentStatus,
+    this.specialRequests,
     this.property,
     this.user,
   });
@@ -93,6 +101,9 @@ class Booking {
       supplierId: json['supplierId'],
       supplierBookingReference: json['supplierBookingReference'],
       createdAt: DateTime.parse(json['createdAt']),
+      paymentMethod: json['paymentMethod'],
+      paymentStatus: json['paymentStatus'],
+      specialRequests: json['specialRequests'],
       property: json['property'] != null
           ? Property.fromJson(json['property'])
           : null,
@@ -131,6 +142,9 @@ class Booking {
       'supplierId': supplierId,
       'supplierBookingReference': supplierBookingReference,
       'createdAt': createdAt.toIso8601String(),
+      'paymentMethod': paymentMethod,
+      'paymentStatus': paymentStatus,
+      'specialRequests': specialRequests,
       // Don't include nested objects in JSON by default
     };
   }
@@ -153,6 +167,9 @@ class Booking {
     String? supplierId,
     String? supplierBookingReference,
     DateTime? createdAt,
+    String? paymentMethod,
+    String? paymentStatus,
+    String? specialRequests,
     Property? property,
     User? user,
   }) {
@@ -173,6 +190,9 @@ class Booking {
       supplierId: supplierId ?? this.supplierId,
       supplierBookingReference: supplierBookingReference ?? this.supplierBookingReference,
       createdAt: createdAt ?? this.createdAt,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      specialRequests: specialRequests ?? this.specialRequests,
       property: property ?? this.property,
       user: user ?? this.user,
     );

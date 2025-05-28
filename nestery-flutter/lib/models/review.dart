@@ -9,10 +9,15 @@ class Review {
   final String? comment;
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+
   // Optional related objects
   final Property? property;
   final User? user;
+
+  // Additional fields expected by UI
+  final String? userProfilePicture;
+  final String? userName;
+  final String? date; // Formatted date string
 
   Review({
     required this.id,
@@ -24,6 +29,9 @@ class Review {
     required this.updatedAt,
     this.property,
     this.user,
+    this.userProfilePicture,
+    this.userName,
+    this.date,
   });
 
   // Factory constructor to create a Review from JSON
@@ -36,12 +44,15 @@ class Review {
       comment: json['comment'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
-      property: json['property'] != null 
-          ? Property.fromJson(json['property']) 
+      property: json['property'] != null
+          ? Property.fromJson(json['property'])
           : null,
-      user: json['user'] != null 
-          ? User.fromJson(json['user']) 
+      user: json['user'] != null
+          ? User.fromJson(json['user'])
           : null,
+      userProfilePicture: json['userProfilePicture'],
+      userName: json['userName'],
+      date: json['date'],
     );
   }
 
@@ -70,6 +81,9 @@ class Review {
     DateTime? updatedAt,
     Property? property,
     User? user,
+    String? userProfilePicture,
+    String? userName,
+    String? date,
   }) {
     return Review(
       id: id ?? this.id,
@@ -81,6 +95,9 @@ class Review {
       updatedAt: updatedAt ?? this.updatedAt,
       property: property ?? this.property,
       user: user ?? this.user,
+      userProfilePicture: userProfilePicture ?? this.userProfilePicture,
+      userName: userName ?? this.userName,
+      date: date ?? this.date,
     );
   }
 

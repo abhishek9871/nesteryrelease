@@ -1,3 +1,6 @@
+import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/models/review.dart';
+
 class Property {
   final String id;
   final String name;
@@ -23,6 +26,18 @@ class Property {
   final String? externalUrl;
   final Map<String, dynamic>? metadata;
 
+  // Additional fields expected by UI
+  final List<String>? images;
+  final double? area;
+  final User? host;
+  final bool? smokingAllowed;
+  final bool? petsAllowed;
+  final bool? partiesAllowed;
+  final String? checkInTime;
+  final String? checkOutTime;
+  final String? cancellationPolicy;
+  final List<Review>? reviews;
+
   Property({
     required this.id,
     required this.name,
@@ -47,6 +62,16 @@ class Property {
     this.externalId,
     this.externalUrl,
     this.metadata,
+    this.images,
+    this.area,
+    this.host,
+    this.smokingAllowed,
+    this.petsAllowed,
+    this.partiesAllowed,
+    this.checkInTime,
+    this.checkOutTime,
+    this.cancellationPolicy,
+    this.reviews,
   });
 
   // Full address getter
@@ -96,6 +121,28 @@ class Property {
       externalId: json['externalId'],
       externalUrl: json['externalUrl'],
       metadata: json['metadata'],
+      images: json['images'] != null
+          ? List<String>.from(json['images'])
+          : null,
+      area: json['area'] != null
+          ? (json['area'] is int
+              ? (json['area'] as int).toDouble()
+              : json['area'])
+          : null,
+      host: json['host'] != null
+          ? User.fromJson(json['host'])
+          : null,
+      smokingAllowed: json['smokingAllowed'],
+      petsAllowed: json['petsAllowed'],
+      partiesAllowed: json['partiesAllowed'],
+      checkInTime: json['checkInTime'],
+      checkOutTime: json['checkOutTime'],
+      cancellationPolicy: json['cancellationPolicy'],
+      reviews: json['reviews'] != null
+          ? (json['reviews'] as List)
+              .map((reviewJson) => Review.fromJson(reviewJson))
+              .toList()
+          : null,
     );
   }
 
@@ -125,6 +172,16 @@ class Property {
       'externalId': externalId,
       'externalUrl': externalUrl,
       'metadata': metadata,
+      'images': images,
+      'area': area,
+      'host': host?.toJson(),
+      'smokingAllowed': smokingAllowed,
+      'petsAllowed': petsAllowed,
+      'partiesAllowed': partiesAllowed,
+      'checkInTime': checkInTime,
+      'checkOutTime': checkOutTime,
+      'cancellationPolicy': cancellationPolicy,
+      'reviews': reviews?.map((review) => review.toJson()).toList(),
     };
   }
 
@@ -153,6 +210,16 @@ class Property {
     String? externalId,
     String? externalUrl,
     Map<String, dynamic>? metadata,
+    List<String>? images,
+    double? area,
+    User? host,
+    bool? smokingAllowed,
+    bool? petsAllowed,
+    bool? partiesAllowed,
+    String? checkInTime,
+    String? checkOutTime,
+    String? cancellationPolicy,
+    List<Review>? reviews,
   }) {
     return Property(
       id: id ?? this.id,
@@ -178,6 +245,16 @@ class Property {
       externalId: externalId ?? this.externalId,
       externalUrl: externalUrl ?? this.externalUrl,
       metadata: metadata ?? this.metadata,
+      images: images ?? this.images,
+      area: area ?? this.area,
+      host: host ?? this.host,
+      smokingAllowed: smokingAllowed ?? this.smokingAllowed,
+      petsAllowed: petsAllowed ?? this.petsAllowed,
+      partiesAllowed: partiesAllowed ?? this.partiesAllowed,
+      checkInTime: checkInTime ?? this.checkInTime,
+      checkOutTime: checkOutTime ?? this.checkOutTime,
+      cancellationPolicy: cancellationPolicy ?? this.cancellationPolicy,
+      reviews: reviews ?? this.reviews,
     );
   }
 }

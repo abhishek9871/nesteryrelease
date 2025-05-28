@@ -58,12 +58,12 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK') {
-        throw ApiException(message: 'Geocoding failed: ${response.data['status']}');
+        throw ApiException(message: 'Geocoding failed: ${response.data['status']}', statusCode: 400);
       }
 
       final results = response.data['results'];
       if (results.isEmpty) {
-        throw ApiException(message: 'No results found for address: $address');
+        throw ApiException(message: 'No results found for address: $address', statusCode: 404);
       }
 
       final location = results[0]['geometry']['location'];
@@ -75,7 +75,7 @@ class GoogleMapsService {
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to geocode address: $e');
+      throw ApiException(message: 'Failed to geocode address: $e', statusCode: 500);
     }
   }
 
@@ -90,12 +90,12 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK') {
-        throw ApiException(message: 'Reverse geocoding failed: ${response.data['status']}');
+        throw ApiException(message: 'Reverse geocoding failed: ${response.data['status']}', statusCode: 400);
       }
 
       final results = response.data['results'];
       if (results.isEmpty) {
-        throw ApiException(message: 'No results found for coordinates: $coordinates');
+        throw ApiException(message: 'No results found for coordinates: $coordinates', statusCode: 404);
       }
 
       return {
@@ -105,7 +105,7 @@ class GoogleMapsService {
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to reverse geocode: $e');
+      throw ApiException(message: 'Failed to reverse geocode: $e', statusCode: 500);
     }
   }
 
@@ -136,14 +136,14 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK') {
-        throw ApiException(message: 'Directions request failed: ${response.data['status']}');
+        throw ApiException(message: 'Directions request failed: ${response.data['status']}', statusCode: 400);
       }
 
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get directions: $e');
+      throw ApiException(message: 'Failed to get directions: $e', statusCode: 500);
     }
   }
 
@@ -168,14 +168,14 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK' && response.data['status'] != 'ZERO_RESULTS') {
-        throw ApiException(message: 'Nearby places request failed: ${response.data['status']}');
+        throw ApiException(message: 'Nearby places request failed: ${response.data['status']}', statusCode: 400);
       }
 
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get nearby places: $e');
+      throw ApiException(message: 'Failed to get nearby places: $e', statusCode: 500);
     }
   }
 
@@ -195,14 +195,14 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK') {
-        throw ApiException(message: 'Place details request failed: ${response.data['status']}');
+        throw ApiException(message: 'Place details request failed: ${response.data['status']}', statusCode: 400);
       }
 
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get place details: $e');
+      throw ApiException(message: 'Failed to get place details: $e', statusCode: 500);
     }
   }
 
@@ -227,14 +227,14 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK') {
-        throw ApiException(message: 'Distance matrix request failed: ${response.data['status']}');
+        throw ApiException(message: 'Distance matrix request failed: ${response.data['status']}', statusCode: 400);
       }
 
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get distance matrix: $e');
+      throw ApiException(message: 'Failed to get distance matrix: $e', statusCode: 500);
     }
   }
 
@@ -265,14 +265,14 @@ class GoogleMapsService {
       );
 
       if (response.data['status'] != 'OK' && response.data['status'] != 'ZERO_RESULTS') {
-        throw ApiException(message: 'Place autocomplete request failed: ${response.data['status']}');
+        throw ApiException(message: 'Place autocomplete request failed: ${response.data['status']}', statusCode: 400);
       }
 
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get place autocomplete: $e');
+      throw ApiException(message: 'Failed to get place autocomplete: $e', statusCode: 500);
     }
   }
 
@@ -373,7 +373,7 @@ class GoogleMapsService {
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get route: $e');
+      throw ApiException(message: 'Failed to get route: $e', statusCode: 500);
     }
   }
 }

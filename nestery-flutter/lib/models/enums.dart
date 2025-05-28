@@ -49,6 +49,11 @@ extension BookingStatusExtension on BookingStatus {
     }
   }
 
+  // Add toLowerCase method for UI compatibility
+  String toLowerCase() {
+    return value.toLowerCase();
+  }
+
   static BookingStatus fromString(String value) {
     switch (value.toLowerCase()) {
       case 'confirmed':

@@ -1,40 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
-import 'package:nestery_flutter/widgets/loading_overlay.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+class SplashScreen extends ConsumerStatefulWidget {
+  const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animation
     _animationController = AnimationController(
       vsync: this,
       duration: Constants.longAnimationDuration,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: Curves.easeIn,
       ),
     );
-    
+
     // Start animation
     _animationController.forward();
-    
+
     // Check authentication status after a delay
     Future.delayed(const Duration(seconds: 2), () {
       _checkAuthAndNavigate();
@@ -49,9 +48,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   // Check authentication status and navigate accordingly
   Future<void> _checkAuthAndNavigate() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    if (authProvider.isAuthenticated) {
+    final authState = ref.read(authProvider);
+
+    if (authState.isAuthenticated) {
       // User is authenticated, navigate to home screen
       Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
     } else {
@@ -76,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 height: 150,
               ),
               const SizedBox(height: Constants.largePadding),
-              
+
               // App name
               const Text(
                 'Nestery',
@@ -87,14 +86,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
               const SizedBox(height: Constants.smallPadding),
-              
+
               // Tagline
               const Text(
                 'Find your perfect stay',
                 style: Constants.subheadingStyle,
               ),
               const SizedBox(height: Constants.extraLargePadding),
-              
+
               // Loading indicator
               const CircularProgressIndicator(),
             ],

@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/models/property.dart';
 import 'package:nestery_flutter/providers/property_provider.dart';
 import 'package:nestery_flutter/providers/missing_providers.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/property_card.dart';
-import 'package:nestery_flutter/widgets/search_bar.dart';
 import 'package:nestery_flutter/widgets/section_title.dart';
 import 'package:go_router/go_router.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -25,11 +23,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Load featured properties when screen initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(featuredPropertiesProvider.notifier).loadFeaturedProperties();
-      ref.read(recommendedPropertiesProvider.notifier).loadRecommendedProperties();
-    });
+    // FutureProviders automatically load when watched, no manual loading needed
   }
 
   @override
@@ -44,8 +38,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           isLoading: featuredProperties.isLoading && recommendedProperties.isLoading,
           child: RefreshIndicator(
             onRefresh: () async {
-              await ref.read(featuredPropertiesProvider.notifier).loadFeaturedProperties();
-              await ref.read(recommendedPropertiesProvider.notifier).loadRecommendedProperties();
+              ref.invalidate(featuredPropertiesProvider);
+              ref.invalidate(recommendedPropertiesProvider);
             },
             child: CustomScrollView(
               slivers: [
@@ -90,46 +84,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: SearchBar(
-                      readOnly: true,
+                    child: GestureDetector(
                       onTap: () {
                         context.go('/search');
                       },
-                      onFilterTap: () {
-                        // Show filter sheet
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(24),
-                              topRight: Radius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.search,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
-                          ),
-                          builder: (context) => FilterSheet(
-                            initialFilters: {},
-                            onApply: (filters) {
-                              // Apply filters
-                              context.go('/search', extra: filters);
-                            },
-                          ),
-                        );
-                      },
+                            const SizedBox(width: 12),
+                            Text(
+                              'Search properties...',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(
+                              Icons.tune,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
 
                 // Categories
                 SliverToBoxAdapter(
-                  child: CategorySelector(
-                    categories: _categories,
-                    selectedCategory: _selectedCategory,
-                    onCategorySelected: (category) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                      // Filter properties by category
-                    },
+                  child: SizedBox(
+                    height: 50,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _categories.length,
+                      itemBuilder: (context, index) {
+                        final category = _categories[index];
+                        final isSelected = category == _selectedCategory;
+                        return Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          child: FilterChip(
+                            label: Text(category),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedCategory = category;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
 
@@ -148,47 +165,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 300,
-                    child: featuredProperties.error != null
-                        ? ErrorRetryWidget(
-                            message: featuredProperties.error!,
-                            onRetry: () {
-                              ref.read(featuredPropertiesProvider.notifier).loadFeaturedProperties();
+                    child: featuredProperties.isLoading
+                        ? ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: 3,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                width: 280,
+                                margin: const EdgeInsets.only(right: 16),
+                                child: const Card(
+                                  child: SizedBox(height: 200),
+                                ),
+                              );
                             },
                           )
-                        : featuredProperties.properties.isEmpty && !featuredProperties.isLoading
-                            ? const EmptyStateWidget(
-                                title: 'No Featured Properties',
-                                message: 'We couldn\'t find any featured properties at the moment.',
-                                icon: Icons.home_work_outlined,
-                              )
-                            : ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                itemCount: featuredProperties.isLoading
-                                    ? 3
-                                    : featuredProperties.properties.length,
-                                itemBuilder: (context, index) {
-                                  if (featuredProperties.isLoading) {
-                                    return Container(
-                                      width: 280,
-                                      margin: const EdgeInsets.only(right: 16),
-                                      child: const PropertyCardShimmer(),
-                                    );
-                                  }
-
-                                  final property = featuredProperties.properties[index];
-                                  return Container(
-                                    width: 280,
-                                    margin: const EdgeInsets.only(right: 16),
-                                    child: PropertyCard(
-                                      property: property,
-                                      onTap: () {
-                                        context.go('/property/${property.id}');
+                        : featuredProperties.error != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('Error: ${featuredProperties.error}'),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        ref.read(featuredPropertiesProvider.notifier).loadFeaturedProperties();
                                       },
+                                      child: const Text('Retry'),
                                     ),
-                                  );
-                                },
-                              ),
+                                  ],
+                                ),
+                              )
+                            : featuredProperties.properties.isEmpty
+                                ? const Center(
+                                    child: Text('No featured properties available'),
+                                  )
+                                : ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    itemCount: featuredProperties.properties.length,
+                                    itemBuilder: (context, index) {
+                                      final property = featuredProperties.properties[index];
+                                      return Container(
+                                        width: 280,
+                                        margin: const EdgeInsets.only(right: 16),
+                                        child: PropertyCard(
+                                          property: property,
+                                          onTap: () {
+                                            context.go('/property/${property.id}');
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
                   ),
                 ),
 
@@ -207,47 +235,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      if (recommendedProperties.isLoading) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: PropertyCardShimmer(isHorizontal: true),
-                        );
-                      }
+                      return recommendedProperties.when(
+                        data: (properties) {
+                          if (properties.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: Text('No recommendations available'),
+                              ),
+                            );
+                          }
+                          if (index >= properties.length) return const SizedBox.shrink();
 
-                      if (recommendedProperties.error != null) {
-                        return ErrorRetryWidget(
-                          message: recommendedProperties.error!,
-                          onRetry: () {
-                            ref.read(recommendedPropertiesProvider.notifier).loadRecommendedProperties();
-                          },
-                        );
-                      }
-
-                      if (recommendedProperties.properties.isEmpty) {
-                        return const EmptyStateWidget(
-                          title: 'No Recommendations Yet',
-                          message: 'We\'ll recommend properties based on your preferences and browsing history.',
-                          icon: Icons.recommend_outlined,
-                        );
-                      }
-
-                      final property = recommendedProperties.properties[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: PropertyCard(
-                          property: property,
-                          isHorizontal: true,
-                          onTap: () {
-                            context.go('/property/${property.id}');
-                          },
+                          final property = properties[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: PropertyCard(
+                              property: property,
+                              isHorizontal: true,
+                              onTap: () {
+                                context.go('/property/${property.id}');
+                              },
+                            ),
+                          );
+                        },
+                        loading: () => const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Card(
+                            child: SizedBox(height: 120),
+                          ),
+                        ),
+                        error: (error, stack) => Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Text('Error: ${error.toString()}'),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    ref.invalidate(recommendedPropertiesProvider);
+                                  },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },
-                    childCount: recommendedProperties.isLoading
-                        ? 3
-                        : recommendedProperties.error != null || recommendedProperties.properties.isEmpty
-                            ? 1
-                            : recommendedProperties.properties.length,
+                    childCount: recommendedProperties.when(
+                      data: (properties) => properties.isEmpty ? 1 : properties.length,
+                      loading: () => 3,
+                      error: (_, __) => 1,
+                    ),
                   ),
                 ),
 

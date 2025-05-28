@@ -12,6 +12,8 @@ import 'package:nestery_flutter/screens/bookings_screen.dart';
 import 'package:nestery_flutter/screens/search_screen.dart';
 import 'package:nestery_flutter/screens/profile_screen.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
+import 'package:nestery_flutter/models/booking.dart';
+import 'package:nestery_flutter/models/enums.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -21,29 +23,29 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
-    
+
     // Redirect logic based on authentication state
     redirect: (BuildContext context, GoRouterState state) {
       final authState = ProviderScope.containerOf(context).read(authProvider);
       final isLoggedIn = authState.isAuthenticated;
-      
+
       // Paths that don't require authentication
       final publicPaths = ['/login', '/register', '/'];
-      
+
       // If the user is not logged in and trying to access a protected route
       if (!isLoggedIn && !publicPaths.contains(state.matchedLocation)) {
         return '/login';
       }
-      
+
       // If the user is logged in and trying to access login/register
       if (isLoggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
         return '/home';
       }
-      
+
       // No redirection needed
       return null;
     },
-    
+
     // Route configuration
     routes: [
       // Splash screen
@@ -51,7 +53,7 @@ class AppRouter {
         path: '/',
         builder: (context, state) => const SplashScreen(),
       ),
-      
+
       // Authentication routes
       GoRoute(
         path: '/login',
@@ -61,7 +63,7 @@ class AppRouter {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      
+
       // Main app shell with bottom navigation
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -87,22 +89,49 @@ class AppRouter {
                     path: 'book',
                     builder: (context, state) {
                       final propertyId = state.pathParameters['id']!;
-                      return BookingScreen(propertyId: propertyId);
+                      final bookingData = state.extra as Map<String, dynamic>? ?? {
+                        'propertyId': propertyId,
+                        'checkInDate': DateTime.now().add(const Duration(days: 1)),
+                        'checkOutDate': DateTime.now().add(const Duration(days: 3)),
+                        'guestCount': 1,
+                        'totalPrice': 0.0,
+                      };
+                      return BookingScreen(bookingData: bookingData);
                     },
                   ),
                   // Booking confirmation (nested under property details)
                   GoRoute(
                     path: 'confirmation/:bookingId',
                     builder: (context, state) {
-                      final bookingId = state.pathParameters['bookingId']!;
-                      return BookingConfirmationScreen(bookingId: bookingId);
+                      final booking = state.extra as Booking?;
+                      if (booking != null) {
+                        return BookingConfirmationScreen(booking: booking);
+                      } else {
+                        // Fallback: create a minimal booking object from bookingId
+                        final bookingId = state.pathParameters['bookingId']!;
+                        return BookingConfirmationScreen(
+                          booking: Booking(
+                            id: bookingId,
+                            propertyId: 'unknown',
+                            propertyName: 'Unknown Property',
+                            checkInDate: DateTime.now(),
+                            checkOutDate: DateTime.now().add(const Duration(days: 1)),
+                            numberOfGuests: 1,
+                            totalPrice: 0.0,
+                            currency: 'USD',
+                            status: BookingStatus.confirmed,
+                            confirmationCode: 'CONF-$bookingId',
+                            createdAt: DateTime.now(),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ],
               ),
             ],
           ),
-          
+
           // Search tab
           GoRoute(
             path: '/search',
@@ -118,7 +147,7 @@ class AppRouter {
               ),
             ],
           ),
-          
+
           // Bookings tab
           GoRoute(
             path: '/bookings',
@@ -128,13 +157,33 @@ class AppRouter {
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
-                  final bookingId = state.pathParameters['id']!;
-                  return BookingConfirmationScreen(bookingId: bookingId);
+                  final booking = state.extra as Booking?;
+                  if (booking != null) {
+                    return BookingConfirmationScreen(booking: booking);
+                  } else {
+                    // Fallback: create a minimal booking object from bookingId
+                    final bookingId = state.pathParameters['id']!;
+                    return BookingConfirmationScreen(
+                      booking: Booking(
+                        id: bookingId,
+                        propertyId: 'unknown',
+                        propertyName: 'Unknown Property',
+                        checkInDate: DateTime.now(),
+                        checkOutDate: DateTime.now().add(const Duration(days: 1)),
+                        numberOfGuests: 1,
+                        totalPrice: 0.0,
+                        currency: 'USD',
+                        status: BookingStatus.confirmed,
+                        confirmationCode: 'CONF-$bookingId',
+                        createdAt: DateTime.now(),
+                      ),
+                    );
+                  }
                 },
               ),
             ],
           ),
-          
+
           // Profile tab
           GoRoute(
             path: '/profile',
@@ -143,7 +192,7 @@ class AppRouter {
         ],
       ),
     ],
-    
+
     // Error handling
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/utils/constants.dart';
 
 class SectionTitle extends ConsumerWidget {
   final String title;
@@ -21,7 +20,7 @@ class SectionTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: padding,
       child: Column(
@@ -85,7 +84,7 @@ class CategorySelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: padding,
       child: SizedBox(
@@ -97,7 +96,7 @@ class CategorySelector extends ConsumerWidget {
           itemBuilder: (context, index) {
             final category = categories[index];
             final isSelected = category == selectedCategory;
-            
+
             return GestureDetector(
               onTap: () => onCategorySelected(category),
               child: Container(
@@ -146,7 +145,7 @@ class EmptyStateWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -216,7 +215,7 @@ class ErrorRetryWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),

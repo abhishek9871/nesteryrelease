@@ -15,6 +15,17 @@ class User {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // Additional fields expected by UI
+  final String? phone; // Alias for phoneNumber for UI compatibility
+  final String? preferredCurrency;
+  final String? preferredLanguage;
+  final int? bookingsCount;
+  final int? reviewsCount;
+  final int? savedPropertiesCount;
+  final String? memberSince; // For host information
+  final double? rating; // Host rating
+  final int? reviewCount; // Host review count
+
   User({
     required this.id,
     required this.email,
@@ -31,6 +42,15 @@ class User {
     this.preferences,
     required this.createdAt,
     required this.updatedAt,
+    this.phone,
+    this.preferredCurrency,
+    this.preferredLanguage,
+    this.bookingsCount,
+    this.reviewsCount,
+    this.savedPropertiesCount,
+    this.memberSince,
+    this.rating,
+    this.reviewCount,
   });
 
   // Full name getter
@@ -54,6 +74,19 @@ class User {
       preferences: json['preferences'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
+      phone: json['phone'] ?? json['phoneNumber'], // Use phone field or fallback to phoneNumber
+      preferredCurrency: json['preferredCurrency'],
+      preferredLanguage: json['preferredLanguage'],
+      bookingsCount: json['bookingsCount'],
+      reviewsCount: json['reviewsCount'],
+      savedPropertiesCount: json['savedPropertiesCount'],
+      memberSince: json['memberSince'],
+      rating: json['rating'] != null
+          ? (json['rating'] is int
+              ? (json['rating'] as int).toDouble()
+              : json['rating'])
+          : null,
+      reviewCount: json['reviewCount'],
     );
   }
 
@@ -75,6 +108,15 @@ class User {
       'preferences': preferences,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'phone': phone,
+      'preferredCurrency': preferredCurrency,
+      'preferredLanguage': preferredLanguage,
+      'bookingsCount': bookingsCount,
+      'reviewsCount': reviewsCount,
+      'savedPropertiesCount': savedPropertiesCount,
+      'memberSince': memberSince,
+      'rating': rating,
+      'reviewCount': reviewCount,
     };
   }
 
@@ -95,6 +137,15 @@ class User {
     Map<String, dynamic>? preferences,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? phone,
+    String? preferredCurrency,
+    String? preferredLanguage,
+    int? bookingsCount,
+    int? reviewsCount,
+    int? savedPropertiesCount,
+    String? memberSince,
+    double? rating,
+    int? reviewCount,
   }) {
     return User(
       id: id ?? this.id,
@@ -112,6 +163,15 @@ class User {
       preferences: preferences ?? this.preferences,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      phone: phone ?? this.phone,
+      preferredCurrency: preferredCurrency ?? this.preferredCurrency,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      bookingsCount: bookingsCount ?? this.bookingsCount,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
+      savedPropertiesCount: savedPropertiesCount ?? this.savedPropertiesCount,
+      memberSince: memberSince ?? this.memberSince,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
     );
   }
 }

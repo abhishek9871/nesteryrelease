@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/property_repository.dart';
 import 'package:nestery_flutter/data/repositories/booking_repository.dart';
 import 'package:nestery_flutter/data/repositories/user_repository.dart';

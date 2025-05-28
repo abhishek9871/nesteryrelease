@@ -5,8 +5,7 @@ import 'package:nestery_flutter/providers/property_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
-import 'package:nestery_flutter/widgets/section_title.dart';
-import 'package:nestery_flutter/providers/booking_provider.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -28,7 +27,6 @@ class PropertyDetailsScreen extends ConsumerStatefulWidget {
 class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
-  final DateFormat _shortDateFormat = DateFormat('MMM dd');
 
   // Booking dates
   DateTime? _checkInDate;
@@ -42,7 +40,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
 
     // Load property details when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(propertyDetailsProvider(widget.propertyId).notifier).loadPropertyDetails();
+      // Property details are automatically loaded by the provider
 
       // Set default check-in and check-out dates
       final now = DateTime.now();
@@ -564,7 +562,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       );
     }
 
-    final images = property.images ?? [property.thumbnailImage];
+    final images = property.images ?? [property.thumbnailImage].whereType<String>().toList();
 
     if (images.isEmpty) {
       return Container(
@@ -839,7 +837,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                           ),
                         ),
                         RatingBar.builder(
-                          initialRating: review.rating ?? 0,
+                          initialRating: (review.rating ?? 0).toDouble(),
                           minRating: 1,
                           direction: Axis.horizontal,
                           allowHalfRating: true,
@@ -1128,46 +1126,26 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       children: [
         // Map
         Expanded(
-          child: property.latitude != null && property.longitude != null
-              ? GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(property.latitude!, property.longitude!),
-                    zoom: 14,
-                  ),
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('property'),
-                      position: LatLng(property.latitude!, property.longitude!),
-                      infoWindow: InfoWindow(
-                        title: property.name,
-                        snippet: property.address,
-                      ),
-                    ),
-                  },
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                  zoomControlsEnabled: true,
-                  mapToolbarEnabled: true,
-                )
-              : Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.location_off,
-                        size: 64,
-                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Location not available',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+          child: GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: LatLng(property.latitude, property.longitude),
+              zoom: 14,
+            ),
+            markers: {
+              Marker(
+                markerId: const MarkerId('property'),
+                position: LatLng(property.latitude, property.longitude),
+                infoWindow: InfoWindow(
+                  title: property.name,
+                  snippet: property.address,
                 ),
+              ),
+            },
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            zoomControlsEnabled: true,
+            mapToolbarEnabled: true,
+          ),
         ),
 
         // Location details
@@ -1194,7 +1172,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
               ),
               const SizedBox(height: 8),
               Text(
-                '${property.address ?? ''}, ${property.city ?? ''}, ${property.country ?? ''}',
+                '${property.address}, ${property.city}, ${property.country}',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
@@ -1248,7 +1226,8 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                ref.read(propertyDetailsProvider(widget.propertyId).notifier).loadPropertyDetails();
+                // Refresh the provider by invalidating it
+                ref.invalidate(propertyDetailsProvider(widget.propertyId));
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),

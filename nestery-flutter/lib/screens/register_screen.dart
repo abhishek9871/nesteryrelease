@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -47,20 +47,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    try {
-      await Provider.of<AuthProvider>(context, listen: false).register(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      
+    // Split the name into first and last name
+    final nameParts = _nameController.text.trim().split(' ');
+    final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+    final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+    final success = await ref.read(authProvider.notifier).register(
+      firstName,
+      lastName,
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    if (success) {
       // Navigate to home screen on successful registration
       Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
-    } catch (error) {
+    } else {
       // Show error message
+      final authState = ref.read(authProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(authState.errorMessage ?? 'Registration failed'),
           backgroundColor: Constants.errorColor,
         ),
       );
@@ -69,10 +76,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    
+    final authState = ref.watch(authProvider);
+
     return LoadingOverlay(
-      isLoading: authProvider.isLoading,
+      isLoading: authState.isLoading,
       child: Scaffold(
         body: SafeArea(
           child: Center(
@@ -90,7 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       height: 100,
                     ),
                     const SizedBox(height: Constants.largePadding),
-                    
+
                     // Welcome text
                     const Text(
                       'Create Account',
@@ -104,13 +111,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: Constants.extraLargePadding),
-                    
+
                     // Name field
                     CustomTextField(
                       controller: _nameController,
-                      labelText: 'Full Name',
-                      hintText: 'Enter your full name',
-                      prefixIcon: Icons.person_outline,
+                      label: 'Full Name',
+                      hint: 'Enter your full name',
+                      prefixIcon: const Icon(Icons.person_outline),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your name';
@@ -119,13 +126,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Email field
                     CustomTextField(
                       controller: _emailController,
-                      labelText: 'Email',
-                      hintText: 'Enter your email',
-                      prefixIcon: Icons.email_outlined,
+                      label: 'Email',
+                      hint: 'Enter your email',
+                      prefixIcon: const Icon(Icons.email_outlined),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -138,13 +145,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Password field
                     CustomTextField(
                       controller: _passwordController,
-                      labelText: 'Password',
-                      hintText: 'Enter your password',
-                      prefixIcon: Icons.lock_outline,
+                      label: 'Password',
+                      hint: 'Enter your password',
+                      prefixIcon: const Icon(Icons.lock_outline),
                       obscureText: !_isPasswordVisible,
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -169,13 +176,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Confirm Password field
                     CustomTextField(
                       controller: _confirmPasswordController,
-                      labelText: 'Confirm Password',
-                      hintText: 'Confirm your password',
-                      prefixIcon: Icons.lock_outline,
+                      label: 'Confirm Password',
+                      hint: 'Confirm your password',
+                      prefixIcon: const Icon(Icons.lock_outline),
                       obscureText: !_isConfirmPasswordVisible,
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -200,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Terms and conditions
                     Row(
                       children: [
@@ -233,14 +240,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                     const SizedBox(height: Constants.largePadding),
-                    
+
                     // Register button
                     CustomButton(
                       text: 'Register',
                       onPressed: _register,
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Login link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

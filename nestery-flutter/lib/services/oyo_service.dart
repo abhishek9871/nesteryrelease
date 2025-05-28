@@ -105,7 +105,7 @@ class OyoService {
       }
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to search hotels: $e');
+      throw ApiException(message: 'Failed to search hotels: $e', statusCode: 500);
     }
   }
 
@@ -137,7 +137,7 @@ class OyoService {
       }
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get hotel details: $e');
+      throw ApiException(message: 'Failed to get hotel details: $e', statusCode: 500);
     }
   }
 
@@ -179,7 +179,7 @@ class OyoService {
       }
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get room availability: $e');
+      throw ApiException(message: 'Failed to get room availability: $e', statusCode: 500);
     }
   }
 
@@ -242,7 +242,7 @@ class OyoService {
       }
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to create booking: $e');
+      throw ApiException(message: 'Failed to create booking: $e', statusCode: 500);
     }
   }
 
@@ -268,7 +268,7 @@ class OyoService {
       }
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to get booking details: $e');
+      throw ApiException(message: 'Failed to get booking details: $e', statusCode: 500);
     }
   }
 
@@ -294,7 +294,7 @@ class OyoService {
       }
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to cancel booking: $e');
+      throw ApiException(message: 'Failed to cancel booking: $e', statusCode: 500);
     }
   }
 
@@ -425,12 +425,12 @@ class OyoService {
           return _mapHotelbedsToOyoResponse(response.data, 'cancelBooking');
 
         default:
-          throw ApiException(message: 'Unsupported method: $method');
+          throw ApiException(message: 'Unsupported method: $method', statusCode: 400);
       }
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
-      throw ApiException(message: 'Failed to fallback to aggregator: $e');
+      throw ApiException(message: 'Failed to fallback to aggregator: $e', statusCode: 500);
     }
   }
 

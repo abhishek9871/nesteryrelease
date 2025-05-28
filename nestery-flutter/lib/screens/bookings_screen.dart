@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/models/booking.dart';
-import 'package:nestery_flutter/providers/booking_provider.dart';
+import 'package:nestery_flutter/models/enums.dart';
 import 'package:nestery_flutter/providers/missing_providers.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
-import 'package:nestery_flutter/widgets/section_title.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class BookingsScreen extends ConsumerStatefulWidget {
-  const BookingsScreen({Key? key}) : super(key: key);
+  const BookingsScreen({super.key});
 
   @override
   ConsumerState<BookingsScreen> createState() => _BookingsScreenState();
@@ -154,13 +153,13 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
               ),
-              image: booking.property.thumbnailImage != null
+              image: booking.property?.thumbnailImage != null
                   ? DecorationImage(
-                      image: NetworkImage(booking.property.thumbnailImage!),
+                      image: NetworkImage(booking.property!.thumbnailImage!),
                       fit: BoxFit.cover,
                     )
                   : null,
-              color: booking.property.thumbnailImage == null
+              color: booking.property?.thumbnailImage == null
                   ? Colors.grey[300]
                   : null,
             ),
@@ -176,11 +175,11 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(booking.status),
+                      color: _getStatusColor(booking.status.value),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      booking.status,
+                      booking.status.value,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -203,7 +202,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      booking.property.sourceType,
+                      booking.property?.sourceType ?? 'Direct',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -245,7 +244,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        booking.property.name,
+                        booking.property?.name ?? booking.propertyName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -264,7 +263,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '${booking.property.city}, ${booking.property.country}',
+                              '${booking.property?.city ?? 'Unknown'}, ${booking.property?.country ?? 'Unknown'}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: Colors.white,
                               ),
@@ -396,7 +395,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${booking.property.currency} ${booking.totalAmount.toStringAsFixed(2)}',
+                            '${booking.currency} ${booking.totalAmount.toStringAsFixed(2)}',
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: theme.colorScheme.primary,
@@ -422,29 +421,27 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                       ),
                     ),
                     const SizedBox(width: 12),
-                    if (booking.status.toLowerCase() == 'confirmed') ...[
+                    if (booking.status.value.toLowerCase() == 'confirmed') ...[
                       Expanded(
                         child: CustomButton(
                           text: 'Cancel',
                           onPressed: () {
                             _showCancellationDialog(context, booking);
                           },
-                          backgroundColor: Colors.red.withOpacity(0.1),
+                          backgroundColor: Colors.red.withValues(alpha: 0.1),
                           textColor: Colors.red,
-                          borderColor: Colors.red,
                           height: 40,
                         ),
                       ),
-                    ] else if (booking.status.toLowerCase() == 'completed') ...[
+                    ] else if (booking.status.value.toLowerCase() == 'completed') ...[
                       Expanded(
                         child: CustomButton(
                           text: 'Review',
                           onPressed: () {
                             _showReviewDialog(context, booking);
                           },
-                          backgroundColor: theme.colorScheme.secondary.withOpacity(0.1),
+                          backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.1),
                           textColor: theme.colorScheme.secondary,
-                          borderColor: theme.colorScheme.secondary,
                           height: 40,
                         ),
                       ),
@@ -578,7 +575,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
             ),
             const SizedBox(height: 8),
             Text(
-              booking.property.cancellationPolicy ?? 'Standard cancellation policy applies. Please contact support for more information.',
+              booking.property?.cancellationPolicy ?? 'Standard cancellation policy applies. Please contact support for more information.',
               style: theme.textTheme.bodyMedium,
             ),
           ],
@@ -601,12 +598,14 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   ref.read(userBookingsProvider.notifier).loadUserBookings();
 
                   // Show success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Booking cancelled successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Booking cancelled successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
                 }
               });
             },
@@ -634,7 +633,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'How was your stay at ${booking.property.name}?',
+              'How was your stay at ${booking.property?.name ?? 'this property'}?',
               style: theme.textTheme.bodyLarge,
             ),
             const SizedBox(height: 16),
@@ -703,22 +702,24 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   Navigator.of(context).pop();
 
                   // Submit review
-                  ref.read(submitReviewProvider.notifier).submitReview(
-                    bookingId: booking.id,
-                    propertyId: booking.property.id,
-                    rating: rating,
-                    comment: commentController.text,
-                  ).then((success) {
-                    if (success) {
-                      // Show success message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Review submitted successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  });
+                  if (booking.property?.id != null) {
+                    ref.read(submitReviewProvider.notifier).submitReview(
+                      bookingId: booking.id,
+                      propertyId: booking.property!.id,
+                      rating: rating,
+                      comment: commentController.text,
+                    ).then((success) {
+                      if (success && context.mounted) {
+                        // Show success message
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Review submitted successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    });
+                  }
                 },
                 child: const Text('Submit Review'),
               );

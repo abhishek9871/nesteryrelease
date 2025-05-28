@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/models/booking.dart';
-import 'package:nestery_flutter/providers/booking_provider.dart';
-import 'package:nestery_flutter/utils/constants.dart';
+import 'package:nestery_flutter/models/enums.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -13,15 +12,15 @@ class BookingConfirmationScreen extends ConsumerWidget {
   final Booking booking;
 
   const BookingConfirmationScreen({
-    Key? key,
+    super.key,
     required this.booking,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final dateFormat = DateFormat('MMM dd, yyyy');
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Booking Confirmation'),
@@ -55,7 +54,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Success message
             Text(
               'Booking Confirmed!',
@@ -72,7 +71,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            
+
             // Booking ID
             Container(
               padding: const EdgeInsets.all(16),
@@ -96,7 +95,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // QR Code
                   QrImageView(
                     data: 'NESTERY_BOOKING:${booking.id}',
@@ -113,7 +112,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Booking details
             Container(
               padding: const EdgeInsets.all(16),
@@ -136,12 +135,12 @@ class BookingConfirmationScreen extends ConsumerWidget {
                   _buildDetailRow(
                     theme,
                     'Property',
-                    booking.property.name,
+                    booking.property?.name ?? 'Unknown Property',
                   ),
                   _buildDetailRow(
                     theme,
                     'Location',
-                    '${booking.property.city}, ${booking.property.country}',
+                    '${booking.property?.city ?? 'Unknown'}, ${booking.property?.country ?? 'Unknown'}',
                   ),
                   _buildDetailRow(
                     theme,
@@ -166,13 +165,13 @@ class BookingConfirmationScreen extends ConsumerWidget {
                   _buildDetailRow(
                     theme,
                     'Status',
-                    booking.status,
-                    valueColor: _getStatusColor(booking.status),
+                    booking.status.value,
+                    valueColor: _getStatusColor(booking.status.value),
                   ),
                   _buildDetailRow(
                     theme,
                     'Total Amount',
-                    '${booking.property.currency} ${booking.totalAmount.toStringAsFixed(2)}',
+                    '${booking.property?.currency ?? 'USD'} ${booking.totalAmount.toStringAsFixed(2)}',
                     isLast: true,
                     valueColor: theme.colorScheme.primary,
                   ),
@@ -180,7 +179,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Payment details
             Container(
               padding: const EdgeInsets.all(16),
@@ -203,20 +202,20 @@ class BookingConfirmationScreen extends ConsumerWidget {
                   _buildDetailRow(
                     theme,
                     'Payment Method',
-                    _formatPaymentMethod(booking.paymentMethod),
+                    _formatPaymentMethod(booking.paymentMethod ?? 'Unknown'),
                   ),
                   _buildDetailRow(
                     theme,
                     'Payment Status',
-                    booking.paymentStatus,
-                    valueColor: _getPaymentStatusColor(booking.paymentStatus),
+                    booking.paymentStatus ?? 'Unknown',
+                    valueColor: _getPaymentStatusColor(booking.paymentStatus ?? 'Unknown'),
                     isLast: true,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Contact information
             Container(
               padding: const EdgeInsets.all(16),
@@ -236,21 +235,21 @@ class BookingConfirmationScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (booking.property.host != null) ...[
+                  if (booking.property?.host != null) ...[
                     _buildDetailRow(
                       theme,
                       'Host',
-                      '${booking.property.host!.firstName} ${booking.property.host!.lastName}',
+                      '${booking.property!.host!.firstName} ${booking.property!.host!.lastName}',
                     ),
                     _buildDetailRow(
                       theme,
                       'Phone',
-                      booking.property.host!.phone ?? 'Not available',
+                      booking.property!.host!.phone ?? 'Not available',
                     ),
                     _buildDetailRow(
                       theme,
                       'Email',
-                      booking.property.host!.email ?? 'Not available',
+                      booking.property!.host!.email,
                       isLast: true,
                     ),
                   ] else ...[
@@ -265,7 +264,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Special requests
             if (booking.specialRequests != null && booking.specialRequests!.isNotEmpty) ...[
               Container(
@@ -295,7 +294,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
             ],
-            
+
             // Action buttons
             Row(
               children: [
@@ -310,17 +309,18 @@ class BookingConfirmationScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: GradientButton(
+                  child: CustomButton(
                     text: 'Back to Home',
                     onPressed: () {
                       context.go('/home');
                     },
+                    icon: Icons.home,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Cancellation policy
             Container(
               padding: const EdgeInsets.all(16),
@@ -339,7 +339,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    booking.property.cancellationPolicy ?? 'Standard cancellation policy applies. Please contact support for more information.',
+                    booking.property?.cancellationPolicy ?? 'Standard cancellation policy applies. Please contact support for more information.',
                     style: theme.textTheme.bodyMedium,
                   ),
                 ],
@@ -350,7 +350,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildDetailRow(
     ThemeData theme,
     String label,
@@ -385,7 +385,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -398,7 +398,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
         return Colors.blue;
     }
   }
-  
+
   Color _getPaymentStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'paid':
@@ -411,7 +411,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
         return Colors.blue;
     }
   }
-  
+
   String _formatPaymentMethod(String method) {
     switch (method) {
       case 'credit_card':
@@ -426,24 +426,24 @@ class BookingConfirmationScreen extends ConsumerWidget {
         return method.substring(0, 1).toUpperCase() + method.substring(1).replaceAll('_', ' ');
     }
   }
-  
+
   void _shareBooking(BuildContext context) {
     final dateFormat = DateFormat('MMM dd, yyyy');
-    
+
     final message = '''
 🏨 Nestery Booking Confirmation
 
 Booking ID: ${booking.id}
-Property: ${booking.property.name}
-Location: ${booking.property.city}, ${booking.property.country}
+Property: ${booking.property?.name ?? 'Unknown Property'}
+Location: ${booking.property?.city ?? 'Unknown'}, ${booking.property?.country ?? 'Unknown'}
 Check-in: ${dateFormat.format(booking.checkInDate)}
 Check-out: ${dateFormat.format(booking.checkOutDate)}
 Guests: ${booking.numberOfGuests}
-Total Amount: ${booking.property.currency} ${booking.totalAmount.toStringAsFixed(2)}
+Total Amount: ${booking.property?.currency ?? 'USD'} ${booking.totalAmount.toStringAsFixed(2)}
 
 Thank you for booking with Nestery!
 ''';
-    
+
     Share.share(message, subject: 'Nestery Booking Confirmation');
   }
 }

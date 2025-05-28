@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -32,19 +32,20 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    try {
-      await Provider.of<AuthProvider>(context, listen: false).login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      
+    final success = await ref.read(authProvider.notifier).login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    if (success) {
       // Navigate to home screen on successful login
       Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
-    } catch (error) {
+    } else {
       // Show error message
+      final authState = ref.read(authProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(authState.errorMessage ?? 'Login failed'),
           backgroundColor: Constants.errorColor,
         ),
       );
@@ -53,10 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    
+    final authState = ref.watch(authProvider);
+
     return LoadingOverlay(
-      isLoading: authProvider.isLoading,
+      isLoading: authState.isLoading,
       child: Scaffold(
         body: SafeArea(
           child: Center(
@@ -74,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 120,
                     ),
                     const SizedBox(height: Constants.largePadding),
-                    
+
                     // Welcome text
                     const Text(
                       'Welcome to Nestery',
@@ -88,13 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: Constants.extraLargePadding),
-                    
+
                     // Email field
                     CustomTextField(
                       controller: _emailController,
-                      labelText: 'Email',
-                      hintText: 'Enter your email',
-                      prefixIcon: Icons.email_outlined,
+                      label: 'Email',
+                      hint: 'Enter your email',
+                      prefixIcon: const Icon(Icons.email_outlined),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -107,13 +108,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Password field
                     CustomTextField(
                       controller: _passwordController,
-                      labelText: 'Password',
-                      hintText: 'Enter your password',
-                      prefixIcon: Icons.lock_outline,
+                      label: 'Password',
+                      hint: 'Enter your password',
+                      prefixIcon: const Icon(Icons.lock_outline),
                       obscureText: !_isPasswordVisible,
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -138,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Remember me and forgot password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -157,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const Text('Remember me'),
                           ],
                         ),
-                        
+
                         // Forgot password
                         TextButton(
                           onPressed: () {
@@ -168,14 +169,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: Constants.largePadding),
-                    
+
                     // Login button
                     CustomButton(
                       text: 'Login',
                       onPressed: _login,
                     ),
                     const SizedBox(height: Constants.mediumPadding),
-                    
+
                     // Register link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
