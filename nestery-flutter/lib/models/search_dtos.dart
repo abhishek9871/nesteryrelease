@@ -78,7 +78,7 @@ class SearchPropertiesDto {
   }
 }
 
-/// DTO for creating a booking
+/// DTO for creating a booking - Updated for real Booking.com API integration
 class CreateBookingDto {
   final String propertyId;
   final DateTime checkIn;
@@ -86,21 +86,41 @@ class CreateBookingDto {
   final int guests;
   final String? specialRequests;
 
+  // New fields required for real Booking.com API
+  final String guestName;
+  final String guestEmail;
+  final String guestPhone;
+  final String paymentMethod;
+  final String? sourceType;
+  final Map<String, dynamic>? cardDetails;
+
   const CreateBookingDto({
     required this.propertyId,
     required this.checkIn,
     required this.checkOut,
     required this.guests,
+    required this.guestName,
+    required this.guestEmail,
+    required this.guestPhone,
+    required this.paymentMethod,
     this.specialRequests,
+    this.sourceType,
+    this.cardDetails,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'propertyId': propertyId,
-      'checkIn': checkIn.toIso8601String().split('T')[0],
-      'checkOut': checkOut.toIso8601String().split('T')[0],
-      'guests': guests,
+      'checkInDate': checkIn.toIso8601String().split('T')[0],
+      'checkOutDate': checkOut.toIso8601String().split('T')[0],
+      'numberOfGuests': guests,
+      'guestName': guestName,
+      'guestEmail': guestEmail,
+      'guestPhone': guestPhone,
+      'paymentMethod': paymentMethod,
+      'sourceType': sourceType ?? 'booking_com',
       if (specialRequests != null) 'specialRequests': specialRequests,
+      if (cardDetails != null) 'cardDetails': cardDetails,
     };
   }
 }

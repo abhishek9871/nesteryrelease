@@ -80,8 +80,8 @@ class BookingRepository {
     }
   }
 
-  // Create booking
-  Future<Either<ApiException, Booking>> createBooking(CreateBookingDto bookingData) async {
+  // Create booking - Updated to handle Booking.com redirect flow
+  Future<Either<ApiException, dynamic>> createBooking(CreateBookingDto bookingData) async {
     try {
       final response = await _apiClient.post<Map<String, dynamic>>(
         Constants.bookingsEndpoint,
@@ -89,8 +89,18 @@ class BookingRepository {
       );
 
       if (response.data != null) {
-        final booking = Booking.fromJson(response.data!);
-        return Either.right(booking);
+        // Check if response contains redirect URL (for Booking.com)
+        if (response.data!.containsKey('redirectUrl') && response.data!.containsKey('sourceType')) {
+          // Return redirect response for Booking.com
+          return Either.right({
+            'redirectUrl': response.data!['redirectUrl'],
+            'sourceType': response.data!['sourceType'],
+          });
+        } else {
+          // Return normal booking for other OTAs
+          final booking = Booking.fromJson(response.data!);
+          return Either.right(booking);
+        }
       } else {
         return Either.left(ApiException(
           message: 'Invalid response from server',

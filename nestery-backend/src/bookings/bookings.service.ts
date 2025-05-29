@@ -14,6 +14,7 @@ import { UsersService } from '../users/users.service';
 import { PropertiesService } from '../properties/properties.service';
 import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
+import { IntegrationsService } from '../integrations/integrations.service';
 
 /**
  * Service handling booking-related operations
@@ -26,6 +27,7 @@ export class BookingsService {
     private readonly usersService: UsersService,
     private readonly propertiesService: PropertiesService,
     private readonly logger: LoggerService,
+    private readonly integrationsService: IntegrationsService, // Injected IntegrationsService
     private readonly exceptionService: ExceptionService,
   ) {
     this.logger.setContext('BookingsService');
@@ -34,8 +36,18 @@ export class BookingsService {
   /**
    * Create a new booking
    */
-  async create(userId: string, createBookingDto: CreateBookingDto): Promise<Booking> {
+  async create(
+    userId: string,
+    createBookingDto: CreateBookingDto,
+  ): Promise<Booking | { redirectUrl: string; sourceType: string }> {
     try {
+      // If it's a Booking.com booking, delegate to IntegrationsService to get redirect URL
+      if (createBookingDto.sourceType === 'booking_com') {
+        this.logger.log(`Initiating Booking.com redirect flow for propertyId: ${createBookingDto.propertyId}`);
+        // Pass necessary details from createBookingDto and userId
+        return this.integrationsService.createBooking({ ...createBookingDto, userId });
+      }
+
       // Validate user
       const user = await this.usersService.findById(userId);
       if (!user) {

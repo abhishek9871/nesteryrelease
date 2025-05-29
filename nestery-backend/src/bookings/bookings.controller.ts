@@ -29,6 +29,7 @@ import { SearchBookingsDto } from './dto/search-bookings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Booking } from './entities/booking.entity';
 
 /**
  * Controller handling booking-related endpoints
@@ -49,7 +50,10 @@ export class BookingsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Property not found' })
-  async create(@Req() req: AuthenticatedRequest, @Body() createBookingDto: CreateBookingDto) {
+  async create(
+    @Req() req: AuthenticatedRequest,
+    @Body() createBookingDto: CreateBookingDto,
+  ): Promise<Booking | { redirectUrl: string; sourceType: string }> {
     return this.bookingsService.create(req.user.id, createBookingDto);
   }
 

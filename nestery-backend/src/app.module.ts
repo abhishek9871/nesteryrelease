@@ -15,6 +15,7 @@ import { RecommendationModule } from './features/recommendation/recommendation.m
 import { LoyaltyModule } from './features/loyalty/loyalty.module';
 import { SocialSharingModule } from './features/social-sharing/social-sharing.module';
 import { configValidationSchema } from './config/config.schema';
+// import { PciSecurityMiddleware } from './middleware/pci-security.middleware'; // Removed as per redirect model for Booking.com
 
 /**
  * Main application module
@@ -69,4 +70,10 @@ import { configValidationSchema } from './config/config.schema';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer
+  //     .apply(PciSecurityMiddleware) // Removed as PCI scope is reduced by redirecting to Booking.com for payment
+  //     .forRoutes('bookings/booking-com'); // Example, adjust if it was used elsewhere
+  // }
+}

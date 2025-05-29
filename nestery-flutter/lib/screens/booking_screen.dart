@@ -11,6 +11,7 @@ import 'package:nestery_flutter/widgets/section_title.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> bookingData;
@@ -31,6 +32,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _specialRequestsController = TextEditingController();
+
+  // Credit card form controllers for real Booking.com API
+  final _cardNumberController = TextEditingController();
+  final _expiryDateController = TextEditingController();
+  final _cvvController = TextEditingController();
+  final _cardholderNameController = TextEditingController();
 
   String _selectedPaymentMethod = 'credit_card';
   bool _savePaymentInfo = false;
@@ -54,6 +61,28 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         _emailController.text = userProfile['email'] ?? '';
         _phoneController.text = userProfile['phone'] ?? '';
       }
+
+      // Listen to booking state changes - Updated to handle redirect flow
+      ref.listenManual(createBookingProvider, (previous, next) {
+        if (next.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next.error!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else if (next.isSuccess && next.isRedirect && next.redirectUrl != null) {
+          // Handle Booking.com redirect
+          _handleBookingComRedirect(next.redirectUrl!);
+        } else if (next.isSuccess && next.booking != null) {
+          // Handle normal booking confirmation
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              context.go('/booking/confirmation', extra: next.booking);
+            }
+          });
+        }
+      });
     });
   }
 
@@ -64,7 +93,17 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _specialRequestsController.dispose();
+    _cardNumberController.dispose();
+    _expiryDateController.dispose();
+    _cvvController.dispose();
+    _cardholderNameController.dispose();
     super.dispose();
+  }
+
+  // Helper method to check if property is from Booking.com
+  bool _isBookingComProperty(Property? property) {
+    return property?.sourceType.toLowerCase() == 'booking_com' ||
+           property?.sourceType.toLowerCase() == 'booking.com';
   }
 
   @override
@@ -208,38 +247,102 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             ),
                             const SizedBox(height: 24),
 
-                            // Payment method
-                            const SectionTitle(
-                              title: 'Payment Method',
-                              showSeeAll: false,
-                              padding: EdgeInsets.zero,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildPaymentMethodSelector(theme),
-                            const SizedBox(height: 16),
-                            if (_selectedPaymentMethod == 'credit_card')
-                              _buildCreditCardForm(theme),
-                            if (_selectedPaymentMethod == 'paypal')
-                              _buildPayPalForm(theme),
-                            if (_selectedPaymentMethod == 'apple_pay')
-                              _buildApplePayForm(theme),
-                            if (_selectedPaymentMethod == 'google_pay')
-                              _buildGooglePayForm(theme),
-                            const SizedBox(height: 16),
-                            CheckboxListTile(
-                              value: _savePaymentInfo,
-                              onChanged: (value) {
-                                setState(() {
-                                  _savePaymentInfo = value ?? false;
-                                });
-                              },
-                              title: Text(
-                                'Save payment information for future bookings',
-                                style: theme.textTheme.bodyMedium,
+                            // Payment method - Modified for Booking.com redirect flow
+                            if (_isBookingComProperty(property)) ...[
+                              // Booking.com redirect information
+                              const SectionTitle(
+                                title: 'Payment Information',
+                                showSeeAll: false,
+                                padding: EdgeInsets.zero,
                               ),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: EdgeInsets.zero,
-                            ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.open_in_new,
+                                      size: 48,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Secure Payment with Booking.com',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'You will be redirected to Booking.com\'s secure platform to complete your payment. This ensures the highest level of security for your transaction.',
+                                      style: theme.textTheme.bodyMedium,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.security,
+                                          size: 16,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'SSL Encrypted & PCI Compliant',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              // Regular payment method selection for other OTAs
+                              const SectionTitle(
+                                title: 'Payment Method',
+                                showSeeAll: false,
+                                padding: EdgeInsets.zero,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildPaymentMethodSelector(theme),
+                              const SizedBox(height: 16),
+                              if (_selectedPaymentMethod == 'credit_card')
+                                _buildCreditCardForm(theme),
+                              if (_selectedPaymentMethod == 'paypal')
+                                _buildPayPalForm(theme),
+                              if (_selectedPaymentMethod == 'apple_pay')
+                                _buildApplePayForm(theme),
+                              if (_selectedPaymentMethod == 'google_pay')
+                                _buildGooglePayForm(theme),
+                              const SizedBox(height: 16),
+                              CheckboxListTile(
+                                value: _savePaymentInfo,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _savePaymentInfo = value ?? false;
+                                  });
+                                },
+                                title: Text(
+                                  'Save payment information for future bookings',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                                controlAffinity: ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ],
                             const SizedBox(height: 24),
 
                             // Price breakdown
@@ -322,7 +425,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               ),
                             ],
 
-                            // Success message
+                            // Success message - Updated for redirect flow
                             if (createBookingState.isSuccess) ...[
                               const SizedBox(height: 16),
                               Container(
@@ -340,7 +443,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Booking successful! Redirecting to confirmation page...',
+                                        createBookingState.isRedirect
+                                            ? 'Redirecting to Booking.com for secure payment...'
+                                            : 'Booking successful! Redirecting to confirmation page...',
                                         style: theme.textTheme.bodyMedium?.copyWith(
                                           color: Colors.green,
                                         ),
@@ -394,7 +499,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: GradientButton(
-                              text: 'Confirm Booking',
+                              text: _isBookingComProperty(property)
+                                  ? 'Continue to Booking.com'
+                                  : 'Confirm Booking',
                               onPressed: (_agreeToTerms && !createBookingState.isLoading)
                                   ? () => _confirmBooking(propertyId, checkInDate, checkOutDate, guestCount, totalPrice)
                                   : () {},
@@ -674,16 +781,41 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // SECURITY: Enhanced card number field with better validation
         CustomTextField(
           label: 'Card Number',
           hint: '1234 5678 9012 3456',
           keyboardType: TextInputType.number,
-          controller: TextEditingController(),
+          controller: _cardNumberController,
           prefixIcon: const Icon(Icons.credit_card),
+          onChanged: (value) {
+            // Format card number with spaces for better UX
+            final formatted = _formatCardNumber(value);
+            if (formatted != value) {
+              _cardNumberController.value = TextEditingValue(
+                text: formatted,
+                selection: TextSelection.collapsed(offset: formatted.length),
+              );
+            }
+          },
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your card number';
             }
+
+            // Remove spaces and validate
+            final cleanValue = value.replaceAll(' ', '');
+
+            // Length validation (13-19 digits for major card types)
+            if (cleanValue.length < 13 || cleanValue.length > 19) {
+              return 'Please enter a valid card number';
+            }
+
+            // Basic Luhn algorithm validation
+            if (!_isValidCardNumber(cleanValue)) {
+              return 'Please enter a valid card number';
+            }
+
             return null;
           },
         ),
@@ -693,12 +825,16 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             Expanded(
               child: CustomTextField(
                 label: 'Expiry Date',
-                hint: 'MM/YY',
+                hint: 'YYYY-MM',
                 keyboardType: TextInputType.number,
-                controller: TextEditingController(),
+                controller: _expiryDateController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter expiry date';
+                  }
+                  // Validate YYYY-MM format for Booking.com API
+                  if (!RegExp(r'^\d{4}-\d{2}$').hasMatch(value)) {
+                    return 'Please enter date as YYYY-MM';
                   }
                   return null;
                 },
@@ -710,11 +846,26 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 label: 'CVV',
                 hint: '123',
                 keyboardType: TextInputType.number,
-                controller: TextEditingController(),
+                controller: _cvvController,
                 obscureText: true,
+                onChanged: (value) {
+                  // SECURITY: Limit CVV input to digits only and max 4 characters
+                  final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+                  final limited = digitsOnly.length > 4 ? digitsOnly.substring(0, 4) : digitsOnly;
+                  if (limited != value) {
+                    _cvvController.value = TextEditingValue(
+                      text: limited,
+                      selection: TextSelection.collapsed(offset: limited.length),
+                    );
+                  }
+                },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter CVV';
+                  }
+                  // SECURITY: Enhanced CVV validation
+                  if (!RegExp(r'^\d{3,4}$').hasMatch(value)) {
+                    return 'CVV must be 3-4 digits';
                   }
                   return null;
                 },
@@ -726,10 +877,31 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         CustomTextField(
           label: 'Cardholder Name',
           hint: 'John Doe',
-          controller: TextEditingController(),
+          controller: _cardholderNameController,
+          onChanged: (value) {
+            // SECURITY: Limit cardholder name length and sanitize input
+            if (value.length > 100) {
+              final limited = value.substring(0, 100);
+              _cardholderNameController.value = TextEditingValue(
+                text: limited,
+                selection: TextSelection.collapsed(offset: limited.length),
+              );
+            }
+          },
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter cardholder name';
+            }
+            // SECURITY: Enhanced cardholder name validation
+            if (value.trim().length < 2) {
+              return 'Name must be at least 2 characters';
+            }
+            if (value.length > 100) {
+              return 'Name must be less than 100 characters';
+            }
+            // Check for suspicious patterns
+            if (RegExp(r'[<>"\(\)\[\]{}\\|`~!@#\$%\^&\*=\+]').hasMatch(value)) {
+              return 'Name contains invalid characters';
             }
             return null;
           },
@@ -927,42 +1099,134 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       return;
     }
 
-    // Prepare payment details based on selected method
-    Map<String, dynamic> paymentDetails = {};
+    final property = ref.read(propertyDetailsProvider(propertyId)).property;
 
-    if (_selectedPaymentMethod == 'credit_card') {
-      // In a real app, you would collect and validate card details
-      paymentDetails = {
-        'type': 'credit_card',
-        'card_number': '************1234', // Masked for security
-        'expiry_date': '12/25',
-        'cardholder_name': '${_firstNameController.text} ${_lastNameController.text}',
-      };
-    } else {
-      paymentDetails = {
-        'type': _selectedPaymentMethod,
-      };
+    // Prepare payment details - Skip for Booking.com as it uses redirect flow
+    Map<String, dynamic>? paymentDetails;
+
+    if (!_isBookingComProperty(property)) {
+      // Only collect payment details for non-Booking.com properties
+      if (_selectedPaymentMethod == 'credit_card') {
+        paymentDetails = {
+          'number': _cardNumberController.text.replaceAll(' ', ''),
+          'expiryDate': _expiryDateController.text, // YYYY-MM format
+          'cvc': _cvvController.text,
+          'cardholder': _cardholderNameController.text,
+        };
+      } else {
+        paymentDetails = {
+          'type': _selectedPaymentMethod,
+        };
+      }
     }
 
-    // Create booking
+    // Create booking - Updated to handle both redirect and direct flows
     ref.read(createBookingProvider.notifier).createBooking(
       propertyId: propertyId,
       checkInDate: checkInDate,
       checkOutDate: checkOutDate,
       numberOfGuests: guestCount,
-      specialRequests: _specialRequestsController.text,
+      guestName: '${_firstNameController.text} ${_lastNameController.text}',
+      guestEmail: _emailController.text,
+      guestPhone: _phoneController.text,
       paymentMethod: _selectedPaymentMethod,
+      specialRequests: _specialRequestsController.text,
       paymentDetails: paymentDetails,
-    ).then((success) {
-      if (success) {
-        // Navigate to confirmation page after a short delay
-        Future.delayed(const Duration(seconds: 2), () {
-          final booking = ref.read(createBookingProvider).booking;
-          if (booking != null && mounted) {
-            context.go('/booking/confirmation', extra: booking);
-          }
-        });
+      sourceType: property?.sourceType,
+    );
+  }
+
+  // Handle Booking.com redirect flow
+  Future<void> _handleBookingComRedirect(String redirectUrl) async {
+    try {
+      // Show loading message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Redirecting to Booking.com...'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Launch the redirect URL in external browser for security
+      final uri = Uri.parse(redirectUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication, // Use external browser for security
+        );
+
+        // Navigate to a confirmation page explaining the redirect
+        if (mounted) {
+          context.go('/booking/redirect-confirmation');
+        }
+      } else {
+        throw Exception('Could not launch redirect URL');
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to redirect to Booking.com: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// SECURITY: Format card number with spaces for better UX while maintaining security
+  String _formatCardNumber(String value) {
+    // Remove all non-digits
+    final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+
+    // Limit to 19 digits (longest card number)
+    final limited = digitsOnly.length > 19 ? digitsOnly.substring(0, 19) : digitsOnly;
+
+    // Add spaces every 4 digits
+    final buffer = StringBuffer();
+    for (int i = 0; i < limited.length; i++) {
+      if (i > 0 && i % 4 == 0) {
+        buffer.write(' ');
+      }
+      buffer.write(limited[i]);
+    }
+
+    return buffer.toString();
+  }
+
+  /// SECURITY: Validate card number using Luhn algorithm
+  /// This is a critical security control to prevent invalid card numbers
+  bool _isValidCardNumber(String cardNumber) {
+    if (cardNumber.isEmpty) return false;
+
+    // Remove any spaces or non-digits
+    final cleanNumber = cardNumber.replaceAll(RegExp(r'\D'), '');
+
+    // Check length (13-19 digits for major card types)
+    if (cleanNumber.length < 13 || cleanNumber.length > 19) {
+      return false;
+    }
+
+    // Luhn algorithm validation
+    int sum = 0;
+    bool alternate = false;
+
+    // Process digits from right to left
+    for (int i = cleanNumber.length - 1; i >= 0; i--) {
+      int digit = int.parse(cleanNumber[i]);
+
+      if (alternate) {
+        digit *= 2;
+        if (digit > 9) {
+          digit = (digit % 10) + 1;
+        }
+      }
+
+      sum += digit;
+      alternate = !alternate;
+    }
+
+    return sum % 10 == 0;
   }
 }

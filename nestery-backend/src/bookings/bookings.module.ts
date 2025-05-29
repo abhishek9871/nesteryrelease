@@ -6,12 +6,13 @@ import { Booking } from './entities/booking.entity';
 import { CoreModule } from '../core/core.module';
 import { UsersModule } from '../users/users.module';
 import { PropertiesModule } from '../properties/properties.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 
 /**
  * Bookings module handling booking-related operations
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking]), CoreModule, UsersModule, PropertiesModule],
+  imports: [TypeOrmModule.forFeature([Booking]), CoreModule, UsersModule, PropertiesModule, IntegrationsModule],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],

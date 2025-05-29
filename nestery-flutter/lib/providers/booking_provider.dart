@@ -270,32 +270,44 @@ class BookingDetailsNotifier extends StateNotifier<BookingDetailsState> {
   }
 }
 
-// Create booking state
+// Create booking state - Updated to handle redirect flow
 class CreateBookingState {
   final Booking? booking;
+  final String? redirectUrl;
+  final String? sourceType;
   final bool isLoading;
   final String? error;
   final bool isSuccess;
+  final bool isRedirect;
 
   CreateBookingState({
     this.booking,
+    this.redirectUrl,
+    this.sourceType,
     this.isLoading = false,
     this.error,
     this.isSuccess = false,
+    this.isRedirect = false,
   });
 
   // Create a new instance with updated values
   CreateBookingState copyWith({
     Booking? booking,
+    String? redirectUrl,
+    String? sourceType,
     bool? isLoading,
     String? error,
     bool? isSuccess,
+    bool? isRedirect,
   }) {
     return CreateBookingState(
       booking: booking ?? this.booking,
+      redirectUrl: redirectUrl ?? this.redirectUrl,
+      sourceType: sourceType ?? this.sourceType,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       isSuccess: isSuccess ?? this.isSuccess,
+      isRedirect: isRedirect ?? this.isRedirect,
     );
   }
 }
@@ -308,15 +320,19 @@ class CreateBookingNotifier extends StateNotifier<CreateBookingState> {
       : _bookingRepository = bookingRepository,
         super(CreateBookingState());
 
-  // Create booking
+  // Create booking - Updated to handle Booking.com redirect flow
   Future<bool> createBooking({
     required String propertyId,
     required DateTime checkInDate,
     required DateTime checkOutDate,
     required int numberOfGuests,
-    String? specialRequests,
+    required String guestName,
+    required String guestEmail,
+    required String guestPhone,
     required String paymentMethod,
+    String? specialRequests,
     Map<String, dynamic>? paymentDetails,
+    String? sourceType,
   }) async {
     state = CreateBookingState(isLoading: true);
 
@@ -325,7 +341,13 @@ class CreateBookingNotifier extends StateNotifier<CreateBookingState> {
       checkIn: checkInDate,
       checkOut: checkOutDate,
       guests: numberOfGuests,
+      guestName: guestName,
+      guestEmail: guestEmail,
+      guestPhone: guestPhone,
+      paymentMethod: paymentMethod,
       specialRequests: specialRequests,
+      cardDetails: paymentDetails,
+      sourceType: sourceType,
     );
 
     final result = await _bookingRepository.createBooking(createDto);
@@ -339,13 +361,29 @@ class CreateBookingNotifier extends StateNotifier<CreateBookingState> {
         );
         return false;
       },
-      (booking) {
-        state = state.copyWith(
-          booking: booking,
-          isLoading: false,
-          isSuccess: true,
-        );
-        return true;
+      (response) {
+        // Check if response is a redirect (for Booking.com)
+        if (response is Map<String, dynamic> &&
+            response.containsKey('redirectUrl') &&
+            response.containsKey('sourceType')) {
+          state = state.copyWith(
+            redirectUrl: response['redirectUrl'],
+            sourceType: response['sourceType'],
+            isLoading: false,
+            isSuccess: true,
+            isRedirect: true,
+          );
+          return true;
+        } else {
+          // Normal booking response (for other OTAs)
+          state = state.copyWith(
+            booking: response as Booking,
+            isLoading: false,
+            isSuccess: true,
+            isRedirect: false,
+          );
+          return true;
+        }
       },
     );
   }
