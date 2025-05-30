@@ -7,43 +7,51 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../../users/entities/user.entity';
-import { Booking } from '../../../bookings/entities/booking.entity';
+import { LoyaltyTransactionTypeEnum } from '../enums/loyalty-transaction-type.enum';
 
 /**
  * LoyaltyTransaction entity representing the loyalty_transactions table
  * Tracks loyalty point transactions for users
- * Compliant with DATA_DICTIONARY.md specifications
+ * FRS 1.4
  */
 @Entity('loyalty_transactions')
 export class LoyaltyTransaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'booking_id', nullable: true })
-  bookingId: string;
-
-  @ManyToOne(() => Booking, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'booking_id' })
-  booking: Booking;
-
   @Column({
     type: 'enum',
-    enum: ['earned', 'redeemed', 'expired', 'adjusted'],
+    enum: LoyaltyTransactionTypeEnum,
   })
-  type: string;
+  transactionType: LoyaltyTransactionTypeEnum;
 
   @Column({ type: 'int' })
-  amount: number;
+  milesAmount: number;
 
-  @Column({ length: 255 })
-  description: string;
+  @Column({ length: 255, nullable: true })
+  description?: string;
+
+  @Column({ name: 'related_booking_id', type: 'uuid', nullable: true })
+  relatedBookingId?: string;
+
+  @Column({ name: 'related_referral_id', type: 'uuid', nullable: true })
+  relatedReferralId?: string;
+
+  @Column({ name: 'related_subscription_id', type: 'uuid', nullable: true })
+  relatedSubscriptionId?: string;
+
+  @Column({ name: 'related_review_id', type: 'uuid', nullable: true })
+  relatedReviewId?: string;
+
+  @Column({ name: 'related_partner_offer_id', type: 'uuid', nullable: true })
+  relatedPartnerOfferId?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

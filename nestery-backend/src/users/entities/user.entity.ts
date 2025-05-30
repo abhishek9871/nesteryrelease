@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { LoyaltyTierEnum } from '../../features/loyalty/enums/loyalty-tier.enum';
 
 /**
  * User entity representing the users table in the database
@@ -48,16 +49,22 @@ export class User {
   @Column({ name: 'refresh_token', length: 255, nullable: true })
   refreshToken: string;
 
+  @Column({ name: 'loyalty_miles_balance', type: 'int', default: 0 })
+  loyaltyMilesBalance: number;
+
   @Column({
     name: 'loyalty_tier',
     type: 'enum',
-    enum: ['bronze', 'silver', 'gold', 'platinum'],
-    default: 'bronze',
+    enum: LoyaltyTierEnum,
+    default: LoyaltyTierEnum.SCOUT,
   })
-  loyaltyTier: string;
+  loyaltyTier: LoyaltyTierEnum;
 
-  @Column({ name: 'loyalty_points', type: 'int', default: 0 })
-  loyaltyPoints: number;
+  // Existing loyaltyPoints field, if it's different from loyaltyMilesBalance
+  // If loyaltyMilesBalance is meant to replace loyaltyPoints, this should be removed or migrated.
+  // For now, keeping it as per instruction "Add loyaltyMilesBalance"
+  @Column({ name: 'loyalty_points', type: 'int', default: 0 }) // This might be legacy or for a different system
+  loyaltyPoints: number; // This field was pre-existing in the provided structure.
 
   @Column({ name: 'auth_provider', length: 50, nullable: true })
   authProvider: string;

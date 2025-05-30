@@ -1,0 +1,6 @@
+export enum LoyaltyTierEnum {
+  SCOUT = 'SCOUT',
+  EXPLORER = 'EXPLORER',
+  NAVIGATOR = 'NAVIGATOR',
+  GLOBETROTTER = 'GLOBETROTTER',
+}

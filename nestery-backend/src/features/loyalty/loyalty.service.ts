@@ -1,20 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../core/logger/logger.service';
 import { UserEntity } from '../../users/entities/user.entity';
-import { BookingEntity } from '../../bookings/entities/booking.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, MoreThanOrEqual, Repository } from 'typeorm';
+import { LoyaltyTierDefinitionEntity } from './entities/loyalty-tier-definition.entity';
+import { LoyaltyTransactionEntity } from './entities/loyalty-transaction.entity';
+import { LoyaltyTierEnum } from './enums/loyalty-tier.enum';
+import { LoyaltyTransactionTypeEnum } from './enums/loyalty-transaction-type.enum';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+
+// Event payload interfaces (conceptual)
+interface BookingCommissionFinalizedEvent {
+  userId: string;
+  netCommissionAmount: number;
+  bookingId: string;
+}
+interface ReferralUsedEvent {
+  referrerUserId: string;
+  referralId: string;
+}
+interface ReviewApprovedEvent {
+  userId: string;
+  reviewId: string;
+}
+interface PremiumSubscriptionActivatedEvent {
+  userId: string;
+  subscriptionId: string;
+}
+interface UserProfileCompletedEvent {
+  userId: string;
+}
+interface PartnerOfferEngagedEvent {
+  userId: string;
+  milesToAward: number;
+  offerId: string;
+}
 
 @Injectable()
-export class LoyaltyService {
+export class LoyaltyService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(BookingEntity)
-    private readonly bookingRepository: Repository<BookingEntity>,
+    @InjectRepository(LoyaltyTierDefinitionEntity)
+    private readonly tierDefinitionRepository: Repository<LoyaltyTierDefinitionEntity>,
+    @InjectRepository(LoyaltyTransactionEntity)
+    private readonly transactionRepository: Repository<LoyaltyTransactionEntity>,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly dataSource: DataSource,
   ) {
     this.logger.setContext('LoyaltyService');
   }
@@ -22,41 +57,80 @@ export class LoyaltyService {
   /**
    * Get loyalty status and points for a user
    */
-  async getLoyaltyStatus(userId: string): Promise<{
-    tier: string;
-    points: number;
-    nextTier: string;
-    pointsToNextTier: number;
-    benefits: string[];
-    history: Array<{ date: Date; description: string; points: number }>;
-  }> {
+  async onModuleInit() {
+    await this.seedLoyaltyTiers();
+  }
+
+  private async seedLoyaltyTiers() {
+    const tiers = [
+      {
+        tier: LoyaltyTierEnum.SCOUT,
+        name: 'Scout',
+        minMilesRequired: 0,
+        earningMultiplier: 1.0,
+        benefitsDescription: 'Basic benefits',
+      },
+      {
+        tier: LoyaltyTierEnum.EXPLORER,
+        name: 'Explorer',
+        minMilesRequired: 1000,
+        earningMultiplier: 1.25,
+        benefitsDescription: 'Explorer benefits',
+      },
+      {
+        tier: LoyaltyTierEnum.NAVIGATOR,
+        name: 'Navigator',
+        minMilesRequired: 5000,
+        earningMultiplier: 1.5,
+        benefitsDescription: 'Navigator benefits',
+      },
+      {
+        tier: LoyaltyTierEnum.GLOBETROTTER,
+        name: 'Globetrotter',
+        minMilesRequired: 20000,
+        earningMultiplier: 2.0,
+        benefitsDescription: 'Top-tier benefits',
+      },
+    ];
+
+    for (const tierData of tiers) {
+      const existingTier = await this.tierDefinitionRepository.findOneBy({ tier: tierData.tier });
+      if (!existingTier) {
+        const newTier = this.tierDefinitionRepository.create(tierData);
+        await this.tierDefinitionRepository.save(newTier);
+        this.logger.log(`Seeded loyalty tier: ${tierData.name}`);
+      }
+    }
+  }
+
+  async getLoyaltyStatus(userId: string): Promise<any> {
     try {
       this.logger.debug(`Getting loyalty status for user: ${userId}`);
 
       // Note: User's booking history could be used for additional loyalty calculations
 
       // Calculate total points
-      const totalPoints = await this.calculateTotalPoints(userId);
+      const user = await this.userRepository.findOneBy({ id: userId });
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+      const currentMiles = user.loyaltyMilesBalance;
 
       // Determine loyalty tier
-      const tier = this.determineLoyaltyTier(totalPoints);
+      const currentTier = user.loyaltyTier;
+      const tierDefinition = await this.tierDefinitionRepository.findOneBy({ tier: currentTier });
 
       // Get next tier and points needed
-      const nextTierInfo = this.getNextTierInfo(tier, totalPoints);
-
-      // Get tier benefits
-      const benefits = this.getTierBenefits(tier);
-
-      // Get point history
-      const history = await this.getPointHistory(userId);
+      const nextTierInfo = await this.getNextTierInfo(currentTier, currentMiles);
 
       return {
-        tier,
-        points: totalPoints,
+        loyaltyMilesBalance: currentMiles,
+        loyaltyTier: currentTier,
+        tierName: tierDefinition?.name,
+        tierBenefits: tierDefinition?.benefitsDescription,
         nextTier: nextTierInfo.nextTier,
-        pointsToNextTier: nextTierInfo.pointsNeeded,
-        benefits,
-        history,
+        milesToNextTier: nextTierInfo.milesNeeded,
+        earningMultiplier: tierDefinition?.earningMultiplier,
       };
     } catch (error) {
       this.logger.error(`Error getting loyalty status: ${error.message}`, error.stack);
@@ -65,472 +139,348 @@ export class LoyaltyService {
   }
 
   /**
-   * Award points for a completed booking
+   * Award miles to a user
    */
-  async awardPointsForBooking(bookingId: string): Promise<{
-    awarded: number;
-    newTotal: number;
-    tier: string;
-  }> {
+  async awardMiles(
+    userId: string,
+    baseAmount: number,
+    type: LoyaltyTransactionTypeEnum,
+    description?: string,
+    relatedEntity?: { type: string; id: string },
+  ): Promise<LoyaltyTransactionEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      this.logger.debug(`Awarding points for booking: ${bookingId}`);
-
-      // Get booking details
-      const booking = await this.bookingRepository.findOne({
-        where: { id: bookingId },
-        relations: ['user', 'property'],
-      });
-
-      if (!booking) {
-        throw new Error(`Booking not found: ${bookingId}`);
+      const user = await queryRunner.manager.findOneBy(UserEntity, { id: userId });
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
       }
 
-      if (booking.status !== 'completed') {
-        throw new Error(`Cannot award points for non-completed booking: ${bookingId}`);
+      const tierDefinition = await queryRunner.manager.findOneBy(LoyaltyTierDefinitionEntity, {
+        tier: user.loyaltyTier,
+      });
+      const multiplier = tierDefinition?.earningMultiplier || 1.0;
+
+      // For now, apply multiplier only to specific earning types. This can be configured.
+      const applyMultiplier = [LoyaltyTransactionTypeEnum.BOOKING_COMMISSION_EARN].includes(type);
+
+      const milesAwarded = applyMultiplier
+        ? Math.floor(baseAmount * Number(multiplier))
+        : Math.floor(baseAmount);
+
+      if (milesAwarded <= 0 && type !== LoyaltyTransactionTypeEnum.ADJUSTMENT_SUBTRACT) {
+        // Allow 0 for adjustments if needed
+        this.logger.warn(
+          `Attempted to award non-positive miles (${milesAwarded}) for type ${type}. Skipping transaction.`,
+        );
+        // Depending on strictness, could throw error or just return null/undefined
+        throw new BadRequestException('Miles to award must be positive.');
       }
 
-      // Calculate points to award
-      const pointsAwarded = await this.calculateBookingPoints(booking);
-
-      // Update user's points
-      const user = booking.user;
-      const currentPoints = user.loyaltyPoints || 0;
-      const newTotal = currentPoints + pointsAwarded;
-
-      await this.userRepository.update(user.id, {
-        loyaltyPoints: newTotal,
+      const transaction = this.transactionRepository.create({
+        userId,
+        transactionType: type,
+        milesAmount: milesAwarded,
+        description,
+        relatedBookingId: relatedEntity?.type === 'booking' ? relatedEntity.id : undefined,
+        relatedReferralId: relatedEntity?.type === 'referral' ? relatedEntity.id : undefined,
+        relatedSubscriptionId:
+          relatedEntity?.type === 'subscription' ? relatedEntity.id : undefined,
+        relatedReviewId: relatedEntity?.type === 'review' ? relatedEntity.id : undefined,
+        relatedPartnerOfferId:
+          relatedEntity?.type === 'partner_offer' ? relatedEntity.id : undefined,
       });
 
-      // Record point history
-      await this.recordPointTransaction(
-        user.id,
-        pointsAwarded,
-        `Booking completed: ${booking.property.name}`,
-        booking.id,
+      const savedTransaction = await queryRunner.manager.save(transaction);
+
+      user.loyaltyMilesBalance += milesAwarded;
+      await queryRunner.manager.save(user);
+
+      await this._updateUserTier(user, queryRunner.manager);
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `Awarded ${milesAwarded} miles to user ${userId} for ${type}. New balance: ${user.loyaltyMilesBalance}`,
       );
-
-      // Determine new tier
-      const newTier = this.determineLoyaltyTier(newTotal);
-
-      // Check if user leveled up
-      const oldTier = this.determineLoyaltyTier(currentPoints);
-      if (newTier !== oldTier) {
-        await this.handleTierUpgrade(user.id, oldTier, newTier);
-      }
-
-      return {
-        awarded: pointsAwarded,
-        newTotal,
-        tier: newTier,
-      };
+      return savedTransaction;
     } catch (error) {
-      this.logger.error(`Error awarding booking points: ${error.message}`, error.stack);
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Error awarding miles to user ${userId}: ${error.message}`, error.stack);
       throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 
   /**
    * Redeem points for a reward
    */
-  async redeemPoints(
+  async redeemMiles(
     userId: string,
-    rewardId: string,
-    pointsRequired: number,
-  ): Promise<{
-    success: boolean;
-    remainingPoints: number;
-    reward: {
-      id: string;
-      name: string;
-      description: string;
-      pointsRequired: number;
-    };
-  }> {
+    milesToRedeem: number,
+    type: LoyaltyTransactionTypeEnum,
+    description?: string,
+    redemptionTarget?: any, // Could be an ID or object related to the redemption
+  ): Promise<LoyaltyTransactionEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      this.logger.debug(`Redeeming points for user: ${userId}, reward: ${rewardId}`);
-
-      // Get user's current points
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-
+      const user = await queryRunner.manager.findOneBy(UserEntity, { id: userId });
       if (!user) {
         throw new Error(`User not found: ${userId}`);
       }
 
-      const currentPoints = user.loyaltyPoints || 0;
-
-      if (currentPoints < pointsRequired) {
-        throw new Error(
-          `Insufficient points. Required: ${pointsRequired}, Available: ${currentPoints}`,
+      if (user.loyaltyMilesBalance < milesToRedeem) {
+        throw new BadRequestException(
+          `Insufficient miles. Required: ${milesToRedeem}, Available: ${user.loyaltyMilesBalance}`,
         );
       }
 
-      // Get reward details (in a real app, this would come from a rewards repository)
-      const reward = this.getRewardById(rewardId);
-
-      if (!reward) {
-        throw new Error(`Reward not found: ${rewardId}`);
-      }
-
-      if (reward.pointsRequired !== pointsRequired) {
-        throw new Error(
-          `Points mismatch. Expected: ${reward.pointsRequired}, Received: ${pointsRequired}`,
-        );
-      }
-
-      // Deduct points
-      const remainingPoints = currentPoints - pointsRequired;
-      await this.userRepository.update(userId, {
-        loyaltyPoints: remainingPoints,
+      const transaction = this.transactionRepository.create({
+        userId,
+        transactionType: type,
+        milesAmount: -milesToRedeem, // Negative for redemption
+        description,
+        // Populate related fields based on redemptionTarget if applicable
       });
 
-      // Record point transaction
-      await this.recordPointTransaction(
-        userId,
-        -pointsRequired,
-        `Redeemed reward: ${reward.name}`,
-        rewardId,
+      const savedTransaction = await queryRunner.manager.save(transaction);
+
+      user.loyaltyMilesBalance -= milesToRedeem;
+      await queryRunner.manager.save(user);
+
+      // No tier update needed for redemption, but could be if tiers had spending requirements
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `Redeemed ${milesToRedeem} miles from user ${userId} for ${type}. New balance: ${user.loyaltyMilesBalance}`,
       );
 
-      // In a real app, we would also create a reward redemption record
-      // and trigger any necessary fulfillment processes
-
-      return {
-        success: true,
-        remainingPoints,
-        reward,
-      };
-    } catch (error) {
-      this.logger.error(`Error redeeming points: ${error.message}`, error.stack);
-      throw error;
-    }
-  }
-
-  /**
-   * Get available rewards for a user
-   */
-  async getAvailableRewards(userId: string): Promise<
-    Array<{
-      id: string;
-      name: string;
-      description: string;
-      pointsRequired: number;
-      available: boolean;
-    }>
-  > {
-    try {
-      this.logger.debug(`Getting available rewards for user: ${userId}`);
-
-      // Get user's current points
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        throw new Error(`User not found: ${userId}`);
+      // Example: Interact with SubscriptionsService
+      if (
+        type === LoyaltyTransactionTypeEnum.PREMIUM_DISCOUNT_REDEEM &&
+        redemptionTarget?.discountAmount
+      ) {
+        // this.subscriptionsService.applyLoyaltyDiscount(userId, redemptionTarget.discountAmount);
+        this.logger.log(
+          `Placeholder: Called SubscriptionsService.applyLoyaltyDiscount for user ${userId}`,
+        );
       }
 
-      const currentPoints = user.loyaltyPoints || 0;
-
-      // Get all rewards (in a real app, this would come from a rewards repository)
-      const allRewards = [
-        {
-          id: 'reward1',
-          name: 'Free Night Stay',
-          description: 'Redeem for a free night at any property up to $200 value',
-          pointsRequired: 2000,
-        },
-        {
-          id: 'reward2',
-          name: 'Room Upgrade',
-          description: 'Guaranteed room upgrade on your next booking',
-          pointsRequired: 500,
-        },
-        {
-          id: 'reward3',
-          name: 'Airport Transfer',
-          description: 'Free airport transfer for your next booking',
-          pointsRequired: 300,
-        },
-      ];
-
-      // Mark rewards as available based on user's points
-      const availableRewards = allRewards.map(reward => ({
-        ...reward,
-        available: currentPoints >= reward.pointsRequired,
-      }));
-
-      return availableRewards;
+      return savedTransaction;
     } catch (error) {
-      this.logger.error(`Error getting available rewards: ${error.message}`, error.stack);
-      throw new Error(`Failed to get available rewards: ${error.message}`);
-    }
-  }
-
-  /**
-   * Calculate total loyalty points for a user
-   */
-  private async calculateTotalPoints(userId: string): Promise<number> {
-    try {
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        throw new Error(`User not found: ${userId}`);
-      }
-
-      return user.loyaltyPoints || 0;
-    } catch (error) {
-      this.logger.error(`Error calculating total points: ${error.message}`, error.stack);
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Error redeeming miles for user ${userId}: ${error.message}`, error.stack);
       throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 
   /**
-   * Calculate points to award for a booking
+   * Update user's loyalty tier based on their current miles balance
    */
-  private async calculateBookingPoints(booking: BookingEntity): Promise<number> {
-    let points = 0;
-
-    // Base points for any booking
-    points += 100;
-
-    // Points based on booking total
-    if (booking.totalPrice) {
-      points += Math.floor(booking.totalPrice / 10); // 1 point per $10 spent
-    }
-
-    // Bonus points for longer stays
-    const stayDuration = this.calculateStayDuration(booking.checkInDate, booking.checkOutDate);
-    if (stayDuration >= 7) {
-      points += 200; // Bonus for stays of a week or longer
-    } else if (stayDuration >= 3) {
-      points += 50; // Smaller bonus for stays of 3-6 days
-    }
-
-    // Bonus points for booking premium properties
-    // Note: rating field was moved to metadata object
-    const rating = (booking.property?.metadata as any)?.rating || 0;
-    if (booking.property && rating && rating >= 4.5) {
-      points += 50; // Bonus for premium properties
-    }
-
-    return points;
-  }
-
-  /**
-   * Calculate duration of stay in days
-   */
-  private calculateStayDuration(checkIn: Date, checkOut: Date): number {
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  }
-
-  /**
-   * Determine loyalty tier based on points
-   */
-  private determineLoyaltyTier(points: number): string {
-    if (points >= 5000) {
-      return 'Platinum';
-    } else if (points >= 2000) {
-      return 'Gold';
-    } else if (points >= 500) {
-      return 'Silver';
-    } else {
-      return 'Bronze';
-    }
-  }
-
-  /**
-   * Get information about the next tier
-   */
-  private getNextTierInfo(
-    currentTier: string,
-    currentPoints: number,
-  ): {
-    nextTier: string;
-    pointsNeeded: number;
-  } {
-    switch (currentTier) {
-      case 'Bronze':
-        return {
-          nextTier: 'Silver',
-          pointsNeeded: 500 - currentPoints,
-        };
-      case 'Silver':
-        return {
-          nextTier: 'Gold',
-          pointsNeeded: 2000 - currentPoints,
-        };
-      case 'Gold':
-        return {
-          nextTier: 'Platinum',
-          pointsNeeded: 5000 - currentPoints,
-        };
-      case 'Platinum':
-        return {
-          nextTier: 'Platinum',
-          pointsNeeded: 0,
-        };
-      default:
-        return {
-          nextTier: 'Silver',
-          pointsNeeded: 500 - currentPoints,
-        };
-    }
-  }
-
-  /**
-   * Get benefits for a loyalty tier
-   */
-  private getTierBenefits(tier: string): string[] {
-    switch (tier) {
-      case 'Bronze':
-        return ['Earn 1 point per $10 spent', 'Access to member-only deals'];
-      case 'Silver':
-        return [
-          'Earn 1.2 points per $10 spent',
-          'Access to member-only deals',
-          'Priority customer service',
-          'Late checkout when available',
-        ];
-      case 'Gold':
-        return [
-          'Earn 1.5 points per $10 spent',
-          'Access to member-only deals',
-          'Priority customer service',
-          'Late checkout when available',
-          'Room upgrades when available',
-          '10% discount on bookings',
-        ];
-      case 'Platinum':
-        return [
-          'Earn 2 points per $10 spent',
-          'Access to member-only deals',
-          'Priority customer service',
-          'Guaranteed late checkout',
-          'Room upgrades when available',
-          '15% discount on bookings',
-          'Free welcome amenities',
-          'Dedicated concierge service',
-        ];
-      default:
-        return ['Earn 1 point per $10 spent'];
-    }
-  }
-
-  /**
-   * Get point history for a user
-   */
-  private async getPointHistory(
-    _userId: string,
-  ): Promise<Array<{ date: Date; description: string; points: number }>> {
-    // In a real app, this would come from a point transaction repository
-    // For now, we'll return mock data
-    return [
-      {
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        description: 'Booking completed: Luxury Beach Villa',
-        points: 250,
-      },
-      {
-        date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-        description: 'Booking completed: Mountain Retreat Cabin',
-        points: 180,
-      },
-      {
-        date: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-        description: 'Welcome bonus',
-        points: 100,
-      },
-    ];
-  }
-
-  /**
-   * Record a point transaction
-   */
-  private async recordPointTransaction(
-    userId: string,
-    points: number,
-    description: string,
-    referenceId?: string,
+  private async _updateUserTier(
+    user: UserEntity,
+    manager: import('typeorm').EntityManager,
   ): Promise<void> {
-    // In a real app, this would create a record in a point transaction repository
-    this.logger.debug(
-      `Recording point transaction: User ${userId}, Points ${points}, Description: ${description}`,
-    );
+    const tiers = await manager.find(LoyaltyTierDefinitionEntity, {
+      order: { minMilesRequired: 'DESC' },
+    });
+    if (!tiers.length) {
+      this.logger.error('No loyalty tier definitions found. Cannot update user tier.');
+      return;
+    }
 
-    // For now, we'll just log it
-    this.logger.debug(
-      `Point transaction recorded: ${JSON.stringify({
-        userId,
-        points,
-        description,
-        referenceId,
-        date: new Date(),
-      })}`,
-    );
+    let newTier = user.loyaltyTier;
+    for (const tier of tiers) {
+      if (user.loyaltyMilesBalance >= tier.minMilesRequired) {
+        newTier = tier.tier;
+        break;
+      }
+    }
+
+    if (newTier !== user.loyaltyTier) {
+      const oldTier = user.loyaltyTier;
+      user.loyaltyTier = newTier;
+      await manager.save(user);
+      this.logger.log(`User ${user.id} tier updated from ${oldTier} to ${newTier}.`);
+      // Optionally emit an event for tier upgrade
+      // this.eventEmitter.emit('user.tier.upgraded', { userId: user.id, oldTier, newTier });
+    }
   }
 
   /**
-   * Handle tier upgrade
+   * Get information about the next loyalty tier
    */
-  private async handleTierUpgrade(userId: string, oldTier: string, newTier: string): Promise<void> {
-    this.logger.debug(`User ${userId} upgraded from ${oldTier} to ${newTier}`);
+  private async getNextTierInfo(
+    currentTierEnum: LoyaltyTierEnum,
+    currentMiles: number,
+  ): Promise<{ nextTier: string | null; milesNeeded: number | null }> {
+    const tiers = await this.tierDefinitionRepository.find({ order: { minMilesRequired: 'ASC' } });
+    const currentTierDefinition = tiers.find(t => t.tier === currentTierEnum);
 
-    // In a real app, we might:
-    // 1. Send a congratulatory email
-    // 2. Create a notification
-    // 3. Award a tier upgrade bonus
-    // 4. Update user's tier in the database
+    if (!currentTierDefinition) {
+      this.logger.error(`Current tier definition not found for ${currentTierEnum}`);
+      return { nextTier: null, milesNeeded: null };
+    }
 
-    // For now, we'll just log it
-    this.logger.log(
-      `Tier upgrade recorded: ${JSON.stringify({
+    const nextTierDefinition = tiers.find(
+      t => t.minMilesRequired > currentTierDefinition.minMilesRequired,
+    );
+
+    if (!nextTierDefinition) {
+      return { nextTier: null, milesNeeded: 0 }; // Already at highest tier
+    }
+
+    return {
+      nextTier: nextTierDefinition.name,
+      milesNeeded: Math.max(0, nextTierDefinition.minMilesRequired - currentMiles),
+    };
+  }
+
+  async getTransactionsHistory(userId: string, page: number, limit: number): Promise<any> {
+    try {
+      const user = await this.userRepository.findOneBy({ id: userId });
+      if (!user) {
+        throw new Error(`User not found: ${userId}`);
+      }
+      const [transactions, total] = await this.transactionRepository.findAndCount({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      return { data: transactions, total, page, limit };
+    } catch (error) {
+      this.logger.error(
+        `Error fetching transaction history for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async performDailyCheckIn(userId: string): Promise<LoyaltyTransactionEntity> {
+    try {
+      const user = await this.userRepository.findOneBy({ id: userId });
+      if (!user) {
+        throw new Error(`User not found: ${userId}`);
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const existingCheckIn = await this.transactionRepository.findOne({
+        where: {
+          userId,
+          transactionType: LoyaltyTransactionTypeEnum.DAILY_CHECKIN_EARN,
+          createdAt: MoreThanOrEqual(today),
+        },
+      });
+
+      if (existingCheckIn) {
+        throw new BadRequestException('Already checked in today.');
+      }
+
+      const dailyCheckInMiles = this.configService.get<number>('LOYALTY_DAILY_CHECKIN_MILES', 5);
+      return this.awardMiles(
         userId,
-        oldTier,
-        newTier,
-        date: new Date(),
-      })}`,
+        dailyCheckInMiles,
+        LoyaltyTransactionTypeEnum.DAILY_CHECKIN_EARN,
+        'Daily Check-in Bonus',
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error performing daily check-in for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  // Event Listeners
+  @OnEvent('booking.commission.finalized')
+  async handleBookingCommissionFinalized(payload: BookingCommissionFinalizedEvent) {
+    const milesPerDollar = 1; // Configurable
+    const milesToAward = payload.netCommissionAmount * milesPerDollar;
+    await this.awardMiles(
+      payload.userId,
+      milesToAward,
+      LoyaltyTransactionTypeEnum.BOOKING_COMMISSION_EARN,
+      `Commission from booking ${payload.bookingId}`,
+      { type: 'booking', id: payload.bookingId },
     );
   }
 
-  /**
-   * Get reward by ID
-   */
-  private getRewardById(rewardId: string): {
-    id: string;
-    name: string;
-    description: string;
-    pointsRequired: number;
-  } | null {
-    // In a real app, this would come from a rewards repository
-    const rewards = [
-      {
-        id: 'reward1',
-        name: 'Free Night Stay',
-        description: 'Redeem for a free night at any property up to $200 value',
-        pointsRequired: 2000,
-      },
-      {
-        id: 'reward2',
-        name: 'Room Upgrade',
-        description: 'Guaranteed room upgrade on your next booking',
-        pointsRequired: 500,
-      },
-      {
-        id: 'reward3',
-        name: 'Airport Transfer',
-        description: 'Free airport transfer for your next booking',
-        pointsRequired: 300,
-      },
-    ];
+  @OnEvent('referral.used')
+  async handleReferralUsed(payload: ReferralUsedEvent) {
+    const referralBonusMiles = 250; // Configurable
+    await this.awardMiles(
+      payload.referrerUserId,
+      referralBonusMiles,
+      LoyaltyTransactionTypeEnum.REFERRAL_BONUS_EARN,
+      `Bonus for referral ${payload.referralId}`,
+      { type: 'referral', id: payload.referralId },
+    );
+  }
 
-    return rewards.find(reward => reward.id === rewardId) || null;
+  @OnEvent('review.approved')
+  async handleReviewApproved(payload: ReviewApprovedEvent) {
+    const reviewAwardMiles = 50; // Configurable
+    await this.awardMiles(
+      payload.userId,
+      reviewAwardMiles,
+      LoyaltyTransactionTypeEnum.REVIEW_AWARD_EARN,
+      `Award for approved review ${payload.reviewId}`,
+      { type: 'review', id: payload.reviewId },
+    );
+  }
+
+  @OnEvent('premium.subscription.activated')
+  async handlePremiumSubscriptionActivated(payload: PremiumSubscriptionActivatedEvent) {
+    const premiumBonusMiles = 500; // Configurable
+    await this.awardMiles(
+      payload.userId,
+      premiumBonusMiles,
+      LoyaltyTransactionTypeEnum.PREMIUM_SUBSCRIPTION_BONUS_EARN,
+      `Bonus for premium subscription ${payload.subscriptionId}`,
+      { type: 'subscription', id: payload.subscriptionId },
+    );
+  }
+
+  @OnEvent('user.profile.completed')
+  async handleUserProfileCompleted(payload: UserProfileCompletedEvent) {
+    const profileCompletionMiles = 50; // Configurable
+    // Check if already awarded to prevent multiple awards
+    const existingTransaction = await this.transactionRepository.findOne({
+      where: {
+        userId: payload.userId,
+        transactionType: LoyaltyTransactionTypeEnum.PROFILE_COMPLETION_EARN,
+      },
+    });
+    if (!existingTransaction) {
+      await this.awardMiles(
+        payload.userId,
+        profileCompletionMiles,
+        LoyaltyTransactionTypeEnum.PROFILE_COMPLETION_EARN,
+        'Bonus for profile completion',
+      );
+    }
+  }
+
+  @OnEvent('partner.offer.engaged')
+  async handlePartnerOfferEngaged(payload: PartnerOfferEngagedEvent) {
+    await this.awardMiles(
+      payload.userId,
+      payload.milesToAward,
+      LoyaltyTransactionTypeEnum.PARTNER_OFFER_EARN,
+      `Bonus for partner offer ${payload.offerId}`,
+      { type: 'partner_offer', id: payload.offerId },
+    );
   }
 }
