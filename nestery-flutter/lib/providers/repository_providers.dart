@@ -3,6 +3,7 @@ import 'package:nestery_flutter/data/repositories/property_repository.dart';
 import 'package:nestery_flutter/data/repositories/booking_repository.dart';
 import 'package:nestery_flutter/data/repositories/user_repository.dart';
 import 'package:nestery_flutter/data/repositories/review_repository.dart';
+import 'package:nestery_flutter/data/repositories/loyalty_repository.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 
 /// Repository providers for dependency injection
@@ -29,4 +30,10 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return ReviewRepository(apiClient: apiClient);
+});
+
+/// Loyalty Repository Provider
+final loyaltyRepositoryProvider = Provider<LoyaltyRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return LoyaltyRepository(apiClient: apiClient);
 });
