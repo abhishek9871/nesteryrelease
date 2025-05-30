@@ -77,8 +77,8 @@ nesteryrelease/
    npm run start:dev
    ```
 
-The API will be available at `http://localhost:3000/api`.
-The Swagger documentation will be available at `http://localhost:3000/api/docs`.
+The API will be available at `http://localhost:3000/v1`.
+The Swagger documentation will be available at `http://localhost:3000/v1/docs`.
 
 ### Flutter Client Setup
 
@@ -106,7 +106,7 @@ The Swagger documentation will be available at `http://localhost:3000/api/docs`.
 
 ## API Documentation
 
-The backend API is documented using OpenAPI/Swagger. You can access the documentation at `http://localhost:3000/api/docs` when running the backend locally.
+The backend API is documented using OpenAPI/Swagger. You can access the documentation at `http://localhost:3000/v1/docs` when running the backend locally.
 
 For a static version of the API documentation, see the `openapi.yaml` file in the backend directory or the `API_DOCUMENTATION.md` file.
 

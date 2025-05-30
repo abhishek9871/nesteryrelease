@@ -12,4 +12,10 @@ export class AppController {
   getHealth(): { status: string; version: string } {
     return this.appService.getHealth();
   }
+
+  @Get('health')
+  @ApiOperation({ summary: 'Health check endpoint (legacy)' })
+  getHealthLegacy(): { status: string; version: string } {
+    return this.appService.getHealth();
+  }
 }

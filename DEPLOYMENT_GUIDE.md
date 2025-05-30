@@ -28,7 +28,7 @@ Edit the `.env` file with your production settings:
 # Application
 NODE_ENV=production
 PORT=3000
-API_PREFIX=api
+API_PREFIX=v1
 FRONTEND_URL=https://your-frontend-domain.com
 
 # Database
@@ -89,9 +89,9 @@ docker-compose exec app npm run migration:run
 ```
 
 #### 5. Verify Deployment
-Access your API at `https://your-domain.com/api` or `http://localhost:3000/api` if testing locally.
+Access your API at `https://your-domain.com/v1` or `http://localhost:3000/v1` if testing locally.
 
-The Swagger documentation should be available at `https://your-domain.com/api/docs` or `http://localhost:3000/api/docs`.
+The Swagger documentation should be available at `https://your-domain.com/v1/docs` or `http://localhost:3000/v1/docs`.
 
 ### Option 2: AWS Elastic Beanstalk Deployment
 
@@ -130,7 +130,7 @@ option_settings:
   aws:elasticbeanstalk:application:environment:
     NODE_ENV: production
     PORT: 3000
-    API_PREFIX: api
+    API_PREFIX: v1
     FRONTEND_URL: https://your-frontend-domain.com
     DB_HOST: your-rds-endpoint
     DB_PORT: 5432
@@ -204,7 +204,7 @@ gcloud run deploy nestery-backend \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars="NODE_ENV=production,PORT=8080,API_PREFIX=api,FRONTEND_URL=https://your-frontend-domain.com,DB_HOST=your-db-host,DB_PORT=5432,DB_USERNAME=your-db-username,DB_PASSWORD=your-db-password,DB_DATABASE=nestery,DB_SYNCHRONIZE=false,JWT_SECRET=your_secure_jwt_secret_key_here,JWT_EXPIRATION=3600,JWT_REFRESH_EXPIRATION=604800"
+  --set-env-vars="NODE_ENV=production,PORT=8080,API_PREFIX=v1,FRONTEND_URL=https://your-frontend-domain.com,DB_HOST=your-db-host,DB_PORT=5432,DB_USERNAME=your-db-username,DB_PASSWORD=your-db-password,DB_DATABASE=nestery,DB_SYNCHRONIZE=false,JWT_SECRET=your_secure_jwt_secret_key_here,JWT_EXPIRATION=3600,JWT_REFRESH_EXPIRATION=604800"
 ```
 
 #### 4. Set Up Cloud SQL (if needed)
@@ -243,7 +243,7 @@ cd nesteryrelease/nestery-flutter
 
 Create a `.env` file based on `.env.example` and update the API base URL:
 ```
-API_BASE_URL=https://your-backend-domain.com
+API_BASE_URL=https://your-backend-domain.com/v1
 GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 ANALYTICS_ENABLED=true
@@ -395,7 +395,12 @@ npm run migration:revert
 ## Monitoring and Maintenance
 
 ### Health Checks
-The API provides a health check endpoint at `/api/health` that returns the status of the application and its dependencies.
+The API provides health check endpoints:
+- Primary: `/v1/` (root endpoint with v1 prefix)
+- Legacy: `/v1/health` (explicit health path with v1 prefix)
+- Nginx proxy: `/health` (proxied to `/v1/health` for backward compatibility)
+
+These endpoints return the status of the application and its dependencies.
 
 ### Logging
 Logs are output to the console and can be viewed:

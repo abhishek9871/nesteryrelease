@@ -47,7 +47,7 @@ export class SecurityHeadersService {
       );
 
       // Cache-Control for API responses
-      if (req.path.startsWith('/api/')) {
+      if (req.path.startsWith('/v1/')) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
