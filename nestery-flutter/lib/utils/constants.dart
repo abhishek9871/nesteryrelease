@@ -48,8 +48,10 @@ class Constants {
   static const String propertiesEndpoint = '/properties';
   static const String bookingsEndpoint = '/bookings';
   static const String reviewsEndpoint = '/reviews';
-  static const String trendingDestinationsEndpoint = '/properties/trending-destinations';
-  static const String loyaltyEndpoint = '/loyalty';
+  static const String loyaltyStatusEndpoint = '/loyalty/status';
+  static const String loyaltyCheckInEndpoint = '/loyalty/check-in';
+  static const String loyaltyTransactionsEndpoint = '/loyalty/transactions';
+  // static const String loyaltyEndpoint = '/loyalty'; // Old, replaced by specific endpoints
   static const String socialSharingEndpoint = '/social';
   static const String recommendationsEndpoint = '/recommendations';
   static const String pricePredictionEndpoint = '/price-prediction';
