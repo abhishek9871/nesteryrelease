@@ -12,6 +12,8 @@ import 'package:nestery_flutter/screens/bookings_screen.dart';
 import 'package:nestery_flutter/screens/search_screen.dart';
 import 'package:nestery_flutter/screens/profile_screen.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
+import 'package:nestery_flutter/screens/loyalty_dashboard_screen.dart';
+import 'package:nestery_flutter/screens/loyalty_transactions_screen.dart';
 import 'package:nestery_flutter/models/booking.dart';
 import 'package:nestery_flutter/models/enums.dart';
 
@@ -188,6 +190,15 @@ class AppRouter {
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+
+          // Loyalty Program Routes (can be accessed from profile or other parts of the app)
+           GoRoute(
+            path: '/loyalty',
+            builder: (context, state) => const LoyaltyDashboardScreen(),
+            routes: [
+              GoRoute(path: 'transactions', builder: (context, state) => const LoyaltyTransactionsScreen()),
+            ]
           ),
         ],
       ),
