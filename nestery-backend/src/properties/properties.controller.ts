@@ -8,12 +8,14 @@ import {
   Delete,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { SearchPropertiesDto } from './dto/search-properties.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
@@ -36,6 +38,8 @@ export class PropertiesController {
   }
 
   @Get()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @ApiOperation({ summary: 'Get all properties with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -52,6 +56,8 @@ export class PropertiesController {
   }
 
   @Get('featured')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @ApiOperation({ summary: 'Get featured properties' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Featured properties retrieved successfully' })
@@ -60,6 +66,9 @@ export class PropertiesController {
   }
 
   @Get('trending')
+  @UseInterceptors(CacheInterceptor)
+  @CacheKey('trending_destinations')
+  @CacheTTL(24 * 3600 * 1000) // 24 hours in milliseconds
   @ApiOperation({ summary: 'Get trending destinations' })
   @ApiResponse({ status: 200, description: 'Trending destinations retrieved successfully' })
   getTrendingDestinations() {
@@ -83,6 +92,8 @@ export class PropertiesController {
   }
 
   @Get(':id')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(6 * 3600 * 1000) // 6 hours in milliseconds
   @ApiOperation({ summary: 'Get a property by ID' })
   @ApiParam({ name: 'id', required: true, description: 'Property ID' })
   @ApiResponse({ status: 200, description: 'Property retrieved successfully' })

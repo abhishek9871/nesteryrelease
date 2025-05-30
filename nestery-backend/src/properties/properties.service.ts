@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual, FindOptionsWhere } from 'typeorm';
 import { Property } from './entities/property.entity';
@@ -7,6 +7,8 @@ import { UpdatePropertyDto } from './dto/update-property.dto';
 import { SearchPropertiesDto } from './dto/search-properties.dto';
 import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PropertiesService {
@@ -15,6 +17,8 @@ export class PropertiesService {
     private readonly propertyRepository: Repository<Property>,
     private readonly logger: LoggerService,
     private readonly exceptionService: ExceptionService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly configService: ConfigService, // To get API_PREFIX for cache keys
   ) {
     this.logger.setContext('PropertiesService');
   }
@@ -194,8 +198,13 @@ export class PropertiesService {
 
       // Update property fields
       Object.assign(property, updatePropertyDto);
+      const updatedProperty = await this.propertyRepository.save(property);
 
-      return await this.propertyRepository.save(property);
+      // Invalidate cache for this specific property
+      const cacheKey = `/${this.configService.get<string>('API_PREFIX', 'v1')}/properties/${id}`;
+      await this.cacheManager.del(cacheKey);
+
+      return updatedProperty;
     } catch (error) {
       this.logger.error(`Error updating property: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);
@@ -219,6 +228,10 @@ export class PropertiesService {
       // Soft delete by setting isActive to false
       property.isActive = false;
       await this.propertyRepository.save(property);
+
+      // Invalidate cache for this specific property
+      const cacheKey = `/${this.configService.get<string>('API_PREFIX', 'v1')}/properties/${id}`;
+      await this.cacheManager.del(cacheKey);
     } catch (error) {
       this.logger.error(`Error removing property: ${error.message}`, error.stack);
       this.exceptionService.handleException(error);

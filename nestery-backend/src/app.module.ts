@@ -16,6 +16,8 @@ import { LoyaltyModule } from './features/loyalty/loyalty.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SocialSharingModule } from './features/social-sharing/social-sharing.module';
 import { configValidationSchema } from './config/config.schema';
+import { CacheModule } from '@nestjs/cache-manager';
+import { createKeyv } from '@keyv/redis';
 
 // Entity imports - Required for webpack bundling since glob patterns don't work
 import { User } from './users/entities/user.entity';
@@ -38,6 +40,7 @@ import { SocialShare } from './features/social-sharing/entities/social-share.ent
 import { PremiumSubscription } from './features/subscriptions/entities/premium-subscription.entity';
 import { Itinerary } from './features/itineraries/entities/itinerary.entity';
 import { ItineraryItem } from './features/itineraries/entities/itinerary-item.entity';
+import { LoggerService } from './core/logger/logger.service';
 // import { PciSecurityMiddleware } from './middleware/pci-security.middleware'; // Removed as per redirect model for Booking.com
 
 /**
@@ -52,6 +55,45 @@ import { ItineraryItem } from './features/itineraries/entities/itinerary-item.en
       envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
     }),
     EventEmitterModule.forRoot(),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule, CoreModule], // CoreModule exports LoggerService
+      inject: [ConfigService, LoggerService],
+      useFactory: async (configService: ConfigService, logger: LoggerService) => {
+        const host = configService.get<string>('CACHE_HOST');
+        const port = configService.get<number>('CACHE_PORT');
+        const ttlInMilliseconds = configService.get<number>('CACHE_TTL_DEFAULT_SECONDS', 60) * 1000;
+
+        try {
+          logger.log(`Attempting to connect to Redis cache at ${host}:${port}`, 'CacheModuleFactory');
+
+          // Create Redis connection URL
+          const redisUrl = `redis://${host}:${port}`;
+
+          // Test connection by creating a temporary Keyv instance
+          const testKeyv = createKeyv(redisUrl);
+          await testKeyv.set('test-connection', 'ok', 1000);
+          await testKeyv.delete('test-connection');
+
+          logger.log(`Redis connection test successful to ${host}:${port}`, 'CacheModuleFactory');
+
+          // Return configuration with Redis store
+          return {
+            stores: [createKeyv(redisUrl)],
+            ttl: ttlInMilliseconds, // Global TTL for CacheModule in milliseconds
+          };
+        } catch (error) {
+          logger.warn(
+            `Redis connection failed: ${error.message}. Falling back to in-memory cache.`,
+            'CacheModuleFactory',
+          );
+          // Return configuration with in-memory cache only
+          return {
+            ttl: ttlInMilliseconds, // Global TTL for CacheModule in milliseconds
+          };
+        }
+      },
+    }),
 
     // Database
     TypeOrmModule.forRootAsync({

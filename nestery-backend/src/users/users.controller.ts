@@ -8,6 +8,7 @@ import {
   UseGuards,
   Req,
   NotFoundException,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -25,6 +26,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 /**
  * Controller handling user-related endpoints
  */
@@ -38,6 +40,8 @@ export class UsersController {
    * Get current user profile
    */
   @Get('me')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -111,6 +115,8 @@ export class UsersController {
    * Get user by ID (admin only)
    */
   @Get(':id')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID (admin only)' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })

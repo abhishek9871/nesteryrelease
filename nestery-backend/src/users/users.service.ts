@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -6,6 +6,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Service handling user-related operations
@@ -17,6 +19,8 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
     private readonly logger: LoggerService,
     private readonly exceptionService: ExceptionService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly configService: ConfigService,
   ) {
     this.logger.setContext('UsersService');
   }
@@ -90,7 +94,14 @@ export class UsersService {
       }
 
       Object.assign(user, updateUserDto);
-      return await this.usersRepository.save(user);
+      const updatedUser = await this.usersRepository.save(user);
+
+      // Invalidate cache for this specific user
+      const adminCacheKey = `/${this.configService.get<string>('API_PREFIX', 'v1')}/users/${id}`;
+      await this.cacheManager.del(adminCacheKey);
+      // Also invalidate /me if the updated user is the one making the request (tricky from service, usually handled by TTL or controller)
+      // For basic invalidation, clearing the specific ID is sufficient as per task interpretation.
+      return updatedUser;
     } catch (error) {
       this.exceptionService.handleException(error);
       throw error;

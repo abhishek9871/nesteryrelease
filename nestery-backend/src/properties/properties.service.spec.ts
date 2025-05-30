@@ -4,6 +4,8 @@ import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Property } from './entities/property.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ConfigService } from '@nestjs/config';
 
 describe('PropertiesService', () => {
   let service: PropertiesService;
@@ -40,6 +42,20 @@ describe('PropertiesService', () => {
         {
           provide: getRepositoryToken(Property),
           useValue: mockPropertyRepository,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            del: jest.fn(),
+            get: jest.fn(),
+            set: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('v1'), // Mock API_PREFIX
+          },
         },
       ],
     }).compile();

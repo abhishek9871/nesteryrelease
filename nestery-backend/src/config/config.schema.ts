@@ -42,4 +42,9 @@ export const configValidationSchema = Joi.object({
   // Feature Flags
   ENABLE_SWAGGER: Joi.boolean().default(true),
   ENABLE_RATE_LIMITING: Joi.boolean().default(true),
+
+  // Cache
+  CACHE_HOST: Joi.string().default('localhost'),
+  CACHE_PORT: Joi.number().default(6379),
+  CACHE_TTL_DEFAULT_SECONDS: Joi.number().default(60),
 });
