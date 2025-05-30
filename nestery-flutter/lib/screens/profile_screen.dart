@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/models/loyalty.dart'; // Import loyalty models for extension methods
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/providers/profile_provider.dart';
 import 'package:nestery_flutter/providers/theme_provider.dart';
+import 'package:nestery_flutter/providers/loyalty_provider.dart'; // Import new loyalty provider
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/section_title.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -156,6 +158,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final profileState = ref.watch(userProfileProvider);
+    final loyaltyState = ref.watch(loyaltyStatusProvider); // Watch new loyalty provider
     final user = profileState.user;
     // Remove the updateState watch since we're using userProfileProvider
 
@@ -173,7 +176,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       body: LoadingOverlay(
         isLoading: profileState.isLoading || profileState.isUpdating,
         child: user == null && !profileState.isLoading
-            ? _buildErrorState(profileState.error ?? 'Failed to load profile')
+            ? _buildErrorState(profileState.error ?? loyaltyState.error ?? 'Failed to load profile')
             : Column(
                 children: [
                   // Profile header
@@ -200,7 +203,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                         // Profile tab
                         _isEditing
                             ? _buildEditProfileForm(user, theme)
-                            : _buildProfileDetails(user, theme),
+                            : _buildProfileDetails(user, theme, loyaltyState),
 
                         // Settings tab
                         _buildSettingsTab(theme),
@@ -301,7 +304,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     );
   }
 
-  Widget _buildProfileDetails(User? user, ThemeData theme) {
+  Widget _buildProfileDetails(User? user, ThemeData theme, LoyaltyStatusState loyaltyState) {
     if (user == null) return const SizedBox();
 
     return SingleChildScrollView(
@@ -373,7 +376,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           _buildInfoItem(
             theme,
             'Loyalty Points',
-            '${user.loyaltyPoints} points',
+            '${user.loyaltyMilesBalance} Miles', // Updated to loyaltyMilesBalance
             isLast: true,
           ),
           const SizedBox(height: 24),
@@ -388,12 +391,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           _buildInfoItem(
             theme,
             'Currency',
-            user.preferredCurrency ?? 'USD',
+            user.preferences?['currency'] ?? 'USD', // Assuming preferences holds this
           ),
           _buildInfoItem(
             theme,
             'Language',
-            user.preferredLanguage ?? 'English',
+            user.preferences?['language'] ?? 'English', // Assuming preferences holds this
             isLast: true,
           ),
           const SizedBox(height: 24),
@@ -411,17 +414,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 child: _buildStatCard(
                   theme,
                   'Bookings',
-                  '${user.bookingsCount ?? 0}',
+                  '${user.bookingsCount ?? 0}', // This field might not be directly on User model anymore
                   Icons.hotel,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
-                  theme,
-                  'Reviews',
-                  '${user.reviewsCount ?? 0}',
-                  Icons.star,
+                  theme, // Updated to show loyalty tier
+                  'Loyalty Tier',
+                  loyaltyState.status?.tierName ?? user.loyaltyTier.displayName,
+                  Icons.shield_outlined,
                 ),
               ),
               const SizedBox(width: 16),
@@ -429,11 +432,53 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 child: _buildStatCard(
                   theme,
                   'Saved',
-                  '${user.savedPropertiesCount ?? 0}',
+                  '${user.savedPropertiesCount ?? 0}', // This field might not be directly on User model
                   Icons.favorite,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+
+          // Loyalty Program Section
+          const SectionTitle(
+            title: 'Nestery Navigator Club',
+            showSeeAll: false,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.card_membership, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Current Tier: ${loyaltyState.status?.tierName ?? user.loyaltyTier.displayName}',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Miles Balance: ${loyaltyState.status?.loyaltyMilesBalance ?? user.loyaltyMilesBalance}',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  CustomButton(
+                    text: 'View Loyalty Dashboard',
+                    onPressed: () => context.go('/loyalty'),
+                    isOutlined: true,
+                    width: double.infinity,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
