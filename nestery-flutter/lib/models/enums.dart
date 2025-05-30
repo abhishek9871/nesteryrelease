@@ -22,12 +22,13 @@ enum UserRole {
   admin
 }
 
-enum LoyaltyTier {
-  bronze,
-  silver,
-  gold,
-  platinum
-}
+// LoyaltyTier enum moved to loyalty.dart for better organization with other loyalty models
+// enum LoyaltyTier {
+//   bronze,
+//   silver,
+//   gold,
+//   platinum
+// }
 
 enum AuthProvider {
   email,
@@ -136,35 +137,7 @@ extension UserRoleExtension on UserRole {
   }
 }
 
-extension LoyaltyTierExtension on LoyaltyTier {
-  String get value {
-    switch (this) {
-      case LoyaltyTier.bronze:
-        return 'bronze';
-      case LoyaltyTier.silver:
-        return 'silver';
-      case LoyaltyTier.gold:
-        return 'gold';
-      case LoyaltyTier.platinum:
-        return 'platinum';
-    }
-  }
 
-  static LoyaltyTier fromString(String value) {
-    switch (value.toLowerCase()) {
-      case 'bronze':
-        return LoyaltyTier.bronze;
-      case 'silver':
-        return LoyaltyTier.silver;
-      case 'gold':
-        return LoyaltyTier.gold;
-      case 'platinum':
-        return LoyaltyTier.platinum;
-      default:
-        throw ArgumentError('Invalid loyalty tier: $value');
-    }
-  }
-}
 
 extension AuthProviderExtension on AuthProvider {
   String get value {

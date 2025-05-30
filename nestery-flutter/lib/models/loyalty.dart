@@ -1,124 +1,159 @@
-import 'package:nestery_flutter/models/enums.dart';
+enum LoyaltyTier {
+  scout,
+  explorer,
+  navigator,
+  globetrotter,
+  unknown // Fallback for unexpected values
+}
 
-class Loyalty {
-  final String id;
-  final String userId;
-  final LoyaltyTier tier;
-  final int points;
-  final int pointsEarned;
-  final int pointsRedeemed;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  Loyalty({
-    required this.id,
-    required this.userId,
-    required this.tier,
-    required this.points,
-    required this.pointsEarned,
-    required this.pointsRedeemed,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  // Factory constructor to create a Loyalty from JSON
-  factory Loyalty.fromJson(Map<String, dynamic> json) {
-    return Loyalty(
-      id: json['id'],
-      userId: json['userId'],
-      tier: LoyaltyTierExtension.fromString(json['tier']),
-      points: json['points'],
-      pointsEarned: json['pointsEarned'],
-      pointsRedeemed: json['pointsRedeemed'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-    );
-  }
-
-  // Convert Loyalty to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'userId': userId,
-      'tier': tier.value,
-      'points': points,
-      'pointsEarned': pointsEarned,
-      'pointsRedeemed': pointsRedeemed,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-    };
-  }
-
-  // Create a copy of Loyalty with updated fields
-  Loyalty copyWith({
-    String? id,
-    String? userId,
-    LoyaltyTier? tier,
-    int? points,
-    int? pointsEarned,
-    int? pointsRedeemed,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return Loyalty(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      tier: tier ?? this.tier,
-      points: points ?? this.points,
-      pointsEarned: pointsEarned ?? this.pointsEarned,
-      pointsRedeemed: pointsRedeemed ?? this.pointsRedeemed,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
-  // Helper getters
-  int get availablePoints => points;
-  int get totalEarned => pointsEarned;
-  int get totalRedeemed => pointsRedeemed;
-  
-  // Calculate points needed for next tier
-  int get pointsToNextTier {
-    switch (tier) {
-      case LoyaltyTier.bronze:
-        return 1000 - points; // Assuming 1000 points for silver
-      case LoyaltyTier.silver:
-        return 2500 - points; // Assuming 2500 points for gold
-      case LoyaltyTier.gold:
-        return 5000 - points; // Assuming 5000 points for platinum
-      case LoyaltyTier.platinum:
-        return 0; // Already at highest tier
+extension LoyaltyTierExtension on LoyaltyTier {
+  String get displayName {
+    switch (this) {
+      case LoyaltyTier.scout:
+        return 'Scout';
+      case LoyaltyTier.explorer:
+        return 'Explorer';
+      case LoyaltyTier.navigator:
+        return 'Navigator';
+      case LoyaltyTier.globetrotter:
+        return 'Globetrotter';
+      default:
+        return 'Unknown Tier';
     }
   }
 
-  @override
-  String toString() {
-    return 'Loyalty(id: $id, userId: $userId, tier: $tier, points: $points, pointsEarned: $pointsEarned, pointsRedeemed: $pointsRedeemed, createdAt: $createdAt, updatedAt: $updatedAt)';
+  static LoyaltyTier fromString(String? value) {
+    switch (value?.toUpperCase()) {
+      case 'SCOUT':
+        return LoyaltyTier.scout;
+      case 'EXPLORER':
+        return LoyaltyTier.explorer;
+      case 'NAVIGATOR':
+        return LoyaltyTier.navigator;
+      case 'GLOBETROTTER':
+        return LoyaltyTier.globetrotter;
+      default:
+        return LoyaltyTier.unknown;
+    }
+  }
+}
+
+enum LoyaltyTransactionType {
+  bookingCommissionEarn,
+  referralBonusEarn,
+  reviewAwardEarn,
+  dailyCheckinEarn,
+  profileCompletionEarn,
+  premiumSubscriptionBonusEarn,
+  partnerOfferEarn,
+  premiumDiscountRedeem,
+  tempFeatureAccessRedeem,
+  profileCustomizationRedeem,
+  prizeDrawEntryRedeem,
+  partnerServiceDiscountRedeem,
+  adjustmentAdd,
+  adjustmentSubtract,
+  unknown // Fallback
+}
+
+extension LoyaltyTransactionTypeExtension on LoyaltyTransactionType {
+  String get displayDescription {
+    switch (this) {
+      case LoyaltyTransactionType.bookingCommissionEarn: return 'Miles from Booking';
+      case LoyaltyTransactionType.referralBonusEarn: return 'Referral Bonus';
+      case LoyaltyTransactionType.reviewAwardEarn: return 'Review Award';
+      case LoyaltyTransactionType.dailyCheckinEarn: return 'Daily Check-in Bonus';
+      case LoyaltyTransactionType.profileCompletionEarn: return 'Profile Completion Bonus';
+      case LoyaltyTransactionType.premiumSubscriptionBonusEarn: return 'Premium Subscription Bonus';
+      case LoyaltyTransactionType.partnerOfferEarn: return 'Partner Offer Miles';
+      case LoyaltyTransactionType.premiumDiscountRedeem: return 'Redeemed for Premium Discount';
+      case LoyaltyTransactionType.tempFeatureAccessRedeem: return 'Redeemed for Feature Access';
+      case LoyaltyTransactionType.profileCustomizationRedeem: return 'Redeemed for Profile Customization';
+      case LoyaltyTransactionType.prizeDrawEntryRedeem: return 'Redeemed for Prize Draw Entry';
+      case LoyaltyTransactionType.partnerServiceDiscountRedeem: return 'Redeemed for Partner Discount';
+      case LoyaltyTransactionType.adjustmentAdd: return 'Miles Adjustment (Added)';
+      case LoyaltyTransactionType.adjustmentSubtract: return 'Miles Adjustment (Subtracted)';
+      default: return 'Loyalty Transaction';
+    }
   }
 
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Loyalty &&
-        other.id == id &&
-        other.userId == userId &&
-        other.tier == tier &&
-        other.points == points &&
-        other.pointsEarned == pointsEarned &&
-        other.pointsRedeemed == pointsRedeemed &&
-        other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+  static LoyaltyTransactionType fromString(String? value) {
+    return LoyaltyTransactionType.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => LoyaltyTransactionType.unknown,
+    );
   }
+}
 
-  @override
-  int get hashCode {
-    return id.hashCode ^
-        userId.hashCode ^
-        tier.hashCode ^
-        points.hashCode ^
-        pointsEarned.hashCode ^
-        pointsRedeemed.hashCode ^
-        createdAt.hashCode ^
-        updatedAt.hashCode;
+class LoyaltyStatus {
+  final int loyaltyMilesBalance;
+  final LoyaltyTier loyaltyTier;
+  final String tierName;
+  final String? tierBenefits;
+  final String? nextTierName;
+  final int? milesToNextTier;
+  final double earningMultiplier;
+
+  LoyaltyStatus({
+    required this.loyaltyMilesBalance,
+    required this.loyaltyTier,
+    required this.tierName,
+    this.tierBenefits,
+    this.nextTierName,
+    this.milesToNextTier,
+    required this.earningMultiplier,
+  });
+
+  factory LoyaltyStatus.fromJson(Map<String, dynamic> json) {
+    return LoyaltyStatus(
+      loyaltyMilesBalance: json['loyaltyMilesBalance'] as int,
+      loyaltyTier: LoyaltyTierExtension.fromString(json['loyaltyTier'] as String?),
+      tierName: json['tierName'] as String,
+      tierBenefits: json['tierBenefits'] as String?,
+      nextTierName: json['nextTier'] as String?,
+      milesToNextTier: json['milesToNextTier'] as int?,
+      earningMultiplier: (json['earningMultiplier'] as num).toDouble(),
+    );
+  }
+}
+
+class LoyaltyTransaction {
+  final String id;
+  final LoyaltyTransactionType transactionType;
+  final int milesAmount;
+  final String? description;
+  final DateTime createdAt;
+  final String? relatedBookingId;
+  final String? relatedReferralId;
+  final String? relatedSubscriptionId;
+  final String? relatedReviewId;
+  final String? relatedPartnerOfferId;
+
+  LoyaltyTransaction({
+    required this.id,
+    required this.transactionType,
+    required this.milesAmount,
+    this.description,
+    required this.createdAt,
+    this.relatedBookingId,
+    this.relatedReferralId,
+    this.relatedSubscriptionId,
+    this.relatedReviewId,
+    this.relatedPartnerOfferId,
+  });
+
+  factory LoyaltyTransaction.fromJson(Map<String, dynamic> json) {
+    return LoyaltyTransaction(
+      id: json['id'] as String,
+      transactionType: LoyaltyTransactionTypeExtension.fromString(json['transactionType'] as String?),
+      milesAmount: json['milesAmount'] as int,
+      description: json['description'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      relatedBookingId: json['relatedBookingId'] as String?,
+      relatedReferralId: json['relatedReferralId'] as String?,
+      relatedSubscriptionId: json['relatedSubscriptionId'] as String?,
+      relatedReviewId: json['relatedReviewId'] as String?,
+      relatedPartnerOfferId: json['relatedPartnerOfferId'] as String?,
+    );
   }
 }

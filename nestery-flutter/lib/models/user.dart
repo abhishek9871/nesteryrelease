@@ -1,3 +1,5 @@
+import 'package:nestery_flutter/models/loyalty.dart';
+
 class User {
   final String id;
   final String email;
@@ -6,8 +8,8 @@ class User {
   final String? phoneNumber;
   final String? profilePicture;
   final String role;
-  final String loyaltyTier;
-  final int loyaltyPoints;
+  final LoyaltyTier loyaltyTier; // Updated to use LoyaltyTier enum
+  final int loyaltyMilesBalance; // Updated field name
   final String? authProvider;
   final bool emailVerified;
   final bool phoneVerified;
@@ -35,7 +37,7 @@ class User {
     this.profilePicture,
     required this.role,
     required this.loyaltyTier,
-    required this.loyaltyPoints,
+    required this.loyaltyMilesBalance,
     this.authProvider,
     required this.emailVerified,
     required this.phoneVerified,
@@ -66,8 +68,8 @@ class User {
       phoneNumber: json['phoneNumber'],
       profilePicture: json['profilePicture'],
       role: json['role'],
-      loyaltyTier: json['loyaltyTier'] ?? 'bronze',
-      loyaltyPoints: json['loyaltyPoints'] ?? 0,
+      loyaltyTier: LoyaltyTierExtension.fromString(json['loyaltyTier'] as String?),
+      loyaltyMilesBalance: json['loyaltyMilesBalance'] ?? 0,
       authProvider: json['authProvider'],
       emailVerified: json['emailVerified'] ?? false,
       phoneVerified: json['phoneVerified'] ?? false,
@@ -100,8 +102,8 @@ class User {
       'phoneNumber': phoneNumber,
       'profilePicture': profilePicture,
       'role': role,
-      'loyaltyTier': loyaltyTier,
-      'loyaltyPoints': loyaltyPoints,
+      'loyaltyTier': loyaltyTier.name, // Store enum name as string
+      'loyaltyMilesBalance': loyaltyMilesBalance,
       'authProvider': authProvider,
       'emailVerified': emailVerified,
       'phoneVerified': phoneVerified,
@@ -129,8 +131,8 @@ class User {
     String? phoneNumber,
     String? profilePicture,
     String? role,
-    String? loyaltyTier,
-    int? loyaltyPoints,
+    LoyaltyTier? loyaltyTier,
+    int? loyaltyMilesBalance,
     String? authProvider,
     bool? emailVerified,
     bool? phoneVerified,
@@ -155,8 +157,8 @@ class User {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       profilePicture: profilePicture ?? this.profilePicture,
       role: role ?? this.role,
-      loyaltyTier: loyaltyTier ?? this.loyaltyTier,
-      loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
+      loyaltyTier: loyaltyTier ?? this.loyaltyTier, // Use provided or existing
+      loyaltyMilesBalance: loyaltyMilesBalance ?? this.loyaltyMilesBalance, // Use provided or existing
       authProvider: authProvider ?? this.authProvider,
       emailVerified: emailVerified ?? this.emailVerified,
       phoneVerified: phoneVerified ?? this.phoneVerified,
