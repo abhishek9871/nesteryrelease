@@ -127,7 +127,7 @@ class Constants {
 
   // Initialize constants from environment variables
   static void initialize() {
-    apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/api';
+    apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/v1';
     googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
     stripePublishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
     bookingComApiKey = dotenv.env['BOOKING_COM_API_KEY'] ?? '';
