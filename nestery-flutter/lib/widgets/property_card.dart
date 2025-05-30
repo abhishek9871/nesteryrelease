@@ -314,7 +314,7 @@ class PropertyCard extends ConsumerWidget {
         sourceText = 'Booking.com';
         break;
       case 'oyo':
-        badgeColor = Colors.red;
+        badgeColor = Colors.redAccent;
         sourceText = 'OYO';
         break;
       case 'direct':

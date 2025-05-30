@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/models/loyalty.dart';
 
 void main() {
   group('AuthProvider', () {
@@ -29,8 +30,8 @@ void main() {
         firstName: 'Test',
         lastName: 'User',
         role: 'user',
-        loyaltyTier: 'bronze',
-        loyaltyPoints: 0,
+        loyaltyTier: LoyaltyTier.scout,
+        loyaltyMilesBalance: 0,
         emailVerified: true,
         phoneVerified: false,
         createdAt: DateTime.now(),
@@ -42,8 +43,8 @@ void main() {
       expect(testUser.firstName, 'Test');
       expect(testUser.lastName, 'User');
       expect(testUser.role, 'user');
-      expect(testUser.loyaltyTier, 'bronze');
-      expect(testUser.loyaltyPoints, 0);
+      expect(testUser.loyaltyTier, LoyaltyTier.scout);
+      expect(testUser.loyaltyMilesBalance, 0);
       expect(testUser.emailVerified, true);
       expect(testUser.phoneVerified, false);
       expect(testUser.fullName, 'Test User');
@@ -56,8 +57,8 @@ void main() {
         'firstName': 'Test',
         'lastName': 'User',
         'role': 'user',
-        'loyaltyTier': 'bronze',
-        'loyaltyPoints': 0,
+        'loyaltyTier': 'SCOUT',
+        'loyaltyMilesBalance': 0,
         'emailVerified': true,
         'phoneVerified': false,
         'createdAt': DateTime.now().toIso8601String(),
@@ -71,8 +72,8 @@ void main() {
       expect(user.firstName, 'Test');
       expect(user.lastName, 'User');
       expect(user.role, 'user');
-      expect(user.loyaltyTier, 'bronze');
-      expect(user.loyaltyPoints, 0);
+      expect(user.loyaltyTier, LoyaltyTier.scout);
+      expect(user.loyaltyMilesBalance, 0);
       expect(user.emailVerified, true);
       expect(user.phoneVerified, false);
       expect(user.fullName, 'Test User');
@@ -85,8 +86,8 @@ void main() {
         firstName: 'Test',
         lastName: 'User',
         role: 'user',
-        loyaltyTier: 'bronze',
-        loyaltyPoints: 0,
+        loyaltyTier: LoyaltyTier.scout,
+        loyaltyMilesBalance: 0,
         emailVerified: true,
         phoneVerified: false,
         createdAt: DateTime.now(),
@@ -100,8 +101,8 @@ void main() {
       expect(json['firstName'], 'Test');
       expect(json['lastName'], 'User');
       expect(json['role'], 'user');
-      expect(json['loyaltyTier'], 'bronze');
-      expect(json['loyaltyPoints'], 0);
+      expect(json['loyaltyTier'], 'scout');
+      expect(json['loyaltyMilesBalance'], 0);
       expect(json['emailVerified'], true);
       expect(json['phoneVerified'], false);
     });
@@ -113,8 +114,8 @@ void main() {
         firstName: 'Test',
         lastName: 'User',
         role: 'user',
-        loyaltyTier: 'bronze',
-        loyaltyPoints: 0,
+        loyaltyTier: LoyaltyTier.scout,
+        loyaltyMilesBalance: 0,
         emailVerified: true,
         phoneVerified: false,
         createdAt: DateTime.now(),
@@ -123,8 +124,8 @@ void main() {
 
       final updatedUser = testUser.copyWith(
         firstName: 'Updated',
-        loyaltyPoints: 100,
-        loyaltyTier: 'silver',
+        loyaltyMilesBalance: 100,
+        loyaltyTier: LoyaltyTier.explorer,
       );
 
       expect(updatedUser.id, '1');
@@ -132,8 +133,8 @@ void main() {
       expect(updatedUser.firstName, 'Updated');
       expect(updatedUser.lastName, 'User');
       expect(updatedUser.role, 'user');
-      expect(updatedUser.loyaltyTier, 'silver');
-      expect(updatedUser.loyaltyPoints, 100);
+      expect(updatedUser.loyaltyTier, LoyaltyTier.explorer);
+      expect(updatedUser.loyaltyMilesBalance, 100);
       expect(updatedUser.emailVerified, true);
       expect(updatedUser.phoneVerified, false);
       expect(updatedUser.fullName, 'Updated User');
