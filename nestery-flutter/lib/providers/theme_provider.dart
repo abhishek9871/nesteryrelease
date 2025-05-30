@@ -4,16 +4,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Theme provider to manage app theme
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  final SharedPreferences _prefs;
+  final SharedPreferences? _prefs;
 
   ThemeNotifier(this._prefs) : super(ThemeMode.system) {
     // Load saved theme on initialization
     _loadTheme();
   }
 
+  // Constructor for when SharedPreferences is not available (e.g., during loading or error)
+  ThemeNotifier._withoutPrefs() : _prefs = null, super(ThemeMode.system);
+
   // Load theme from shared preferences
   void _loadTheme() {
-    final themeString = _prefs.getString('theme_mode');
+    if (_prefs == null) return;
+
+    final themeString = _prefs!.getString('theme_mode');
     if (themeString != null) {
       state = ThemeMode.values.firstWhere(
         (e) => e.toString() == themeString,
@@ -25,7 +30,9 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   // Set theme and save to shared preferences
   Future<void> setTheme(ThemeMode themeMode) async {
     state = themeMode;
-    await _prefs.setString('theme_mode', themeMode.toString());
+    if (_prefs != null) {
+      await _prefs!.setString('theme_mode', themeMode.toString());
+    }
   }
 
   // Toggle between light and dark theme
@@ -38,9 +45,20 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   }
 }
 
+// Provider for SharedPreferences
+final sharedPreferencesProvider = FutureProvider<SharedPreferences>((ref) async {
+  return await SharedPreferences.getInstance();
+});
+
 // Provider for theme state
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
-  // This will be initialized when the app starts
-  final prefs = SharedPreferences.getInstance();
-  return ThemeNotifier(prefs as SharedPreferences);
+  // Watch the SharedPreferences provider
+  final prefsAsync = ref.watch(sharedPreferencesProvider);
+
+  // Return a default ThemeNotifier while SharedPreferences is loading
+  return prefsAsync.when(
+    data: (prefs) => ThemeNotifier(prefs),
+    loading: () => ThemeNotifier._withoutPrefs(),
+    error: (_, __) => ThemeNotifier._withoutPrefs(),
+  );
 });

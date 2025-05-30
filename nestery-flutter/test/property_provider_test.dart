@@ -1,10 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nestery_flutter/models/property.dart';
+import 'package:nestery_flutter/utils/constants.dart';
 
 void main() {
   group('Property Provider Tests', () {
     late ProviderContainer container;
+
+    setUpAll(() {
+      // Initialize Flutter bindings for tests
+      TestWidgetsFlutterBinding.ensureInitialized();
+      // Initialize Constants for tests
+      Constants.initialize();
+      // Set up SharedPreferences mock
+      SharedPreferences.setMockInitialValues({});
+    });
 
     setUp(() {
       container = ProviderContainer();

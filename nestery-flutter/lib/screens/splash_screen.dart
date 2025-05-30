@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
@@ -13,6 +14,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  Timer? _navigationTimer;
 
   @override
   void initState() {
@@ -35,20 +37,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     _animationController.forward();
 
     // Check authentication status after a delay
-    Future.delayed(const Duration(seconds: 2), () {
-      _checkAuthAndNavigate();
+    _navigationTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        _checkAuthAndNavigate();
+      }
     });
   }
 
   @override
   void dispose() {
+    _navigationTimer?.cancel();
     _animationController.dispose();
     super.dispose();
   }
 
   // Check authentication status and navigate accordingly
   Future<void> _checkAuthAndNavigate() async {
+    if (!mounted) return;
+
     final authState = ref.read(authProvider);
+
+    if (!mounted) return;
 
     if (authState.isAuthenticated) {
       // User is authenticated, navigate to home screen

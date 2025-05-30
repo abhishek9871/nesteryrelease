@@ -88,10 +88,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Try to automatically login user if tokens exist
   Future<void> tryAutoLogin() async {
+    if (!mounted) return;
     state = state.copyWith(status: AuthStatus.loading);
 
     // Check if tokens exist
     final hasTokens = await _authRepository.hasValidTokens();
+    if (!mounted) return;
     if (!hasTokens) {
       state = state.copyWith(status: AuthStatus.unauthenticated);
       return;
@@ -99,15 +101,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Try to get current user
     final result = await _authRepository.getCurrentUser();
+    if (!mounted) return;
     result.fold(
       (failure) async {
         // If 401, try to refresh token
         if (failure.statusCode == 401) {
           final refreshResult = await _authRepository.attemptTokenRefresh();
+          if (!mounted) return;
           refreshResult.fold(
             (refreshFailure) async {
               // Refresh failed, clear tokens and set unauthenticated
               await _authRepository.clearTokens();
+              if (!mounted) return;
               state = state.copyWith(status: AuthStatus.unauthenticated);
             },
             (authResponse) async {
@@ -116,6 +121,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 accessToken: authResponse.accessToken,
                 refreshToken: authResponse.refreshToken,
               );
+              if (!mounted) return;
               state = state.copyWith(
                 status: AuthStatus.authenticated,
                 user: authResponse.user,
@@ -127,6 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         } else {
           // Other error, clear tokens and set unauthenticated
           await _authRepository.clearTokens();
+          if (!mounted) return;
           state = state.copyWith(
             status: AuthStatus.error,
             errorMessage: failure.message,
@@ -137,6 +144,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Successfully got user, set authenticated
         final accessToken = await _authRepository.getAccessToken();
         final refreshToken = await _authRepository.getRefreshToken();
+        if (!mounted) return;
         state = state.copyWith(
           status: AuthStatus.authenticated,
           user: user,

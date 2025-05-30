@@ -129,15 +129,28 @@ class Constants {
 
   // Initialize constants from environment variables
   static void initialize() {
-    apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/v1';
-    googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
-    stripePublishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
-    bookingComApiKey = dotenv.env['BOOKING_COM_API_KEY'] ?? '';
-    oyoApiKey = dotenv.env['OYO_API_KEY'] ?? '';
-    oyoPartnerId = dotenv.env['OYO_PARTNER_ID'] ?? '';
-    hotelbedsApiKey = dotenv.env['HOTELBEDS_API_KEY'] ?? '';
-    hotelbedsApiSecret = dotenv.env['HOTELBEDS_API_SECRET'] ?? '';
-    environment = dotenv.env['ENVIRONMENT'] ?? 'development';
+    try {
+      apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/v1';
+      googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+      stripePublishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
+      bookingComApiKey = dotenv.env['BOOKING_COM_API_KEY'] ?? '';
+      oyoApiKey = dotenv.env['OYO_API_KEY'] ?? '';
+      oyoPartnerId = dotenv.env['OYO_PARTNER_ID'] ?? '';
+      hotelbedsApiKey = dotenv.env['HOTELBEDS_API_KEY'] ?? '';
+      hotelbedsApiSecret = dotenv.env['HOTELBEDS_API_SECRET'] ?? '';
+      environment = dotenv.env['ENVIRONMENT'] ?? 'development';
+    } catch (e) {
+      // If dotenv is not initialized (e.g., in tests), use default values
+      apiBaseUrl = 'http://localhost:3000/v1';
+      googleMapsApiKey = '';
+      stripePublishableKey = '';
+      bookingComApiKey = '';
+      oyoApiKey = '';
+      oyoPartnerId = '';
+      hotelbedsApiKey = '';
+      hotelbedsApiSecret = '';
+      environment = 'test';
+    }
   }
 
   // Validation Patterns

@@ -45,38 +45,38 @@ void main() {
     // Verify that the property card displays the correct information
     expect(find.text('Test Property'), findsOneWidget);
     expect(find.text('Test City, Test Country'), findsOneWidget);
-    expect(find.text('\$100.00'), findsOneWidget);
+    expect(find.text('USD 100'), findsOneWidget); // Price format is "USD 100" not "$100.00"
 
     // Verify that the star rating is displayed
     expect(find.byIcon(Icons.star), findsWidgets);
 
-    // Verify that the property type is displayed
-    expect(find.text('Hotel'), findsOneWidget);
+    // Verify that the source badge is displayed (sourceType, not propertyType)
+    expect(find.text('booking_com'), findsOneWidget); // sourceType is displayed as badge
 
     // Tap the card and verify that onTap is called
     await tester.tap(find.byType(PropertyCard));
     expect(onTapCalled, true);
   });
 
-  testWidgets('PropertyCard should display premium badge when property is premium', (WidgetTester tester) async {
-    final premiumProperty = Property(
+  testWidgets('PropertyCard should display source badge correctly', (WidgetTester tester) async {
+    final bookingProperty = Property(
       id: 'prop2',
-      name: 'Premium Property',
-      description: 'A premium property',
-      address: '456 Premium St',
-      city: 'Luxury City',
-      country: 'Premium Country',
+      name: 'Booking Property',
+      description: 'A booking.com property',
+      address: '456 Booking St',
+      city: 'Booking City',
+      country: 'Booking Country',
       latitude: 0.0,
       longitude: 0.0,
       propertyType: 'resort',
       basePrice: 500.0,
       currency: 'USD',
       maxGuests: 6,
-      sourceType: 'booking_com',
+      sourceType: 'booking.com',
       starRating: 5,
       amenities: ['WiFi', 'Pool', 'Spa'],
-      images: ['https://example.com/premium.jpg'],
-      thumbnailImage: 'https://example.com/premium_thumb.jpg',
+      images: ['https://example.com/booking.jpg'],
+      thumbnailImage: 'https://example.com/booking_thumb.jpg',
       externalId: 'bcom_456',
     );
 
@@ -85,31 +85,33 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: PropertyCard(
-            property: premiumProperty,
+            property: bookingProperty,
             onTap: () {},
           ),
         ),
       ),
     );
 
-    // Verify that the premium badge is displayed
-    expect(find.text('PREMIUM'), findsOneWidget);
+    // Verify that the source badge is displayed
+    expect(find.text('Booking.com'), findsOneWidget);
   });
 
-  testWidgets('PropertyCard should not display premium badge when property is not premium', (WidgetTester tester) async {
+  testWidgets('PropertyCard should display direct source badge', (WidgetTester tester) async {
+    final directProperty = mockProperty.copyWith(sourceType: 'direct');
+
     // Build our widget and trigger a frame
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: PropertyCard(
-            property: mockProperty, // Not premium
+            property: directProperty,
             onTap: () {},
           ),
         ),
       ),
     );
 
-    // Verify that the premium badge is not displayed
-    expect(find.text('PREMIUM'), findsNothing);
+    // Verify that the direct source badge is displayed
+    expect(find.text('Direct'), findsOneWidget);
   });
 }
