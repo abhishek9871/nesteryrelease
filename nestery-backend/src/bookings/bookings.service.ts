@@ -43,7 +43,9 @@ export class BookingsService {
     try {
       // If it's a Booking.com booking, delegate to IntegrationsService to get redirect URL
       if (createBookingDto.sourceType === 'booking_com') {
-        this.logger.log(`Initiating Booking.com redirect flow for propertyId: ${createBookingDto.propertyId}`);
+        this.logger.log(
+          `Initiating Booking.com redirect flow for propertyId: ${createBookingDto.propertyId}`,
+        );
         // Pass necessary details from createBookingDto and userId
         return this.integrationsService.createBooking({ ...createBookingDto, userId });
       }

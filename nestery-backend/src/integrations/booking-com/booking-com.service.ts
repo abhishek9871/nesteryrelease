@@ -67,7 +67,8 @@ export class BookingComService {
     // private readonly httpService: HttpService, // Consider using HttpService for better testability
   ) {
     // Use Booking.com Demand API v3.1 endpoints (2025)
-    const apiUrl = this.configService.get<string>('BOOKING_COM_API_URL') || 'https://demandapi.booking.com/3.1';
+    const apiUrl =
+      this.configService.get<string>('BOOKING_COM_API_URL') || 'https://demandapi.booking.com/3.1';
     this.apiUrl = apiUrl;
 
     const apiKey = this.configService.get<string>('BOOKING_COM_API_KEY');
@@ -504,5 +505,4 @@ export class BookingComService {
       }
     }
   }
-
 }

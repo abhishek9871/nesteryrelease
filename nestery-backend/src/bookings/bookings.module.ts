@@ -12,7 +12,13 @@ import { IntegrationsModule } from '../integrations/integrations.module';
  * Bookings module handling booking-related operations
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking]), CoreModule, UsersModule, PropertiesModule, IntegrationsModule],
+  imports: [
+    TypeOrmModule.forFeature([Booking]),
+    CoreModule,
+    UsersModule,
+    PropertiesModule,
+    IntegrationsModule,
+  ],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],

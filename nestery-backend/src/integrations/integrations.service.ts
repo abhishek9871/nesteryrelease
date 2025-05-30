@@ -95,18 +95,24 @@ export class IntegrationsService {
   /**
    * Create a booking with the appropriate provider
    */
-  async createBooking(bookingData: any): Promise<{ redirectUrl: string; sourceType: string } | any> {
+  async createBooking(
+    bookingData: any,
+  ): Promise<{ redirectUrl: string; sourceType: string } | any> {
     try {
       this.logger.log(`Creating booking: ${JSON.stringify(bookingData)}`);
 
       const { sourceType, propertyId, userId, ...restOfBookingData } = bookingData;
 
       if (!sourceType || !propertyId || !userId) {
-        throw new BadRequestException('Missing required fields: sourceType, propertyId, or userId.');
+        throw new BadRequestException(
+          'Missing required fields: sourceType, propertyId, or userId.',
+        );
       }
 
       if (sourceType === 'booking_com') {
-        const nesteryProperty = await this.propertyRepository.findOne({ where: { id: propertyId } });
+        const nesteryProperty = await this.propertyRepository.findOne({
+          where: { id: propertyId },
+        });
         if (!nesteryProperty || !nesteryProperty.externalId) {
           throw new NotFoundException(
             `Property with Nestery ID ${propertyId} not found or has no external Booking.com ID.`,
@@ -131,7 +137,10 @@ export class IntegrationsService {
           // e.g., guestName: restOfBookingData.guestName, guestEmail: restOfBookingData.guestEmail
         };
 
-        const result = await this.bookingComService.generateBookingRedirectUrl(redirectPayload, bookingComSupplier);
+        const result = await this.bookingComService.generateBookingRedirectUrl(
+          redirectPayload,
+          bookingComSupplier,
+        );
         if (result.success && result.redirectUrl) {
           return {
             success: true,
