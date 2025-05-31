@@ -1,14 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/services/api_cache_service.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
 import 'package:nestery_flutter/utils/either.dart';
 
 class UserRepository {
   final ApiClient _apiClient;
+  final ApiCacheService _apiCacheService;
 
-  UserRepository({required ApiClient apiClient}) : _apiClient = apiClient;
+  UserRepository({required ApiClient apiClient, required ApiCacheService apiCacheService})
+      : _apiClient = apiClient,
+        _apiCacheService = apiCacheService;
 
   // Get user profile
   Future<Either<ApiException, User>> getUserProfile() async {
@@ -60,6 +64,8 @@ class UserRepository {
 
       if (response.data != null) {
         final user = User.fromJson(response.data!);
+        // Invalidate user profile cache after successful update
+        await _apiCacheService.invalidateCacheEntry(Constants.userProfileEndpoint);
         return Either.right(user);
       } else {
         return Either.left(ApiException(

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/user_repository.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 
 // User profile state
 class UserProfileState {
@@ -241,10 +241,7 @@ class ReferralNotifier extends StateNotifier<ReferralState> {
 }
 
 // Providers
-final userRepositoryProvider = Provider<UserRepository>((ref) {
-  final apiClient = ref.watch(Provider<ApiClient>((ref) => ApiClient()));
-  return UserRepository(apiClient: apiClient);
-});
+// Note: userRepositoryProvider is now defined in repository_providers.dart
 
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfileState>((ref) {
   final userRepository = ref.watch(userRepositoryProvider);
