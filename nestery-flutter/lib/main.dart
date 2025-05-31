@@ -3,10 +3,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:nestery_flutter/utils/app_router.dart';
+import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/providers/theme_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart'; // Ensure apiClientProvider is accessible
 
 Future<void> main() async {
   // Ensure Flutter is initialized
@@ -24,13 +26,23 @@ Future<void> main() async {
   // Initialize app constants
   Constants.initialize();
 
+  // Initialize ApiClient and its cache
+  final apiClient = ApiClient();
+  await apiClient.initializeCache();
+
   // Remove splash screen
   FlutterNativeSplash.remove();
 
   runApp(
     // Enable Riverpod for the entire app
-    const ProviderScope(
-      child: NesteryApp(),
+    ProviderScope(
+      overrides: [
+        // Override the apiClientProvider to provide the initialized instance
+        // This ensures that the apiClientProvider in repository_providers.dart (and auth_provider.dart)
+        // uses the *same* instance of ApiClient that had its cache initialized.
+        apiClientProvider.overrideWithValue(apiClient),
+      ],
+      child: const NesteryApp(),
     ),
   );
 }

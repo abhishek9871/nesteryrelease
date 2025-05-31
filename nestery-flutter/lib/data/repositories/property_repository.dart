@@ -1,4 +1,6 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/property.dart';
 import 'package:nestery_flutter/models/search_dtos.dart';
@@ -14,9 +16,28 @@ class PropertyRepository {
 
   // Get featured properties
   Future<Either<ApiException, List<Property>>> getFeaturedProperties() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    final isOnline = connectivityResult != ConnectivityResult.none;
+
     try {
+      Options? requestOptions;
+      if (!isOnline) {
+        requestOptions = CacheOptions(
+          store: _apiClient.cacheStore,
+          policy: CachePolicy.forceCache,
+          hitCacheOnNetworkFailure: true,
+        ).toOptions();
+      } else {
+        // Example: Shorter TTL for featured properties list
+        requestOptions = CacheOptions(
+          store: _apiClient.cacheStore,
+          maxStale: Constants.propertyListCacheTTL,
+        ).toOptions();
+      }
+
       final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/featured',
+        options: requestOptions,
       );
 
       if (response.data != null && response.data!['data'] != null) {
@@ -31,6 +52,12 @@ class PropertyRepository {
         ));
       }
     } on DioException catch (e) {
+      if (!isOnline && e.error.toString().contains('cache')) {
+        return Either.left(ApiException(
+          message: "Offline and no cached featured properties available.",
+          statusCode: 0,
+        ));
+      }
       return Either.left(ApiException.fromDioError(e));
     } catch (e) {
       return Either.left(ApiException(

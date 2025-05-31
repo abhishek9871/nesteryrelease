@@ -262,4 +262,13 @@ class Constants {
   static const String supportPhone = '+1-800-NESTERY';
   static const String privacyPolicyUrl = 'https://nestery.com/privacy';
   static const String termsOfServiceUrl = 'https://nestery.com/terms';
+
+  // Cache Constants
+  static const String cacheDbName = 'nestery_cache.db';
+  static const String cacheDbKey = 'nestery_cache_secure_key'; // For potential encryption
+  static const Duration defaultCacheTTL = Duration(hours: 1);
+  static const Duration userProfileCacheTTL = Duration(days: 1);
+  static const Duration propertyListCacheTTL = Duration(minutes: 30);
+  // Add other specific TTLs as needed
+  // static const Duration loyaltyStatusCacheTTL = Duration(minutes: 15);
 }

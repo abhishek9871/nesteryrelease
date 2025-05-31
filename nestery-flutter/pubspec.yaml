@@ -18,6 +18,11 @@ dependencies:
   # Network and API
   dio: ^5.4.0
   http: ^1.1.2
+  dio_cache_interceptor: ^4.0.3
+  # Replaced sembast store with drift store for caching
+  http_cache_drift_store: ^7.0.0
+  drift: ^2.15.0
+  sqlite3_flutter_libs: ^0.5.20 # For native SQLite bindings
   # Storage and persistence
   flutter_secure_storage: ^9.0.0
   shared_preferences: ^2.2.2
@@ -51,6 +56,7 @@ dependencies:
   # Utilities
   url_launcher: ^6.2.2
   package_info_plus: ^4.2.0
+  path: ^1.9.0 # For path manipulation with Drift/sqflite
   device_info_plus: ^9.1.1
   connectivity_plus: ^5.0.2
   path_provider: ^2.1.1
@@ -63,6 +69,7 @@ dev_dependencies:
   flutter_lints: ^3.0.1
   mockito: ^5.4.3
   build_runner: ^2.4.7
+  drift_dev: ^2.15.0 # For Drift code generation
   flutter_launcher_icons: ^0.13.1
   integration_test:
     sdk: flutter

@@ -3,11 +3,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:http_cache_drift_store/http_cache_drift_store.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 class ApiClient {
   static ApiClient? _instance;
   late final Dio _dio;
   final FlutterSecureStorage _secureStorage;
+
+  // Cache specific fields
+  late final DriftCacheStore _cacheStore;
+  late final DioCacheInterceptor dioCacheInterceptor;
 
   ApiClient._internal({FlutterSecureStorage? secureStorage})
       : _secureStorage = secureStorage ?? const FlutterSecureStorage() {
@@ -19,6 +27,32 @@ class ApiClient {
   factory ApiClient({FlutterSecureStorage? secureStorage}) {
     _instance ??= ApiClient._internal(secureStorage: secureStorage);
     return _instance!;
+  }
+
+  DriftCacheStore get cacheStore => _cacheStore;
+
+  /// Initializes the cache. Must be called after ApiClient instantiation and before first API call.
+  Future<void> initializeCache() async {
+    final documentsDir = await getApplicationDocumentsDirectory();
+    final dbPath = p.join(documentsDir.path, Constants.cacheDbName);
+
+    _cacheStore = DriftCacheStore(
+      databasePath: dbPath,
+    );
+
+    final globalCacheOptions = CacheOptions(
+      store: _cacheStore,
+      policy: CachePolicy.request, // Default policy
+      maxStale: Constants.defaultCacheTTL, // Default TTL for cached items
+      hitCacheOnErrorCodes: [500], // Use cache on error for these codes
+      hitCacheOnNetworkFailure: true, // Use cache on network failure
+      priority: CachePriority.normal,
+      cipher: null, // No encryption by default
+      keyBuilder: CacheOptions.defaultCacheKeyBuilder, // Default cache key builder
+    );
+
+    dioCacheInterceptor = DioCacheInterceptor(options: globalCacheOptions);
+    _dio.interceptors.add(dioCacheInterceptor);
   }
 
   void _setupDio() {
@@ -95,11 +129,13 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
+    CachePolicy? cachePolicy, // Allow overriding cache policy per request
   }) async {
+    Options effectiveOptions = options ?? Options();
     return await _dio.get<T>(
       path,
       queryParameters: queryParameters,
-      options: options,
+      options: effectiveOptions,
     );
   }
 

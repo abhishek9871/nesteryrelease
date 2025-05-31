@@ -1,8 +1,11 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/auth_dtos.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/services/api_cache_service.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/either.dart';
@@ -10,12 +13,15 @@ import 'package:nestery_flutter/utils/either.dart';
 /// Repository for handling authentication-related API calls
 class AuthRepository {
   final ApiClient _apiClient;
+  final ApiCacheService _apiCacheService;
   final FlutterSecureStorage _secureStorage;
 
   AuthRepository({
     required ApiClient apiClient,
+    required ApiCacheService apiCacheService,
     FlutterSecureStorage? secureStorage,
   })  : _apiClient = apiClient,
+        _apiCacheService = apiCacheService,
         _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   /// Register a new user
@@ -101,9 +107,30 @@ class AuthRepository {
 
   /// Get current user profile
   Future<Either<ApiException, User>> getCurrentUser() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    final isOnline = connectivityResult != ConnectivityResult.none;
+
     try {
+      Options? requestOptions;
+      if (!isOnline) {
+        // If offline, try to use cache with force cache policy
+        requestOptions = CacheOptions(
+          store: _apiClient.cacheStore, // Use the global store
+          policy: CachePolicy.forceCache,
+          hitCacheOnNetworkFailure: true,
+        ).toOptions();
+      } else {
+        // If online, use a slightly longer TTL for user profile
+        requestOptions = CacheOptions(
+          store: _apiClient.cacheStore, // Use the global store
+          policy: CachePolicy.request,
+          maxStale: Constants.userProfileCacheTTL,
+        ).toOptions();
+      }
+
       final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.userProfileEndpoint,
+        options: requestOptions,
       );
 
       if (response.data != null) {
@@ -116,6 +143,12 @@ class AuthRepository {
         ));
       }
     } on DioException catch (e) {
+      if (!isOnline && e.error.toString().contains('cache')) {
+        return Either.left(ApiException(
+          message: "Offline and no cached profile available.",
+          statusCode: 0, // Custom code for "offline and no cache"
+        ));
+      }
       return Either.left(ApiException.fromDioError(e));
     } catch (e) {
       return Either.left(ApiException(
@@ -135,6 +168,8 @@ class AuthRepository {
 
       if (response.data != null) {
         final user = User.fromJson(response.data!);
+        // Invalidate user profile cache after successful update
+        await _apiCacheService.invalidateCacheEntry(Constants.apiBaseUrl + Constants.userProfileEndpoint);
         return Either.right(user);
       } else {
         return Either.left(ApiException(

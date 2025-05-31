@@ -1,7 +1,10 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/loyalty.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/services/api_cache_service.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/either.dart';
 
@@ -32,13 +35,34 @@ class PaginatedLoyaltyTransactions {
 
 class LoyaltyRepository {
   final ApiClient _apiClient;
+  final ApiCacheService _apiCacheService;
 
-  LoyaltyRepository({required ApiClient apiClient}) : _apiClient = apiClient;
+  LoyaltyRepository({required ApiClient apiClient, required ApiCacheService apiCacheService})
+      : _apiClient = apiClient,
+        _apiCacheService = apiCacheService;
 
   Future<Either<ApiException, LoyaltyStatus>> getLoyaltyStatus() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    final isOnline = connectivityResult != ConnectivityResult.none;
+
     try {
+      Options? requestOptions;
+      if (!isOnline) {
+        requestOptions = CacheOptions(
+          store: _apiClient.cacheStore,
+          policy: CachePolicy.forceCache,
+          hitCacheOnNetworkFailure: true,
+        ).toOptions();
+      } else {
+        // Example: Shorter TTL for loyalty status as it might change more frequently.
+        // For this example, we'll use the default policy (CachePolicy.request) and default TTL.
+        // If specific TTL is needed:
+        // requestOptions = const CacheOptions(maxStale: Duration(minutes: 15)).toOptions();
+      }
+
       final response = await _apiClient.get<Map<String, dynamic>>(
         Constants.loyaltyStatusEndpoint,
+        options: requestOptions,
       );
 
       if (response.data != null) {
@@ -51,6 +75,12 @@ class LoyaltyRepository {
         ));
       }
     } on DioException catch (e) {
+      if (!isOnline && e.error.toString().contains('cache')) {
+        return Either.left(ApiException(
+          message: "Offline and no cached loyalty status available.",
+          statusCode: 0,
+        ));
+      }
       return Either.left(ApiException.fromDioError(e));
     } catch (e) {
       return Either.left(ApiException(
@@ -67,6 +97,8 @@ class LoyaltyRepository {
       );
       if (response.data != null) {
         final transaction = LoyaltyTransaction.fromJson(response.data!);
+        // Invalidate loyalty status cache after successful check-in
+        await _apiCacheService.invalidateCacheEntry(Constants.apiBaseUrl + Constants.loyaltyStatusEndpoint);
         return Either.right(transaction);
       }
       return Either.left(ApiException(message: 'Check-in failed', statusCode: response.statusCode ?? 500));

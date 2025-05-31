@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/auth_repository.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 import 'package:nestery_flutter/models/auth_dtos.dart';
 import 'package:nestery_flutter/models/user.dart';
 
@@ -285,18 +285,15 @@ final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage();
 });
 
-/// Provider for ApiClient
-final apiClientProvider = Provider<ApiClient>((ref) {
-  final secureStorage = ref.watch(secureStorageProvider);
-  return ApiClient(secureStorage: secureStorage);
-});
-
 /// Provider for AuthRepository
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final secureStorage = ref.watch(secureStorageProvider);
+  // Import ApiCacheService from repository_providers
+  final apiCacheService = ref.watch(apiCacheServiceProvider);
   return AuthRepository(
     apiClient: apiClient,
+    apiCacheService: apiCacheService,
     secureStorage: secureStorage,
   );
 });
