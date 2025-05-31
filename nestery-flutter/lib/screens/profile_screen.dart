@@ -14,6 +14,7 @@ import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/section_title.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:nestery_flutter/services/ad_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
@@ -44,6 +45,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     // Load user profile when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userProfileProvider.notifier).loadUserProfile();
+      // Preload interstitial ad for settings navigation
+      ref.read(adServiceProvider.notifier).preloadInterstitialAd(placementIdentifier: 'profile_to_settings_interstitial');
     });
   }
 
@@ -159,6 +162,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     final theme = Theme.of(context);
     final profileState = ref.watch(userProfileProvider);
     final loyaltyState = ref.watch(loyaltyStatusProvider); // Watch new loyalty provider
+    final adService = ref.watch(adServiceProvider.notifier);
     final user = profileState.user;
     // Remove the updateState watch since we're using userProfileProvider
 
@@ -211,6 +215,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                         // Support tab
                         _buildSupportTab(theme),
                       ],
+                    ),
+                  ),
+                  // Banner Ad
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: adService.createBannerAdWidget(
+                      context,
+                      placementIdentifier: 'profile_bottom_banner',
                     ),
                   ),
                 ],
@@ -619,8 +631,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             'Switch between light and dark theme',
             trailing: Switch(
               value: isDarkMode == ThemeMode.dark,
-              onChanged: (value) {
-                ref.read(themeProvider.notifier).toggleTheme();
+              onChanged: (value) { // Example of interstitial ad on a non-critical action
+                ref.read(adServiceProvider.notifier).showInterstitialAd(
+                  placementIdentifier: 'profile_to_settings_interstitial',
+                  onAdDismissed: () {
+                    ref.read(themeProvider.notifier).toggleTheme();
+                  },
+                  onAdFailedToShow: () {
+                    ref.read(themeProvider.notifier).toggleTheme();
+                  }
+                );
               },
               activeColor: theme.colorScheme.primary,
             ),

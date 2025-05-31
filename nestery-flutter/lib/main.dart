@@ -8,6 +8,7 @@ import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/providers/theme_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:nestery_flutter/services/ad_service.dart';
 import 'package:nestery_flutter/providers/repository_providers.dart'; // Ensure apiClientProvider is accessible
 
 Future<void> main() async {
@@ -30,6 +31,9 @@ Future<void> main() async {
   final apiClient = ApiClient();
   await apiClient.initializeCache();
 
+  // Initialize AdService (needs to be done after ApiClient for Riverpod overrides)
+  // AdService initialization will be handled by Riverpod provider itself or called explicitly after ProviderScope
+
   // Remove splash screen
   FlutterNativeSplash.remove();
 
@@ -41,6 +45,10 @@ Future<void> main() async {
         // This ensures that the apiClientProvider in repository_providers.dart (and auth_provider.dart)
         // uses the *same* instance of ApiClient that had its cache initialized.
         apiClientProvider.overrideWithValue(apiClient),
+        // No need to override adServiceProvider here, it will be created by Riverpod
+      ],
+      observers: [
+        _AdServiceInitializer(), // Observer to initialize AdService
       ],
       child: const NesteryApp(),
     ),
@@ -146,5 +154,19 @@ class NesteryApp extends ConsumerWidget {
       // Use GoRouter for navigation
       routerConfig: AppRouter.router,
     );
+  }
+}
+
+class _AdServiceInitializer extends ProviderObserver {
+  @override
+  void didAddProvider(
+    ProviderBase<Object?> provider,
+    Object? value,
+    ProviderContainer container,
+  ) {
+    if (provider == adServiceProvider) {
+      // Initialize AdService once its provider is ready
+      container.read(adServiceProvider.notifier).initialize();
+    }
   }
 }

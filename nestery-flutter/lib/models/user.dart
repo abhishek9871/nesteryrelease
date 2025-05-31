@@ -16,6 +16,7 @@ class User {
   final Map<String, dynamic>? preferences;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isPremium;
 
   // Additional fields expected by UI
   final String? phone; // Alias for phoneNumber for UI compatibility
@@ -53,6 +54,7 @@ class User {
     this.memberSince,
     this.rating,
     this.reviewCount,
+    this.isPremium = false,
   });
 
   // Full name getter
@@ -76,6 +78,7 @@ class User {
       preferences: json['preferences'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
+      isPremium: json['isPremium'] ?? false,
       phone: json['phone'] ?? json['phoneNumber'], // Use phone field or fallback to phoneNumber
       preferredCurrency: json['preferredCurrency'],
       preferredLanguage: json['preferredLanguage'],
@@ -110,6 +113,7 @@ class User {
       'preferences': preferences,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'isPremium': isPremium,
       'phone': phone,
       'preferredCurrency': preferredCurrency,
       'preferredLanguage': preferredLanguage,
@@ -148,6 +152,7 @@ class User {
     String? memberSince,
     double? rating,
     int? reviewCount,
+    bool? isPremium,
   }) {
     return User(
       id: id ?? this.id,
@@ -174,6 +179,7 @@ class User {
       memberSince: memberSince ?? this.memberSince,
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
+      isPremium: isPremium ?? this.isPremium,
     );
   }
 }

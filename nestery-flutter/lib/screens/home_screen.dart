@@ -8,6 +8,7 @@ import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/property_card.dart';
 import 'package:nestery_flutter/widgets/section_title.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nestery_flutter/services/ad_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     final featuredProperties = ref.watch(featuredPropertiesProvider);
     final recommendedProperties = ref.watch(recommendedPropertiesProvider);
+    final adService = ref.watch(adServiceProvider.notifier);
 
     return Scaffold(
       body: SafeArea(
@@ -356,6 +358,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
+
+                // Banner Ad
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: adService.createBannerAdWidget(context, placementIdentifier: 'home_bottom_banner'),
+                  ),
+                ),
+
 
                 // Bottom padding
                 const SliverToBoxAdapter(

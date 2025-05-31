@@ -60,6 +60,7 @@ dependencies:
   device_info_plus: ^9.1.1
   connectivity_plus: ^5.0.2
   path_provider: ^2.1.1
+  google_mobile_ads: ^6.0.0 # Added Google AdMob
   uuid: ^4.2.2
   flutter_native_splash: ^2.3.6
 
