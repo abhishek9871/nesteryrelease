@@ -15,6 +15,7 @@ import { RecommendationModule } from './features/recommendation/recommendation.m
 import { LoyaltyModule } from './features/loyalty/loyalty.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SocialSharingModule } from './features/social-sharing/social-sharing.module';
+import { AffiliateModule } from './affiliates/affiliate.module';
 import { configValidationSchema } from './config/config.schema';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
@@ -41,6 +42,12 @@ import { PremiumSubscription } from './features/subscriptions/entities/premium-s
 import { Itinerary } from './features/itineraries/entities/itinerary.entity';
 import { ItineraryItem } from './features/itineraries/entities/itinerary-item.entity';
 import { LoggerService } from './core/logger/logger.service';
+
+import { PartnerEntity } from './affiliates/entities/partner.entity';
+import { AffiliateOfferEntity } from './affiliates/entities/affiliate-offer.entity';
+import { AffiliateLinkEntity } from './affiliates/entities/affiliate-link.entity';
+import { AffiliateEarningEntity } from './affiliates/entities/affiliate-earning.entity';
+
 // import { PciSecurityMiddleware } from './middleware/pci-security.middleware'; // Removed as per redirect model for Booking.com
 
 /**
@@ -130,6 +137,11 @@ import { LoggerService } from './core/logger/logger.service';
           PremiumSubscription,
           Itinerary,
           ItineraryItem,
+          // Affiliate Entities
+          PartnerEntity,
+          AffiliateOfferEntity,
+          AffiliateLinkEntity,
+          AffiliateEarningEntity,
         ],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: configService.get('NODE_ENV') !== 'production',
@@ -156,6 +168,7 @@ import { LoggerService } from './core/logger/logger.service';
     RecommendationModule,
     LoyaltyModule,
     SocialSharingModule,
+    AffiliateModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -6,9 +6,12 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Property } from '../../properties/entities/property.entity';
+
+import { AffiliateEarningEntity } from '../../affiliates/entities/affiliate-earning.entity';
 
 /**
  * Booking entity representing the bookings table in the database
@@ -96,6 +99,9 @@ export class Booking {
   // @ManyToOne(() => Supplier, { nullable: true })
   // @JoinColumn({ name: 'supplier_id' })
   // supplier: Supplier;
+
+  @OneToMany(() => AffiliateEarningEntity, (earning) => earning.booking)
+  affiliateEarnings: AffiliateEarningEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

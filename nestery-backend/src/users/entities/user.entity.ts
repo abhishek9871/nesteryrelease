@@ -4,9 +4,11 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { LoyaltyTierEnum } from '../../features/loyalty/enums/loyalty-tier.enum';
+import { AffiliateLinkEntity } from '../../affiliates/entities/affiliate-link.entity';
 
 /**
  * User entity representing the users table in the database
@@ -93,6 +95,9 @@ export class User {
 
   // @OneToMany(() => Referral, referral => referral.referrer)
   // referrals: Referral[];
+
+  @OneToMany(() => AffiliateLinkEntity, (link) => link.user)
+  affiliateLinks: AffiliateLinkEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
