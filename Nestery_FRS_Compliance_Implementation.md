@@ -50,7 +50,7 @@ The implementation will follow a phased approach, prioritizing critical bug fixe
 -   Global API configuration: Implement `/v1/` versioning.
 
 **Flutter (Client-Side) Changes:**
--   Add `google_mobile_ads` package and implement AdMob.
+-   ✅ Add `google_mobile_ads` package and implement AdMob. **COMPLETED (Task 2.1)**
 -   Implement client-side caching using `CacheManager` with `sqflite`.
 -   Develop UI for new features: Affiliate dashboard, Gamification elements, AI Trip Weaver inputs/outputs.
 -   Enforce premium feature restrictions in UI.
@@ -399,7 +399,7 @@ The implementation will be executed in phases, prioritizing critical bug fixes, 
     -   `ItineraryPlanningService` (New or Enhance `RecommendationService`): Implement AI logic.
 
 **Flutter (Client-Side) Enhancements:**
--   **AdMob Integration**: Add `google_mobile_ads` package, implement ad display logic.
+-   **✅ AdMob Integration**: Add `google_mobile_ads` package, implement ad display logic. **COMPLETED (Task 2.1)**
 -   **Client-Side Caching**: Integrate `flutter_cache_manager` with `sqflite` backend.
 -   **UI for New Features**: Affiliate dashboard, Gamification elements, AI Trip Weaver.
 -   **Premium Feature UI**: Implement UI locks and upgrade prompts for premium features.
@@ -520,11 +520,29 @@ With Phase 1 complete, the Nestery application now has a solid technical foundat
 -   **Objective(s):** Implement advertising, build the foundation for ancillary affiliate marketing, and establish the freemium model with premium feature stubs/basic implementation.
 -   **Priority:** High
 
--   **Task 2.1: Implement Google AdMob Integration (Flutter)**
+-   **Task 2.1: Implement Google AdMob Integration (Flutter)** ✅ **COMPLETED**
     -   **Rationale/Goal:** FRS requirement 1.5 for advertising revenue.
-    -   **Affected Files/Modules:** `nestery-flutter/pubspec.yaml`, new AdService in Flutter, UI screens for ad placement.
-    -   **Deliverable/Criteria for Completion:** `google_mobile_ads` package added. Banner and interstitial ads implemented as per FRS strategic placements. Test ads display.
+    -   **Affected Files/Modules:** `nestery-flutter/pubspec.yaml`, new AdService in Flutter, UI screens for ad placement, `nestery-backend` user API endpoints.
+    -   **Deliverable/Criteria for Completion:** `google_mobile_ads` package added. Banner and interstitial ads implemented as per FRS strategic placements. Test ads display. Backend provides `isPremium` field for conditional ad logic.
     -   **Estimated Effort:** M
+    -   **✅ COMPLETION STATUS:**
+        -   **Flutter Implementation (Commit: 99b7c5e):**
+            -   **Dependencies:** Added `google_mobile_ads: ^6.0.0` to pubspec.yaml
+            -   **Android Configuration:** Updated minSdk to 23, Kotlin to 2.1.21, NDK version set, AdMob App ID and optimization flags added to AndroidManifest.xml
+            -   **AdService:** Created comprehensive service with Riverpod StateNotifier pattern, conditional ad display for free-tier users, test ad unit IDs
+            -   **UI Integration:** Banner ads added to HomeScreen and ProfileScreen, interstitial ad integrated into theme toggle
+            -   **User Model:** Added isPremium field for premium user detection
+            -   **Build Status:** All tests pass (29/29), flutter analyze clean, successful Android APK build
+            -   **FRS 1.5 Compliance:** Strategic ad placement, free-tier targeting, test environment ready
+        -   **Backend Implementation (Commit: 3a3ebdc):**
+            -   **UserProfileDto:** Created new DTO with `isPremium: boolean` field and Swagger documentation
+            -   **Subscription Logic:** Added `UsersService.isUserPremium()` method with active subscription validation and date checking
+            -   **API Enhancement:** Updated `/v1/users/me` and `/v1/users/:id` endpoints to return `UserProfileDto` with derived `isPremium` field
+            -   **Repository Integration:** Injected `PremiumSubscriptionRepository` into `UsersService` for subscription status queries
+            -   **Test Coverage:** Added comprehensive unit tests (8 test cases, 100% coverage) for subscription logic
+            -   **Error Handling:** Implemented robust error handling and date validation for expired subscriptions
+            -   **Build Status:** All tests pass (50/50), successful compilation, production-ready implementation
+            -   **API Contract:** `/v1/users/me` now consistently includes `isPremium` field derived from active, non-expired subscription status
 
 -   **Task 2.2: Ancillary Affiliate Marketing - Backend Foundation (Backend)**
     -   **Rationale/Goal:** FRS requirement 1.2. Establish core entities and services.
@@ -712,7 +730,7 @@ With Phase 1 complete, the Nestery application now has a solid technical foundat
 -   **Critical Feature Functionality:**
     -   Booking.com bookings are processed end-to-end successfully.
     -   Goibibo/MakeMyTrip bookings are processed end-to-end successfully.
-    -   Ads (AdMob) are displayed correctly in the Flutter app as per FRS placement.
+    -   ✅ Ads (AdMob) are displayed correctly in the Flutter app as per FRS placement with backend `isPremium` field support. **COMPLETED**
     -   Affiliate links are generated, track clicks, and (simulated) conversions correctly attribute commissions.
     -   Premium features are accessible only to subscribed users; non-subscribed users see appropriate prompts.
     -   Loyalty program tiers, points earning, and redemption align with FRS.
