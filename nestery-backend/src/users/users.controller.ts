@@ -23,6 +23,7 @@ interface AuthenticatedRequest extends Request {
 }
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserProfileDto } from './dto/user-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -43,28 +44,17 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully', type: UserProfileDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getProfile(@Req() req: AuthenticatedRequest) {
-    const user = await this.usersService.findById(req.user.id);
+  async getProfile(@Req() req: AuthenticatedRequest): Promise<UserProfileDto> {
+    const userProfile = await this.usersService.getUserProfile(req.user.id);
 
-    if (!user) {
+    if (!userProfile) {
       throw new NotFoundException('User not found');
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      profilePicture: user.profilePicture,
-      phoneNumber: user.phoneNumber,
-      loyaltyTier: user.loyaltyTier,
-      loyaltyPoints: user.loyaltyPoints,
-      createdAt: user.createdAt,
-    };
+    return userProfile;
   }
   /**
    * Update current user profile
@@ -119,29 +109,18 @@ export class UsersController {
   @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID (admin only)' })
-  @ApiResponse({ status: 200, description: 'User retrieved successfully' })
+  @ApiResponse({ status: 200, description: 'User retrieved successfully', type: UserProfileDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async findOne(@Param('id') id: string) {
-    const user = await this.usersService.findById(id);
+  async findOne(@Param('id') id: string): Promise<UserProfileDto> {
+    const userProfile = await this.usersService.getUserProfile(id);
 
-    if (!user) {
+    if (!userProfile) {
       throw new NotFoundException('User not found');
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      profilePicture: user.profilePicture,
-      phoneNumber: user.phoneNumber,
-      loyaltyTier: user.loyaltyTier,
-      loyaltyPoints: user.loyaltyPoints,
-      createdAt: user.createdAt,
-    };
+    return userProfile;
   }
   /**
    * Update user by ID (admin only)

@@ -2,8 +2,10 @@ import { Injectable, NotFoundException, ConflictException, Inject } from '@nestj
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { PremiumSubscription } from '../features/subscriptions/entities/premium-subscription.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserProfileDto } from './dto/user-profile.dto';
 import { LoggerService } from '../core/logger/logger.service';
 import { ExceptionService } from '../core/exception/exception.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
@@ -17,6 +19,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(PremiumSubscription)
+    private readonly premiumSubscriptionRepository: Repository<PremiumSubscription>,
     private readonly logger: LoggerService,
     private readonly exceptionService: ExceptionService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -78,6 +82,73 @@ export class UsersService {
       }
       return user;
     } catch (error) {
+      this.exceptionService.handleException(error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if a user has an active premium subscription
+   */
+  async isUserPremium(userId: string): Promise<boolean> {
+    try {
+      const activeSubscription = await this.premiumSubscriptionRepository.findOne({
+        where: {
+          userId,
+          status: 'active',
+        },
+      });
+
+      if (!activeSubscription) {
+        return false;
+      }
+
+      // Additional check: ensure the subscription hasn't expired
+      const now = new Date();
+      const endDate = new Date(activeSubscription.endDate);
+
+      if (endDate < now) {
+        this.logger.warn(`Subscription for user ${userId} has expired but status is still active`);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      this.logger.error(`Error checking premium status for user ${userId}: ${error.message}`);
+      this.exceptionService.handleException(error);
+      return false;
+    }
+  }
+
+  /**
+   * Get user profile with premium status
+   */
+  async getUserProfile(userId: string): Promise<UserProfileDto | null> {
+    try {
+      const user = await this.findById(userId);
+      if (!user) {
+        return null;
+      }
+
+      const isPremium = await this.isUserPremium(userId);
+
+      const userProfile: UserProfileDto = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        profilePicture: user.profilePicture,
+        phoneNumber: user.phoneNumber,
+        loyaltyTier: user.loyaltyTier,
+        loyaltyPoints: user.loyaltyPoints,
+        isPremium,
+        createdAt: user.createdAt,
+      };
+
+      return userProfile;
+    } catch (error) {
+      this.logger.error(`Error getting user profile for user ${userId}: ${error.message}`);
       this.exceptionService.handleException(error);
       return null;
     }
