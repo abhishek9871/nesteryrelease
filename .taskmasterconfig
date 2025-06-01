@@ -1,0 +1,32 @@
+{
+  "models": {
+    "main": {
+      "provider": "openrouter",
+      "modelId": "openai/gpt-4o-mini",
+      "maxTokens": 120000,
+      "temperature": 0.2
+    },
+    "research": {
+      "provider": "openrouter",
+      "modelId": "openai/gpt-4o-mini",
+      "maxTokens": 8700,
+      "temperature": 0.1
+    },
+    "fallback": {
+      "provider": "openrouter",
+      "modelId": "openai/gpt-4o-mini",
+      "maxTokens": 64000,
+      "temperature": 0.2
+    }
+  },
+  "global": {
+    "logLevel": "info",
+    "debug": false,
+    "defaultSubtasks": 5,
+    "defaultPriority": "medium",
+    "projectName": "Taskmaster",
+    "ollamaBaseUrl": "http://localhost:11434/api",
+    "azureOpenaiBaseUrl": "https://your-endpoint.openai.azure.com/",
+    "userId": "1234567890"
+  }
+}

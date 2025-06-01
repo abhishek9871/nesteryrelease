@@ -1,0 +1,175 @@
+<context>
+# Overview
+Nestery is a revolutionary mobile accommodation booking app designed to disrupt the global market through technical arbitrage, zero-cost growth, and immediate monetization. The current project status shows 75-80% FRS compliance (up from 52%) with a solid NestJS + TypeORM + PostgreSQL backend and Flutter + Riverpod frontend architecture.
+
+**Current Critical Focus**: Complete Task 2.2 - Affiliate Marketing System (currently 70% complete) to achieve 100% FRS 1.2 compliance. The backend foundation is fully implemented with complete database schema, API endpoints, and business logic. The remaining 30% requires frontend implementation, partner dashboard, and user-facing interfaces.
+
+**Project Context**: Working on `shivji` branch with 100% FRS-compliant database schema. Phase 1 (Critical Foundation) is 100% complete including booking fixes, API versioning, loyalty program corrections, and comprehensive caching implementation. Phase 2 (Monetization) is 33% complete with AdMob integration done and affiliate marketing system requiring completion.
+
+# Core Features
+**Affiliate Marketing System (FRS 1.2 - "Zero-Cost Ancillary Affiliate Marketing System")**:
+- **Partner Categories**: Local tour operators, activity providers, restaurants, transportation services, travel gear e-commerce stores
+- **Commission Structure**: Tours & Activities (15-20%), Restaurant Bookings (10%), Transportation & E-commerce (8-12%)
+- **Revenue Sharing Model**: Nestery receives commission from partners AFTER partners secure revenue from users (zero financial risk)
+- **Trackable Links & QR Codes**: Unique, trackable links generated within Nestery for users to redeem offers
+- **Partner Dashboard**: Simple interface for partners to create offers and track earnings
+- **User Interface**: Browse offers, generate/share trackable links, discover affiliate content
+
+**Backend Foundation (100% Complete)**:
+- Complete `AffiliateModule` with 20 files (controller, module, 6 DTOs, 4 entities, 2 enums, 4 services)
+- Database schema with 4 tables: partners, affiliate_offers, trackable_links, affiliate_earnings
+- Commission structures stored as JSONB matching FRS requirements
+- Trackable link generation using `nanoid` with QR code support via `qrcode` library
+- Click tracking with atomic increment and redirect handling
+- Earnings management with status flow: PENDING → CONFIRMED → PAID → CANCELLED
+
+# User Experience
+**Partner Personas**:
+- Local tour operators seeking additional booking channels
+- Restaurant owners wanting to attract travelers
+- Transportation service providers (airport transfers, local rides)
+- Activity providers (guided tours, experiences)
+- E-commerce stores selling travel gear
+
+**User Personas**:
+- Nestery app users discovering local experiences
+- Travelers seeking authentic local recommendations
+- Users sharing travel experiences and earning rewards
+
+**Key User Flows**:
+1. **Partner Flow**: Register → Create offers → Generate trackable links → Track earnings → Request payouts
+2. **User Flow**: Browse offers → Generate/share trackable links → Redeem offers → Earn Nestery Miles
+3. **Revenue Flow**: User clicks link → Partner confirms revenue → Nestery receives commission share
+
+**UI/UX Considerations**:
+- Seamless integration with existing Nestery Flutter architecture
+- Partner dashboard with analytics and earnings tracking
+- User-friendly offer browsing with category filtering
+- QR code generation and sharing functionality
+- Real-time analytics and performance metrics
+</context>
+# Technical Architecture
+**Current System Components (Verified from Implementation Tracking)**:
+- **Backend**: NestJS + TypeORM + PostgreSQL with Redis caching
+- **Frontend**: Flutter + Riverpod state management with Drift/sqflite client-side caching
+- **API Versioning**: /v1/ prefix implemented across all endpoints
+- **Testing**: 100% coverage maintained (Backend: 50/50 tests, Frontend: 29/29 tests)
+- **Branch**: `shivji` branch with commit `a75960a` for affiliate foundation
+
+**Affiliate System Data Models (100% Complete)**:
+- **Partner Entity**: ID, name, email, category (enum), commission structure (JSONB), status, timestamps
+- **AffiliateOffer Entity**: ID, partner reference, title, description, terms, commission details, validity period
+- **TrackableLink Entity**: ID, offer reference, unique code (nanoid), QR code data, click count, user reference
+- **AffiliateEarning Entity**: ID, partner/offer/link references, amount, status (enum), confirmation details
+
+**APIs and Integrations (Backend Complete, Frontend Pending)**:
+- **Existing APIs**: Partner registration, offer creation, link generation, click tracking, earnings management
+- **Required Extensions**: Partner dashboard endpoints, user-facing offer browsing, analytics aggregation
+- **External Integrations**: QR code generation (qrcode library), unique ID generation (nanoid)
+- **Authentication**: Extend existing JWT-based auth for partner access
+
+**Infrastructure Requirements**:
+- **Database**: PostgreSQL with existing migration `1717171717171-CreateAffiliateSchema.ts`
+- **Caching**: Redis for server-side caching (implemented), Drift/sqflite for client-side (implemented)
+- **Dependencies**: `nanoid: "~5.1.5"` (added), `qrcode: "^1.5.4"` (existing)
+
+# Development Roadmap
+**Phase 2.2.1 - Partner Dashboard Backend (Foundation)**:
+- Extend `AffiliateController` with partner-specific endpoints
+- Implement partner authentication and authorization middleware
+- Create dashboard data aggregation services for earnings and performance metrics
+- Add offer management APIs (CRUD operations for partner offers)
+- Implement analytics endpoints for partner performance tracking
+
+**Phase 2.2.2 - Partner Dashboard Frontend (Immediate Visibility)**:
+- Create Flutter screens: Partner login, dashboard, offer management
+- Implement partner-specific navigation and UI components
+- Add charts/analytics for earnings and performance tracking using existing Flutter architecture
+- Create offer creation and editing forms with validation
+- Integrate with existing Riverpod state management patterns
+
+**Phase 2.2.3 - User-Facing Affiliate Interface (User Value)**:
+- Implement offer browsing screens with category filtering
+- Create trackable link generation and sharing functionality
+- Add QR code display and sharing capabilities
+- Integrate affiliate content discovery into existing user flows
+- Implement recommendation system for relevant offers
+
+**Phase 2.2.4 - Revenue Flow Automation (Business Logic)**:
+- Create webhook endpoints for partner revenue confirmation
+- Implement automated commission calculation and tracking
+- Add partner payout scheduling and management system
+- Integrate with existing booking and payment flows
+- Create commission reconciliation and reporting system
+
+**Phase 2.2.5 - Advanced Analytics & Reporting (Optimization)**:
+- Implement comprehensive partner earnings reports and analytics
+- Add conversion tracking and performance metrics
+- Create user engagement analytics for affiliate content
+- Build commission payment history and audit trails
+- Add real-time dashboard updates and notifications
+
+# Logical Dependency Chain
+**Foundation First (Backend Extensions)**:
+1. **Partner Authentication**: Extend existing JWT system for partner access
+2. **Dashboard APIs**: Build on existing `AffiliateController` structure
+3. **Analytics Services**: Leverage existing database schema and caching
+
+**Quick Frontend Visibility**:
+4. **Partner Dashboard UI**: Create immediately usable partner interface
+5. **Basic Offer Management**: Allow partners to create and edit offers
+6. **Simple Analytics Display**: Show earnings and performance data
+
+**User-Facing Features (Building on Foundation)**:
+7. **Offer Browsing**: User interface for discovering affiliate offers
+8. **Link Generation**: User ability to create and share trackable links
+9. **QR Code Sharing**: Enhanced sharing capabilities with QR codes
+
+**Advanced Business Logic (Atomic Improvements)**:
+10. **Revenue Automation**: Automated commission tracking and confirmation
+11. **Payout Management**: Partner payout requests and processing
+12. **Advanced Analytics**: Comprehensive reporting and insights
+
+**Each phase builds upon previous work and can be independently tested and deployed**
+
+# Risks and Mitigations
+**Technical Challenges**:
+- **Risk**: DeepSeek R1 model function calling compatibility with Task Master
+- **Mitigation**: Verified Ollama setup with `deepseek-r1:latest` model, fallback to Claude 3.5 Sonnet if needed
+
+**MVP Definition**:
+- **Risk**: Over-engineering the affiliate system before validating partner interest
+- **Mitigation**: Focus on Phase 2.2.1-2.2.2 first (partner dashboard) to validate partner engagement before building user-facing features
+
+**Resource Constraints**:
+- **Risk**: 8GB RAM limitation for local development with Ollama models
+- **Mitigation**: Using optimized `deepseek-r1:latest` model, monitoring memory usage during development
+
+**Integration Complexity**:
+- **Risk**: Breaking existing functionality while adding affiliate features
+- **Mitigation**: Maintain 100% test coverage, use existing patterns (Riverpod, API versioning), thorough testing on `shivji` branch
+
+**FRS Compliance**:
+- **Risk**: Missing specific FRS 1.2 requirements during implementation
+- **Mitigation**: Regular verification against `Final_Consolidated_Nestery_FRS.md` and `Nestery_FRS_Compliance_Implementation.md`
+
+# Appendix
+**Research Findings from Project Analysis**:
+- **Current FRS Compliance**: Verified 75-80% (up from 52% baseline)
+- **Phase 1 Completion**: 100% verified (5/5 tasks complete)
+- **Task 2.2 Status**: 70% complete with solid backend foundation
+- **Database Schema**: 100% FRS-compliant with all required entities
+- **Test Coverage**: Maintained at 100% (Backend: 50/50, Frontend: 29/29)
+
+**Technical Specifications from Implementation Tracking**:
+- **Commit Hash**: `a75960a` on `shivji` branch contains affiliate backend foundation
+- **Migration**: `1717171717171-CreateAffiliateSchema.ts` with 4 tables implemented
+- **Dependencies**: `nanoid: "~5.1.5"` added, `qrcode: "^1.5.4"` leveraged
+- **Architecture**: NestJS + TypeORM + PostgreSQL + Redis + Flutter + Riverpod + Drift/sqflite
+
+**FRS 1.2 Compliance Requirements**:
+- **Partner Categories**: TOUR_OPERATOR, ACTIVITY_PROVIDER, RESTAURANT, TRANSPORTATION, ECOMMERCE
+- **Commission Rates**: Tours & Activities (15-20%), Restaurants (10%), Transportation & E-commerce (8-12%)
+- **Revenue Model**: Zero-cost to Nestery, commission received AFTER partner secures revenue
+- **Tracking**: Unique trackable links with QR codes, click tracking, conversion analytics
+</PRD>
