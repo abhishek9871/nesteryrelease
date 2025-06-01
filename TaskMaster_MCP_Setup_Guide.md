@@ -25,39 +25,21 @@
 
 ### **Step 2: Install Task Master MCP Server**
 1. **Add Task Master MCP Server** in Augment settings
-2. **Configure Server Settings:**
-   ```json
-   {
-     "command": "taskmaster-mcp-server",
-     "args": [],
-     "env": {
-       "OPENROUTER_API_KEY": "your-openrouter-api-key-here"
-     }
-   }
-   ```
+2. **Configure Server Settings EXACTLY as shown:**
 
-### **Step 3: Configure Task Master Models**
-**Use these exact model configurations for optimal performance:**
+**Name:** `taskmaster-ai`
 
-#### **Main Model Configuration:**
-- **Model**: `openai/gpt-4o-mini`
-- **Provider**: OpenRouter
-- **Purpose**: Primary task generation and updates
-- **Status**: ✅ **PROVEN TO WORK PERFECTLY**
+**Command:** `npx -y --package=task-master-ai task-master-ai`
 
-#### **Research Model Configuration:**
-- **Model**: `openai/gpt-4o-mini`
-- **Provider**: OpenRouter
-- **Purpose**: Research-backed task analysis
-- **Status**: ✅ **PROVEN TO WORK PERFECTLY**
+**Environment Variables:**
+- `OPENROUTER_API_KEY`: `your-openrouter-api-key-here`
+- `MAIN_MODEL`: `openai/gpt-4o-mini`
+- `RESEARCH_MODEL`: `openai/gpt-4o-mini`
+- `FALLBACK_MODEL`: `openai/gpt-4o-mini`
 
-#### **Fallback Model Configuration:**
-- **Model**: `openai/gpt-4o-mini`
-- **Provider**: OpenRouter
-- **Purpose**: Backup when primary fails
-- **Status**: ✅ **PROVEN TO WORK PERFECTLY**
+**⚠️ CRITICAL: Use EXACT configuration above - this is the proven setup that works!**
 
-### **Step 4: Verify Task Master Installation**
+### **Step 3: Verify Task Master Installation**
 1. **Test MCP Connection** in Augment
 2. **Run**: `models_taskmaster-ai` (without parameters)
 3. **Verify**: All three models are properly configured
@@ -185,11 +167,19 @@ fix_dependencies_taskmaster-ai --projectRoot "/absolute/path/to/your/project"
 - **Solution**: Use `openai/gpt-4o-mini` instead - this is what actually works
 - **Lesson**: Always test model functionality, don't assume free models work
 
+### **MCP Server Configuration Issues:**
+- **Problem**: Task Master MCP not connecting
+- **Solution**: Verify EXACT configuration from screenshot
+- **Check**: Name must be `taskmaster-ai` (not `task-master-ai`)
+- **Check**: Command must be `npx -y --package=task-master-ai task-master-ai`
+- **Check**: All 4 environment variables must be set exactly as shown
+
 ### **Model Configuration Issues:**
 - **Problem**: Models not responding
 - **Solution**: Verify OpenRouter API key and model availability
 - **Command**: `models_taskmaster-ai --listAvailableModels true`
 - **Recommendation**: Stick with proven `openai/gpt-4o-mini` configuration
+- **Critical**: Models are configured via environment variables, not separately
 
 ### **Project Initialization Issues:**
 - **Problem**: Task Master not initializing
