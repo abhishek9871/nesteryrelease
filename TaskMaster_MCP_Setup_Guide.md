@@ -10,9 +10,10 @@
 - ✅ **Project with existing codebase** (any language/framework)
 
 ### **Recommended Models:**
-- ✅ **Primary**: `google/gemini-2.0-flash-exp:free` (OpenRouter)
-- ✅ **Alternative**: `openai/gpt-4o-mini` (OpenRouter)
-- ✅ **Fallback**: Any compatible OpenRouter model
+- ✅ **Primary**: `openai/gpt-4o-mini` (OpenRouter) - **PROVEN TO WORK**
+- ✅ **Alternative**: `openai/gpt-4o` (OpenRouter)
+- ✅ **Fallback**: `openai/gpt-4o-mini` (OpenRouter)
+- ❌ **AVOID**: `google/gemini-2.0-flash-exp:free` - **FAILED IN OUR TESTING**
 
 ## **II. Step-by-Step Task Master MCP Configuration:**
 
@@ -39,19 +40,22 @@
 **Use these exact model configurations for optimal performance:**
 
 #### **Main Model Configuration:**
-- **Model**: `google/gemini-2.0-flash-exp:free`
+- **Model**: `openai/gpt-4o-mini`
 - **Provider**: OpenRouter
 - **Purpose**: Primary task generation and updates
+- **Status**: ✅ **PROVEN TO WORK PERFECTLY**
 
 #### **Research Model Configuration:**
-- **Model**: `google/gemini-2.0-flash-exp:free`
-- **Provider**: OpenRouter  
+- **Model**: `openai/gpt-4o-mini`
+- **Provider**: OpenRouter
 - **Purpose**: Research-backed task analysis
+- **Status**: ✅ **PROVEN TO WORK PERFECTLY**
 
 #### **Fallback Model Configuration:**
-- **Model**: `google/gemini-2.0-flash-exp:free`
+- **Model**: `openai/gpt-4o-mini`
 - **Provider**: OpenRouter
 - **Purpose**: Backup when primary fails
+- **Status**: ✅ **PROVEN TO WORK PERFECTLY**
 
 ### **Step 4: Verify Task Master Installation**
 1. **Test MCP Connection** in Augment
@@ -175,10 +179,17 @@ fix_dependencies_taskmaster-ai --projectRoot "/absolute/path/to/your/project"
 
 ## **VII. Troubleshooting Common Issues:**
 
+### **CRITICAL: Gemini Model Failure (AVOID!):**
+- **Problem**: `google/gemini-2.0-flash-exp:free` does NOT work with Task Master MCP
+- **Symptoms**: Models appear configured but don't respond or generate tasks
+- **Solution**: Use `openai/gpt-4o-mini` instead - this is what actually works
+- **Lesson**: Always test model functionality, don't assume free models work
+
 ### **Model Configuration Issues:**
 - **Problem**: Models not responding
 - **Solution**: Verify OpenRouter API key and model availability
 - **Command**: `models_taskmaster-ai --listAvailableModels true`
+- **Recommendation**: Stick with proven `openai/gpt-4o-mini` configuration
 
 ### **Project Initialization Issues:**
 - **Problem**: Task Master not initializing
@@ -248,7 +259,8 @@ your-project/
 ### **Before Starting Your Project:**
 - ✅ **OpenRouter API key** configured in Augment
 - ✅ **Task Master MCP** installed and responding
-- ✅ **All three models** properly configured
+- ✅ **All three models** configured with `openai/gpt-4o-mini` (NOT Gemini!)
+- ✅ **Model functionality tested** - verify tasks actually generate
 - ✅ **Project initialized** with Task Master
 - ✅ **PRD file created** with comprehensive requirements
 - ✅ **Tasks generated** from PRD with research mode
