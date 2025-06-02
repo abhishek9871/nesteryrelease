@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PartnerCategoryEnum } from '../enums/partner-category.enum';
-import { PartnerEntity } from '../entities/partner.entity';
+import { PartnerEntity, ContactInfo } from '../entities/partner.entity';
 
 export class PartnerResponseDto {
   @ApiProperty()
@@ -13,7 +13,7 @@ export class PartnerResponseDto {
   category: PartnerCategoryEnum;
 
   @ApiProperty({ type: 'object', additionalProperties: true })
-  contactInfo: any; // JSONB
+  contactInfo: ContactInfo; // JSONB
 
   @ApiProperty({ type: 'number', required: false, nullable: true })
   commissionRateOverride?: number | null;

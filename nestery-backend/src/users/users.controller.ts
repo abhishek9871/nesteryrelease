@@ -44,7 +44,11 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(3600 * 1000) // 1 hour in milliseconds
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'User profile retrieved successfully', type: UserProfileDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+    type: UserProfileDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getProfile(@Req() req: AuthenticatedRequest): Promise<UserProfileDto> {

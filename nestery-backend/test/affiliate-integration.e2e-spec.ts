@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-import { PartnerEntity } from '../src/affiliates/entities/partner.entity';
+import { PartnerEntity, PartnerCategoryEnum } from '../src/affiliates/entities/partner.entity';
 import { AffiliateOfferEntity } from '../src/affiliates/entities/affiliate-offer.entity';
 import { UserEntity } from '../src/users/entities/user.entity';
 
@@ -52,12 +52,10 @@ describe('Affiliate System Integration (e2e)', () => {
     const partnerRepository = dataSource.getRepository(PartnerEntity);
     const partner = partnerRepository.create({
       name: 'Test Partner',
-      email: 'partner@example.com',
-      category: 'TOUR_OPERATOR',
+      category: PartnerCategoryEnum.TOUR_OPERATOR,
       contactInfo: {
+        email: 'partner@example.com',
         phone: '+1234567890',
-        address: '123 Test St',
-        stripeAccountId: 'acct_test123',
       },
       isActive: true,
     });
@@ -107,7 +105,7 @@ describe('Affiliate System Integration (e2e)', () => {
       expect(linkResponse.body.linkEntity).toBeDefined();
       expect(linkResponse.body.fullTrackableUrl).toContain('/v1/affiliates/redirect/');
       expect(linkResponse.body.qrCodeDataUrl).toContain('data:image/png;base64,');
-      
+
       linkCode = linkResponse.body.linkEntity.uniqueCode;
 
       // Step 2: Simulate click tracking
@@ -191,12 +189,12 @@ describe('Affiliate System Integration (e2e)', () => {
           request(app.getHttpServer())
             .get(`/v1/affiliates/redirect/${fraudLinkCode}`)
             .set('User-Agent', 'bot/1.0')
-            .set('X-Forwarded-For', '192.168.1.100')
+            .set('X-Forwarded-For', '192.168.1.100'),
         );
       }
 
       const responses = await Promise.all(promises);
-      
+
       // Some requests should be blocked (404 or similar)
       const blockedRequests = responses.filter(res => res.status !== 302);
       expect(blockedRequests.length).toBeGreaterThan(0);
@@ -254,9 +252,7 @@ describe('Affiliate System Integration (e2e)', () => {
     });
 
     it('should handle invalid link code', async () => {
-      await request(app.getHttpServer())
-        .get('/v1/affiliates/redirect/invalid-code')
-        .expect(404);
+      await request(app.getHttpServer()).get('/v1/affiliates/redirect/invalid-code').expect(404);
     });
 
     it('should handle insufficient earnings for payout', async () => {
@@ -275,22 +271,20 @@ describe('Affiliate System Integration (e2e)', () => {
   describe('Performance Requirements', () => {
     it('should handle concurrent link generation', async () => {
       const startTime = Date.now();
-      
+
       const promises = [];
       for (let i = 0; i < 50; i++) {
         promises.push(
-          request(app.getHttpServer())
-            .post('/v1/affiliates/links')
-            .send({
-              offerId,
-              userId,
-            })
+          request(app.getHttpServer()).post('/v1/affiliates/links').send({
+            offerId,
+            userId,
+          }),
         );
       }
 
       const responses = await Promise.all(promises);
       const endTime = Date.now();
-      
+
       // All requests should succeed
       responses.forEach(response => {
         expect(response.status).toBe(201);
@@ -312,20 +306,20 @@ describe('Affiliate System Integration (e2e)', () => {
 
       const testLinkCode = linkResponse.body.linkEntity.uniqueCode;
       const startTime = Date.now();
-      
+
       const promises = [];
       for (let i = 0; i < 100; i++) {
         promises.push(
           request(app.getHttpServer())
             .get(`/v1/affiliates/redirect/${testLinkCode}`)
             .set('User-Agent', `Mozilla/5.0 Test-${i}`)
-            .set('X-Forwarded-For', `192.168.1.${i % 255}`)
+            .set('X-Forwarded-For', `192.168.1.${i % 255}`),
         );
       }
 
       const responses = await Promise.all(promises);
       const endTime = Date.now();
-      
+
       // Most requests should succeed (some may be blocked by fraud detection)
       const successfulRequests = responses.filter(res => res.status === 302);
       expect(successfulRequests.length).toBeGreaterThan(50);

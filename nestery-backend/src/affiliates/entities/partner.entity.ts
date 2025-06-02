@@ -10,6 +10,9 @@ import { PartnerCategoryEnum } from '../enums/partner-category.enum';
 import { AffiliateOfferEntity } from './affiliate-offer.entity';
 import { AffiliateEarningEntity } from './affiliate-earning.entity';
 
+// Re-export for convenience
+export { PartnerCategoryEnum };
+
 export interface ContactInfo {
   email: string;
   phone?: string;
@@ -40,10 +43,10 @@ export class PartnerEntity {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @OneToMany(() => AffiliateOfferEntity, (offer) => offer.partner)
+  @OneToMany(() => AffiliateOfferEntity, offer => offer.partner)
   offers: AffiliateOfferEntity[];
 
-  @OneToMany(() => AffiliateEarningEntity, (earning) => earning.partner)
+  @OneToMany(() => AffiliateEarningEntity, earning => earning.partner)
   earnings: AffiliateEarningEntity[];
 
   @CreateDateColumn({

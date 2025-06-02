@@ -32,7 +32,7 @@ export class AffiliateOfferEntity {
   @Column({ type: 'uuid' })
   partnerId: string;
 
-  @ManyToOne(() => PartnerEntity, (partner) => partner.offers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PartnerEntity, partner => partner.offers, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'partnerId' })
   partner: PartnerEntity;
 
@@ -60,10 +60,10 @@ export class AffiliateOfferEntity {
   @Column({ type: 'varchar', length: 2048, nullable: true })
   originalUrl?: string | null;
 
-  @OneToMany(() => AffiliateLinkEntity, (link) => link.offer)
+  @OneToMany(() => AffiliateLinkEntity, link => link.offer)
   links: AffiliateLinkEntity[];
 
-  @OneToMany(() => AffiliateEarningEntity, (earning) => earning.offer)
+  @OneToMany(() => AffiliateEarningEntity, earning => earning.offer)
   earnings: AffiliateEarningEntity[];
 
   @CreateDateColumn({ type: 'timestamp with time zone', default: () => 'CURRENT_TIMESTAMP' })

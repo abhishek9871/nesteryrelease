@@ -1,22 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { PayoutService } from './payout.service';
 import { PartnerEntity } from '../entities/partner.entity';
 import { PayoutEntity, PayoutStatus } from '../entities/payout.entity';
 import { InvoiceEntity } from '../entities/invoice.entity';
-import { AffiliateEarningEntity, EarningStatusEnum } from '../entities/affiliate-earning.entity';
+import { AffiliateEarningEntity } from '../entities/affiliate-earning.entity';
 import { AuditService } from './audit.service';
 
 describe('PayoutService', () => {
   let service: PayoutService;
-  let partnerRepository: Repository<PartnerEntity>;
-  let payoutRepository: Repository<PayoutEntity>;
-  let invoiceRepository: Repository<InvoiceEntity>;
-  let earningRepository: Repository<AffiliateEarningEntity>;
-  let auditService: AuditService;
-  let configService: ConfigService;
 
   const mockPartnerRepository = {
     findOne: jest.fn(),
@@ -82,12 +75,6 @@ describe('PayoutService', () => {
     }).compile();
 
     service = module.get<PayoutService>(PayoutService);
-    partnerRepository = module.get<Repository<PartnerEntity>>(getRepositoryToken(PartnerEntity));
-    payoutRepository = module.get<Repository<PayoutEntity>>(getRepositoryToken(PayoutEntity));
-    invoiceRepository = module.get<Repository<InvoiceEntity>>(getRepositoryToken(InvoiceEntity));
-    earningRepository = module.get<Repository<AffiliateEarningEntity>>(getRepositoryToken(AffiliateEarningEntity));
-    auditService = module.get<AuditService>(AuditService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(() => {
@@ -151,7 +138,7 @@ describe('PayoutService', () => {
 
     it('should throw error for inactive partner', async () => {
       // Mock findOne to return null for inactive partner query
-      mockPartnerRepository.findOne.mockImplementation((query) => {
+      mockPartnerRepository.findOne.mockImplementation(query => {
         if (query.where && query.where.isActive === true) {
           return Promise.resolve(null); // No active partner found
         }
@@ -248,9 +235,7 @@ describe('PayoutService', () => {
     });
 
     it('should return only partner payouts for partner role', async () => {
-      const mockPayouts = [
-        { id: 'payout-1', partnerId: 'partner-1', amount: 100 },
-      ];
+      const mockPayouts = [{ id: 'payout-1', partnerId: 'partner-1', amount: 100 }];
       mockPayoutRepository.find.mockResolvedValue(mockPayouts);
 
       const result = await service.getPayouts('partner-1', 'partner');
@@ -300,7 +285,7 @@ describe('PayoutService', () => {
     it('should generate invoice with correct line items', async () => {
       // Access private method through service instance
       const generateInvoice = (service as any).generateInvoice.bind(service);
-      
+
       const result = await generateInvoice('partner-1', mockPayout);
 
       expect(result.id).toBe('invoice-1');
@@ -322,7 +307,7 @@ describe('PayoutService', () => {
 
     it('should generate unique invoice number', async () => {
       const generateInvoiceNumber = (service as any).generateInvoiceNumber.bind(service);
-      
+
       const invoiceNumber = await generateInvoiceNumber();
 
       expect(invoiceNumber).toMatch(/^INV-\d{6}-\d{4}$/);

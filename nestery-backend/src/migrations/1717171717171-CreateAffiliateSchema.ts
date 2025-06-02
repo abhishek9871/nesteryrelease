@@ -5,8 +5,12 @@ export class CreateAffiliateSchema1717171717171 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create Enums
-    await queryRunner.query(`CREATE TYPE "public"."affiliate_partner_category_enum" AS ENUM('TOUR_OPERATOR', 'ACTIVITY_PROVIDER', 'RESTAURANT', 'TRANSPORTATION', 'ECOMMERCE')`);
-    await queryRunner.query(`CREATE TYPE "public"."affiliate_earning_status_enum" AS ENUM('PENDING', 'CONFIRMED', 'PAID', 'CANCELLED')`);
+    await queryRunner.query(
+      `CREATE TYPE "public"."affiliate_partner_category_enum" AS ENUM('TOUR_OPERATOR', 'ACTIVITY_PROVIDER', 'RESTAURANT', 'TRANSPORTATION', 'ECOMMERCE')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."affiliate_earning_status_enum" AS ENUM('PENDING', 'CONFIRMED', 'PAID', 'CANCELLED')`,
+    );
 
     // Create affiliate_partners table
     await queryRunner.query(`
@@ -61,7 +65,9 @@ export class CreateAffiliateSchema1717171717171 implements MigrationInterface {
         CONSTRAINT "FK_affiliate_links_userId" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL
       )
     `);
-    await queryRunner.query(`CREATE INDEX "IDX_affiliate_links_unique_code" ON "affiliate_links" ("uniqueCode")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_affiliate_links_unique_code" ON "affiliate_links" ("uniqueCode")`,
+    );
 
     // Create affiliate_earnings table
     await queryRunner.query(`
@@ -97,7 +103,7 @@ export class CreateAffiliateSchema1717171717171 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "affiliate_links"`);
     await queryRunner.query(`DROP TABLE "affiliate_offers"`);
     await queryRunner.query(`DROP TABLE "affiliate_partners"`);
-    
+
     // Drop enums
     await queryRunner.query(`DROP TYPE "public"."affiliate_earning_status_enum"`);
     await queryRunner.query(`DROP TYPE "public"."affiliate_partner_category_enum"`);

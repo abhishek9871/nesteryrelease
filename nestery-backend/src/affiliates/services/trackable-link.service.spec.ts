@@ -1,9 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { TrackableLinkService } from './trackable-link.service';
 import { AffiliateLinkEntity } from '../entities/affiliate-link.entity';
 import { AffiliateOfferEntity } from '../entities/affiliate-offer.entity';
@@ -22,12 +20,6 @@ jest.mock('qrcode', () => ({
 
 describe('TrackableLinkService', () => {
   let service: TrackableLinkService;
-  let linkRepository: Repository<AffiliateLinkEntity>;
-  let offerRepository: Repository<AffiliateOfferEntity>;
-  let userRepository: Repository<UserEntity>;
-  let cacheManager: Cache;
-  let configService: ConfigService;
-  let auditService: AuditService;
 
   const mockLinkRepository = {
     findOne: jest.fn(),
@@ -92,12 +84,20 @@ describe('TrackableLinkService', () => {
     }).compile();
 
     service = module.get<TrackableLinkService>(TrackableLinkService);
-    linkRepository = module.get<Repository<AffiliateLinkEntity>>(getRepositoryToken(AffiliateLinkEntity));
-    offerRepository = module.get<Repository<AffiliateOfferEntity>>(getRepositoryToken(AffiliateOfferEntity));
-    userRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
-    cacheManager = module.get<Cache>(CACHE_MANAGER);
-    configService = module.get<ConfigService>(ConfigService);
-    auditService = module.get<AuditService>(AuditService);
+
+    // Set up default config mocks to prevent configuration errors
+    mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
+      switch (key) {
+        case 'APP_BASE_URL':
+          return 'https://api.nestery.com';
+        case 'FRAUD_DETECTION_THRESHOLD':
+          return 70;
+        case 'MAX_CLICKS_PER_HOUR':
+          return 100;
+        default:
+          return defaultValue;
+      }
+    });
   });
 
   afterEach(() => {
@@ -132,7 +132,7 @@ describe('TrackableLinkService', () => {
         uniqueCode: 'abc123def456',
         qrCodeDataUrl: 'data:image/png;base64,test',
       });
-      mockConfigService.get.mockImplementation((key) => {
+      mockConfigService.get.mockImplementation(key => {
         if (key === 'APP_BASE_URL') return 'https://api.nestery.com';
         return undefined;
       });
@@ -166,7 +166,7 @@ describe('TrackableLinkService', () => {
       jest.clearAllMocks();
       mockOfferRepository.findOneBy.mockResolvedValue(expiredOffer);
       mockUserRepository.findOneBy.mockResolvedValue(mockUser);
-      mockConfigService.get.mockImplementation((key) => {
+      mockConfigService.get.mockImplementation(key => {
         if (key === 'APP_BASE_URL') return 'https://api.nestery.com';
         return undefined;
       });
@@ -227,11 +227,7 @@ describe('TrackableLinkService', () => {
       );
 
       expect(result).toBe('https://partner.com/booking');
-      expect(mockLinkRepository.increment).toHaveBeenCalledWith(
-        { id: 'link-1' },
-        'clicks',
-        1,
-      );
+      expect(mockLinkRepository.increment).toHaveBeenCalledWith({ id: 'link-1' }, 'clicks', 1);
     });
 
     it('should return null for non-existent link', async () => {
@@ -270,12 +266,27 @@ describe('TrackableLinkService', () => {
     });
 
     it('should block suspicious clicks', async () => {
-      // Mock high fraud score
-      mockCacheManager.get.mockImplementation((key) => {
-        if (key.includes('ip_clicks')) return Promise.resolve(50); // Very high click frequency
-        if (key.includes('ip_diversity')) return Promise.resolve(['link-1', 'link-2', 'link-3', 'link-4', 'link-5']); // High diversity
-        if (key.includes('velocity')) return Promise.resolve([Date.now() - 1000, Date.now() - 2000, Date.now() - 3000]); // Recent clicks
+      // Mock high fraud score conditions
+      mockCacheManager.get.mockImplementation(key => {
+        if (key.includes('ip_clicks')) return Promise.resolve(15); // Very high click frequency (>10 triggers +30)
+        if (key.includes('ip_diversity')) return Promise.resolve(25); // High diversity (>20 triggers +25)
+        if (key.includes('velocity'))
+          return Promise.resolve([
+            Date.now() - 30000,
+            Date.now() - 20000,
+            Date.now() - 10000,
+            Date.now() - 5000,
+          ]); // 4 clicks in 5 minutes (>3 triggers +50)
+        if (key.includes('ua_pattern')) return Promise.resolve(40); // Bot pattern detected
+        if (key.includes('ip_pattern')) return Promise.resolve(55); // High IP pattern score
         return Promise.resolve(0);
+      });
+
+      // Mock config to return low threshold for testing
+      mockConfigService.get.mockImplementation((key, defaultValue) => {
+        if (key === 'FRAUD_DETECTION_THRESHOLD') return 50; // Lower threshold
+        if (key === 'APP_BASE_URL') return 'https://api.nestery.com';
+        return defaultValue;
       });
 
       const result = await service.handleLinkRedirectAndTrackClick(
@@ -322,11 +333,7 @@ describe('TrackableLinkService', () => {
 
       await service.recordConversion('abc123def456', conversionData);
 
-      expect(mockLinkRepository.increment).toHaveBeenCalledWith(
-        { id: 'link-1' },
-        'conversions',
-        1,
-      );
+      expect(mockLinkRepository.increment).toHaveBeenCalledWith({ id: 'link-1' }, 'conversions', 1);
       expect(mockCacheManager.set).toHaveBeenCalled();
       expect(mockAuditService.logAction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -419,10 +426,7 @@ describe('TrackableLinkService', () => {
 
     beforeEach(() => {
       mockLinkRepository.find.mockResolvedValue(mockLinks);
-      mockOfferRepository.find.mockResolvedValue([
-        { id: 'offer-1' },
-        { id: 'offer-2' },
-      ]);
+      mockOfferRepository.find.mockResolvedValue([{ id: 'offer-1' }, { id: 'offer-2' }]);
       mockCacheManager.get.mockResolvedValue([]);
     });
 

@@ -96,7 +96,7 @@ export class User {
   // @OneToMany(() => Referral, referral => referral.referrer)
   // referrals: Referral[];
 
-  @OneToMany(() => AffiliateLinkEntity, (link) => link.user)
+  @OneToMany(() => AffiliateLinkEntity, link => link.user)
   affiliateLinks: AffiliateLinkEntity[];
 
   @CreateDateColumn({ name: 'created_at' })

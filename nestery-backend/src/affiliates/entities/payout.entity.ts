@@ -61,9 +61,9 @@ export class PayoutEntity {
   @Column({ type: 'timestamp with time zone', nullable: true })
   payoutDate?: Date | null;
 
-  @CreateDateColumn({ 
-    type: 'timestamp with time zone', 
-    default: () => 'CURRENT_TIMESTAMP' 
+  @CreateDateColumn({
+    type: 'timestamp with time zone',
+    default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Date;
 

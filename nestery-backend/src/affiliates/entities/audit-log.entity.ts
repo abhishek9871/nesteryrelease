@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  Index,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('affiliate_audit_logs')
 @Index('IDX_audit_logs_userId', ['userId'])
@@ -15,9 +9,9 @@ export class AuditLogEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @CreateDateColumn({ 
-    type: 'timestamp with time zone', 
-    default: () => 'CURRENT_TIMESTAMP' 
+  @CreateDateColumn({
+    type: 'timestamp with time zone',
+    default: () => 'CURRENT_TIMESTAMP',
   })
   timestamp: Date;
 
@@ -37,7 +31,7 @@ export class AuditLogEntity {
   actionType: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  details?: Record<string, any> | null;
+  details?: Record<string, unknown> | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   ipAddress?: string | null;

@@ -72,7 +72,10 @@ import { AffiliateEarningEntity } from './affiliates/entities/affiliate-earning.
         const ttlInMilliseconds = configService.get<number>('CACHE_TTL_DEFAULT_SECONDS', 60) * 1000;
 
         try {
-          logger.log(`Attempting to connect to Redis cache at ${host}:${port}`, 'CacheModuleFactory');
+          logger.log(
+            `Attempting to connect to Redis cache at ${host}:${port}`,
+            'CacheModuleFactory',
+          );
 
           // Create Redis connection URL
           const redisUrl = `redis://${host}:${port}`;

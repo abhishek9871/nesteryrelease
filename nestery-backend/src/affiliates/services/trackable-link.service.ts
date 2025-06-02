@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, Between } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -94,11 +94,19 @@ export class TrackableLinkService {
       throw new NotFoundException(`Active offer with ID ${offerId} not found.`);
     }
 
+    // Check offer validity period
+    const now = new Date();
+    if (now < new Date(offer.validFrom) || now > new Date(offer.validTo)) {
+      throw new Error(`Offer is not valid for current date: ${offerId}`);
+    }
+
     let user: UserEntity | undefined = undefined;
     if (userId) {
-      user = await this.userRepository.findOneBy({ id: userId }) || undefined;
+      user = (await this.userRepository.findOneBy({ id: userId })) || undefined;
       if (!user) {
-        this.logger.warn(`User with ID ${userId} not found for affiliate link generation, proceeding without user association.`);
+        this.logger.warn(
+          `User with ID ${userId} not found for affiliate link generation, proceeding without user association.`,
+        );
         // Depending on requirements, could throw NotFoundException or proceed without user
       }
     }
@@ -165,7 +173,9 @@ export class TrackableLinkService {
     const isBlocked = await this.shouldBlockClick(link.id, fraudScore, ipAddress, userAgent);
 
     if (isBlocked) {
-      this.logger.warn(`Click blocked for link ${uniqueCode} due to fraud detection. Score: ${fraudScore}`);
+      this.logger.warn(
+        `Click blocked for link ${uniqueCode} due to fraud detection. Score: ${fraudScore}`,
+      );
 
       // Log blocked click for analysis
       await this.auditService.logAction({
@@ -191,7 +201,9 @@ export class TrackableLinkService {
 
     // Atomically increment clicks
     await this.linkRepository.increment({ id: link.id }, 'clicks', 1);
-    this.logger.log(`Click tracked for link ${uniqueCode}. New click count: ${link.clicks + 1}, Fraud score: ${fraudScore}`);
+    this.logger.log(
+      `Click tracked for link ${uniqueCode}. New click count: ${link.clicks + 1}, Fraud score: ${fraudScore}`,
+    );
 
     return offer.originalUrl || this.configService.get<string>('FRONTEND_URL') || '/'; // Fallback to frontend URL
   }
@@ -236,7 +248,7 @@ export class TrackableLinkService {
     linkId: string,
     fraudScore: number,
     ipAddress?: string,
-    userAgent?: string,
+    _userAgent?: string,
   ): Promise<boolean> {
     const threshold = this.configService.get<number>('FRAUD_DETECTION_THRESHOLD', 70);
 
@@ -245,12 +257,12 @@ export class TrackableLinkService {
     }
 
     // Check if IP is in blocklist
-    if (ipAddress && await this.isIPBlocked(ipAddress)) {
+    if (ipAddress && (await this.isIPBlocked(ipAddress))) {
       return true;
     }
 
     // Check rate limiting
-    if (ipAddress && await this.isRateLimited(linkId, ipAddress)) {
+    if (ipAddress && (await this.isRateLimited(linkId, ipAddress))) {
       return true;
     }
 
@@ -271,12 +283,14 @@ export class TrackableLinkService {
     let score = 0;
 
     // Check click frequency from this IP
-    const recentClicks = await this.cacheManager.get<number>(`ip_clicks:${ipAddress}:recent`) || 0;
-    if (recentClicks > 10) score += 30; // High frequency clicking
+    const recentClicks =
+      (await this.cacheManager.get<number>(`ip_clicks:${ipAddress}:recent`)) || 0;
+    if (recentClicks > 10)
+      score += 30; // High frequency clicking
     else if (recentClicks > 5) score += 15;
 
     // Check if IP has clicked multiple links recently
-    const linkDiversity = await this.cacheManager.get<number>(`ip_diversity:${ipAddress}`) || 0;
+    const linkDiversity = (await this.cacheManager.get<number>(`ip_diversity:${ipAddress}`)) || 0;
     if (linkDiversity > 20) score += 25; // Clicking too many different links
 
     // Check for known proxy/VPN patterns
@@ -293,8 +307,8 @@ export class TrackableLinkService {
   /**
    * Analyze user agent for bot patterns
    */
-  private async analyzeUserAgentPattern(userAgent: string): Promise<number> {
-    const cacheKey = `ua_pattern:${Buffer.from(userAgent).toString('base64')}`;
+  private async analyzeUserAgentPattern(_userAgent: string): Promise<number> {
+    const cacheKey = `ua_pattern:${Buffer.from(_userAgent).toString('base64')}`;
     const cached = await this.cacheManager.get<number>(cacheKey);
 
     if (cached !== undefined && cached !== null) {
@@ -305,22 +319,30 @@ export class TrackableLinkService {
 
     // Known bot patterns
     const botPatterns = [
-      /bot/i, /crawler/i, /spider/i, /scraper/i,
-      /curl/i, /wget/i, /python/i, /java/i,
-      /headless/i, /phantom/i, /selenium/i,
+      /bot/i,
+      /crawler/i,
+      /spider/i,
+      /scraper/i,
+      /curl/i,
+      /wget/i,
+      /python/i,
+      /java/i,
+      /headless/i,
+      /phantom/i,
+      /selenium/i,
     ];
 
     for (const pattern of botPatterns) {
-      if (pattern.test(userAgent)) {
+      if (pattern.test(_userAgent)) {
         score += 40;
         break;
       }
     }
 
     // Suspicious patterns
-    if (userAgent.length < 20) score += 20; // Too short
-    if (userAgent.length > 500) score += 15; // Too long
-    if (!/Mozilla/i.test(userAgent)) score += 25; // No Mozilla string
+    if (_userAgent.length < 20) score += 20; // Too short
+    if (_userAgent.length > 500) score += 15; // Too long
+    if (!/Mozilla/i.test(_userAgent)) score += 25; // No Mozilla string
 
     // Cache result for 24 hours
     await this.cacheManager.set(cacheKey, score, 86400);
@@ -333,7 +355,7 @@ export class TrackableLinkService {
    */
   private async analyzeClickVelocity(linkId: string, ipAddress: string): Promise<number> {
     const velocityKey = `velocity:${linkId}:${ipAddress}`;
-    const timestamps = await this.cacheManager.get<number[]>(velocityKey) || [];
+    const timestamps = (await this.cacheManager.get<number[]>(velocityKey)) || [];
 
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
@@ -363,21 +385,21 @@ export class TrackableLinkService {
   /**
    * Analyze for bot patterns
    */
-  private async analyzeBotPatterns(userAgent: string, ipAddress: string): Promise<number> {
+  private async analyzeBotPatterns(_userAgent: string, _ipAddress: string): Promise<number> {
     let score = 0;
 
     // Check for headless browser indicators
-    if (/headless/i.test(userAgent)) score += 30;
-    if (/phantom/i.test(userAgent)) score += 30;
-    if (/selenium/i.test(userAgent)) score += 30;
+    if (/headless/i.test(_userAgent)) score += 30;
+    if (/phantom/i.test(_userAgent)) score += 30;
+    if (/selenium/i.test(_userAgent)) score += 30;
 
     // Check for automation tools
-    if (/automation/i.test(userAgent)) score += 25;
-    if (/webdriver/i.test(userAgent)) score += 25;
+    if (/automation/i.test(_userAgent)) score += 25;
+    if (/webdriver/i.test(_userAgent)) score += 25;
 
     // Check for missing common browser features in user agent
-    const hasVersion = /\d+\.\d+/.test(userAgent);
-    const hasOS = /(Windows|Mac|Linux|Android|iOS)/i.test(userAgent);
+    const hasVersion = /\d+\.\d+/.test(_userAgent);
+    const hasOS = /(Windows|Mac|Linux|Android|iOS)/i.test(_userAgent);
 
     if (!hasVersion) score += 15;
     if (!hasOS) score += 15;
@@ -394,7 +416,9 @@ export class TrackableLinkService {
 
     // Check common VPN/proxy IP ranges (simplified)
     const suspiciousRanges = [
-      '10.', '172.16.', '192.168.', // Private ranges often used by VPNs
+      '10.',
+      '172.16.',
+      '192.168.', // Private ranges often used by VPNs
       '127.', // Localhost
     ];
 
@@ -405,7 +429,7 @@ export class TrackableLinkService {
    * Check if IP is in blocklist
    */
   private async isIPBlocked(ipAddress: string): Promise<boolean> {
-    const blockedIPs = await this.cacheManager.get<string[]>('blocked_ips') || [];
+    const blockedIPs = (await this.cacheManager.get<string[]>('blocked_ips')) || [];
     return blockedIPs.includes(ipAddress);
   }
 
@@ -414,7 +438,7 @@ export class TrackableLinkService {
    */
   private async isRateLimited(linkId: string, ipAddress: string): Promise<boolean> {
     const rateLimitKey = `rate_limit:${linkId}:${ipAddress}`;
-    const clickCount = await this.cacheManager.get<number>(rateLimitKey) || 0;
+    const clickCount = (await this.cacheManager.get<number>(rateLimitKey)) || 0;
 
     const maxClicksPerHour = this.configService.get<number>('MAX_CLICKS_PER_HOUR', 100);
 
@@ -448,7 +472,7 @@ export class TrackableLinkService {
 
     // Store in cache for analytics
     const analyticsKey = `analytics:${link.id}:clicks`;
-    const existingData = await this.cacheManager.get<ClickTrackingData[]>(analyticsKey) || [];
+    const existingData = (await this.cacheManager.get<ClickTrackingData[]>(analyticsKey)) || [];
     existingData.push(trackingData);
 
     // Keep only last 1000 clicks for performance
@@ -485,12 +509,12 @@ export class TrackableLinkService {
   private async updateIPTracking(ipAddress: string, linkId: string): Promise<void> {
     // Update recent clicks count
     const recentKey = `ip_clicks:${ipAddress}:recent`;
-    const recentCount = await this.cacheManager.get<number>(recentKey) || 0;
+    const recentCount = (await this.cacheManager.get<number>(recentKey)) || 0;
     await this.cacheManager.set(recentKey, recentCount + 1, 3600); // 1 hour TTL
 
     // Update link diversity
     const diversityKey = `ip_diversity:${ipAddress}`;
-    const clickedLinks = await this.cacheManager.get<string[]>(diversityKey) || [];
+    const clickedLinks = (await this.cacheManager.get<string[]>(diversityKey)) || [];
 
     if (!clickedLinks.includes(linkId)) {
       clickedLinks.push(linkId);
@@ -580,12 +604,13 @@ export class TrackableLinkService {
 
     // Get recent activity from cache
     const analyticsKey = `analytics:${linkId}:clicks`;
-    const recentActivity = await this.cacheManager.get<ClickTrackingData[]>(analyticsKey) || [];
+    const recentActivity = (await this.cacheManager.get<ClickTrackingData[]>(analyticsKey)) || [];
 
     // Get last click timestamp
-    const lastClickAt = recentActivity.length > 0
-      ? new Date(Math.max(...recentActivity.map(activity => activity.timestamp.getTime())))
-      : undefined;
+    const lastClickAt =
+      recentActivity.length > 0
+        ? new Date(Math.max(...recentActivity.map(activity => activity.timestamp.getTime())))
+        : undefined;
 
     return {
       linkId: link.id,
@@ -636,7 +661,7 @@ export class TrackableLinkService {
 
     // Store conversion data in cache for analytics
     const conversionKey = `analytics:${link.id}:conversions`;
-    const existingConversions = await this.cacheManager.get<any[]>(conversionKey) || [];
+    const existingConversions = (await this.cacheManager.get<any[]>(conversionKey)) || [];
 
     existingConversions.push({
       timestamp: new Date(),
@@ -667,7 +692,9 @@ export class TrackableLinkService {
       },
     });
 
-    this.logger.log(`Conversion recorded for link ${uniqueCode}: ${conversionData.bookingId || 'N/A'}`);
+    this.logger.log(
+      `Conversion recorded for link ${uniqueCode}: ${conversionData.bookingId || 'N/A'}`,
+    );
   }
 
   /**
@@ -713,7 +740,7 @@ export class TrackableLinkService {
     // Aggregate fraud stats from cache
     for (const link of links) {
       const analyticsKey = `analytics:${link.id}:clicks`;
-      const clickData = await this.cacheManager.get<ClickTrackingData[]>(analyticsKey) || [];
+      const clickData = (await this.cacheManager.get<ClickTrackingData[]>(analyticsKey)) || [];
 
       suspiciousClicks += clickData.filter(click => click.fraudScore > 50).length;
 

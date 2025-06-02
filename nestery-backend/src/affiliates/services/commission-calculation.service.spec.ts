@@ -1,7 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Decimal } from 'decimal.js';
 import { CommissionCalculationService } from './commission-calculation.service';
 import { PartnerEntity } from '../entities/partner.entity';
 import { AffiliateOfferEntity } from '../entities/affiliate-offer.entity';
@@ -10,10 +8,6 @@ import { AuditService } from './audit.service';
 
 describe('CommissionCalculationService', () => {
   let service: CommissionCalculationService;
-  let partnerRepository: Repository<PartnerEntity>;
-  let offerRepository: Repository<AffiliateOfferEntity>;
-  let earningRepository: Repository<AffiliateEarningEntity>;
-  let auditService: AuditService;
 
   const mockPartnerRepository = {
     findOne: jest.fn(),
@@ -56,10 +50,6 @@ describe('CommissionCalculationService', () => {
     }).compile();
 
     service = module.get<CommissionCalculationService>(CommissionCalculationService);
-    partnerRepository = module.get<Repository<PartnerEntity>>(getRepositoryToken(PartnerEntity));
-    offerRepository = module.get<Repository<AffiliateOfferEntity>>(getRepositoryToken(AffiliateOfferEntity));
-    earningRepository = module.get<Repository<AffiliateEarningEntity>>(getRepositoryToken(AffiliateEarningEntity));
-    auditService = module.get<AuditService>(AuditService);
   });
 
   afterEach(() => {
@@ -234,7 +224,9 @@ describe('CommissionCalculationService', () => {
         currency: 'USD',
       };
 
-      await expect(service.calculateCommission(input)).rejects.toThrow('Offer is not valid for current date');
+      await expect(service.calculateCommission(input)).rejects.toThrow(
+        'Offer is not valid for current date',
+      );
     });
 
     it('should audit commission calculation', async () => {
@@ -299,7 +291,7 @@ describe('CommissionCalculationService', () => {
         amountEarned: 100, // Ensure starting amount is 100
       };
       mockEarningRepository.findOne.mockResolvedValue(clawbackEarning);
-      mockEarningRepository.save.mockImplementation((earning) => {
+      mockEarningRepository.save.mockImplementation(earning => {
         return Promise.resolve(earning);
       });
 
@@ -331,13 +323,7 @@ describe('CommissionCalculationService', () => {
       mockEarningRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.processCommissionAdjustment(
-          'invalid-earning',
-          25,
-          'BONUS',
-          'Test bonus',
-          'user-1',
-        ),
+        service.processCommissionAdjustment('invalid-earning', 25, 'BONUS', 'Test bonus', 'user-1'),
       ).rejects.toThrow('Earning not found');
     });
   });

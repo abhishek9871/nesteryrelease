@@ -100,7 +100,7 @@ export class Booking {
   // @JoinColumn({ name: 'supplier_id' })
   // supplier: Supplier;
 
-  @OneToMany(() => AffiliateEarningEntity, (earning) => earning.booking)
+  @OneToMany(() => AffiliateEarningEntity, earning => earning.booking)
   affiliateEarnings: AffiliateEarningEntity[];
 
   @CreateDateColumn({ name: 'created_at' })

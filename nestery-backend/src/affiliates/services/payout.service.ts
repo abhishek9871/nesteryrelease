@@ -114,17 +114,12 @@ export class PayoutService {
     }
 
     // Audit the payout request
-    await this.auditService.logPayoutAction(
-      savedPayout.id,
-      partnerId,
-      'PAYOUT_REQUESTED',
-      {
-        amount: requestedAmount.toString(),
-        currency: payoutRequest.currency,
-        paymentMethod: payoutRequest.paymentMethod,
-        availableEarnings: availableEarnings.toString(),
-      },
-    );
+    await this.auditService.logPayoutAction(savedPayout.id, partnerId, 'PAYOUT_REQUESTED', {
+      amount: requestedAmount.toString(),
+      currency: payoutRequest.currency,
+      paymentMethod: payoutRequest.paymentMethod,
+      availableEarnings: availableEarnings.toString(),
+    });
 
     this.logger.log(`Payout request created: ${savedPayout.id}`);
 
@@ -148,21 +143,15 @@ export class PayoutService {
         try {
           await this.processPayout(payout);
         } catch (error) {
-          this.logger.error(
-            `Failed to process payout ${payout.id}: ${error.message}`,
-            error.stack,
-          );
-          
+          this.logger.error(`Failed to process payout ${payout.id}: ${error.message}`, error.stack);
+
           // Mark payout as failed
           payout.status = PayoutStatus.FAILED;
           await this.payoutRepository.save(payout);
 
-          await this.auditService.logPayoutAction(
-            payout.id,
-            payout.partnerId,
-            'PAYOUT_FAILED',
-            { error: error.message },
-          );
+          await this.auditService.logPayoutAction(payout.id, payout.partnerId, 'PAYOUT_FAILED', {
+            error: error.message,
+          });
         }
       }
 
@@ -212,16 +201,11 @@ export class PayoutService {
       await this.markEarningsAsPaid(payout.partnerId, payout.amount);
 
       // Audit successful payout
-      await this.auditService.logPayoutAction(
-        payout.id,
-        payout.partnerId,
-        'PAYOUT_COMPLETED',
-        {
-          stripeTransferId: transfer.id,
-          amount: payout.amount,
-          currency: payout.currency,
-        },
-      );
+      await this.auditService.logPayoutAction(payout.id, payout.partnerId, 'PAYOUT_COMPLETED', {
+        stripeTransferId: transfer.id,
+        amount: payout.amount,
+        currency: payout.currency,
+      });
 
       this.logger.log(`Payout ${payout.id} completed successfully`);
     } catch (error) {
@@ -229,15 +213,10 @@ export class PayoutService {
       payout.status = PayoutStatus.FAILED;
       await this.payoutRepository.save(payout);
 
-      await this.auditService.logPayoutAction(
-        payout.id,
-        payout.partnerId,
-        'PAYOUT_FAILED',
-        {
-          error: error.message,
-          stripeError: error.type || 'unknown',
-        },
-      );
+      await this.auditService.logPayoutAction(payout.id, payout.partnerId, 'PAYOUT_FAILED', {
+        error: error.message,
+        stripeError: error.type || 'unknown',
+      });
 
       throw error;
     }
@@ -246,10 +225,7 @@ export class PayoutService {
   /**
    * Generate invoice for payout
    */
-  private async generateInvoice(
-    partnerId: string,
-    payout: PayoutEntity,
-  ): Promise<InvoiceEntity> {
+  private async generateInvoice(partnerId: string, payout: PayoutEntity): Promise<InvoiceEntity> {
     const partner = await this.partnerRepository.findOne({ where: { id: partnerId } });
     if (!partner) {
       throw new Error(`Partner not found: ${partnerId}`);
@@ -343,7 +319,7 @@ export class PayoutService {
       if (remainingAmount.lte(0)) break;
 
       const earningAmount = new Decimal(earning.amountEarned);
-      
+
       if (remainingAmount.gte(earningAmount)) {
         earning.status = EarningStatusEnum.PAID;
         remainingAmount = remainingAmount.sub(earningAmount);
@@ -379,14 +355,14 @@ export class PayoutService {
     // This would typically be stored in partner entity or separate table
     // For now, we'll assume it's stored in partner's metadata or a separate field
     const partner = await this.partnerRepository.findOne({ where: { id: partnerId } });
-    
+
     if (!partner) {
       throw new Error(`Partner not found: ${partnerId}`);
     }
 
     // Assuming stripe account ID is stored in contactInfo or similar field
     const stripeAccountId = (partner.contactInfo as any)?.stripeAccountId;
-    
+
     if (!stripeAccountId) {
       throw new Error(`Stripe Connect account not configured for partner: ${partnerId}`);
     }
@@ -400,11 +376,10 @@ export class PayoutService {
   private async generateInvoiceNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    
+
     // Get count of invoices this month
     const startOfMonth = new Date(year, new Date().getMonth(), 1);
-    const endOfMonth = new Date(year, new Date().getMonth() + 1, 0);
-    
+
     const count = await this.invoiceRepository.count({
       where: {
         issueDate: MoreThan(startOfMonth),

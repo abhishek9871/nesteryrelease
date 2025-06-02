@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Decimal } from 'decimal.js';
 import { PartnerEntity } from '../entities/partner.entity';
-import { AffiliateOfferEntity, CommissionStructure, Tier } from '../entities/affiliate-offer.entity';
+import {
+  AffiliateOfferEntity,
+  CommissionStructure,
+  Tier,
+} from '../entities/affiliate-offer.entity';
 import { AffiliateEarningEntity } from '../entities/affiliate-earning.entity';
 import { AuditService } from './audit.service';
 
@@ -65,7 +69,9 @@ export class CommissionCalculationService {
   async calculateCommission(
     input: CommissionCalculationInput,
   ): Promise<CommissionCalculationResult> {
-    this.logger.log(`Calculating commission for partner ${input.partnerId}, offer ${input.offerId}`);
+    this.logger.log(
+      `Calculating commission for partner ${input.partnerId}, offer ${input.offerId}`,
+    );
 
     // Validate input
     if (!input.partnerId || !input.offerId || !input.bookingValue || !input.currency) {
@@ -98,7 +104,7 @@ export class CommissionCalculationService {
 
     // Use Decimal for all financial calculations
     const baseAmount = new Decimal(input.bookingValue);
-    
+
     // Calculate commission based on structure
     const result = await this.calculateByStructure(
       baseAmount,
@@ -111,17 +117,17 @@ export class CommissionCalculationService {
     if (partner.commissionRateOverride) {
       const overrideRate = new Decimal(partner.commissionRateOverride);
       const overrideAmount = baseAmount.mul(overrideRate);
-      
+
       if (!result.calculationDetails.adjustments) {
         result.calculationDetails.adjustments = [];
       }
-      
+
       result.calculationDetails.adjustments.push({
         type: 'partner_override',
         amount: overrideAmount.sub(result.amountEarned),
         reason: `Partner-specific commission rate override: ${overrideRate.mul(100)}%`,
       });
-      
+
       result.amountEarned = overrideAmount;
     }
 
@@ -269,7 +275,8 @@ export class CommissionCalculationService {
     }
 
     earning.amountEarned = newAmount.toNumber();
-    earning.notes = `${earning.notes || ''}\n[${new Date().toISOString()}] ${adjustmentType}: ${adjustmentDecimal.toString()} - ${reason}`.trim();
+    earning.notes =
+      `${earning.notes || ''}\n[${new Date().toISOString()}] ${adjustmentType}: ${adjustmentDecimal.toString()} - ${reason}`.trim();
 
     const updatedEarning = await this.earningRepository.save(earning);
 
@@ -288,7 +295,9 @@ export class CommissionCalculationService {
       },
     });
 
-    this.logger.log(`Commission ${adjustmentType.toLowerCase()} processed for earning ${earningId}: ${adjustmentDecimal.toString()}`);
+    this.logger.log(
+      `Commission ${adjustmentType.toLowerCase()} processed for earning ${earningId}: ${adjustmentDecimal.toString()}`,
+    );
 
     return updatedEarning;
   }

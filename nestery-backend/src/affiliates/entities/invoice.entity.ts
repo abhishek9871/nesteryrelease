@@ -70,9 +70,9 @@ export class InvoiceEntity {
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 
-  @CreateDateColumn({ 
-    type: 'timestamp with time zone', 
-    default: () => 'CURRENT_TIMESTAMP' 
+  @CreateDateColumn({
+    type: 'timestamp with time zone',
+    default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Date;
 

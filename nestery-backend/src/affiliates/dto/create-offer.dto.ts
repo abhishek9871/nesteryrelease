@@ -21,7 +21,10 @@ export class CreateOfferDto {
   @MaxLength(255)
   title: string;
 
-  @ApiProperty({ description: 'Detailed description of the offer', example: 'Get 10% off all summer tours booked through this link.' })
+  @ApiProperty({
+    description: 'Detailed description of the offer',
+    example: 'Get 10% off all summer tours booked through this link.',
+  })
   @IsString()
   @IsNotEmpty()
   description: string;
@@ -30,9 +33,21 @@ export class CreateOfferDto {
     description: 'Commission structure for the offer',
     example: { type: 'percentage', value: 10 },
     oneOf: [
-      { type: 'object', properties: { type: { type: 'string', enum: ['percentage'] }, value: { type: 'number' } } },
-      { type: 'object', properties: { type: { type: 'string', enum: ['fixed'] }, value: { type: 'number' } } },
-      { type: 'object', properties: { type: { type: 'string', enum: ['tiered'] }, tiers: { type: 'array', items: { type: 'object' } } } },
+      {
+        type: 'object',
+        properties: { type: { type: 'string', enum: ['percentage'] }, value: { type: 'number' } },
+      },
+      {
+        type: 'object',
+        properties: { type: { type: 'string', enum: ['fixed'] }, value: { type: 'number' } },
+      },
+      {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['tiered'] },
+          tiers: { type: 'array', items: { type: 'object' } },
+        },
+      },
     ],
   })
   @IsObject()
@@ -40,24 +55,40 @@ export class CreateOfferDto {
   commissionStructure:
     | { type: 'percentage'; value: number }
     | { type: 'fixed'; value: number }
-    | { type: 'tiered'; tiers: { threshold: number; value: number; valueType: 'percentage' | 'fixed' }[] };
+    | {
+        type: 'tiered';
+        tiers: { threshold: number; value: number; valueType: 'percentage' | 'fixed' }[];
+      };
 
-  @ApiProperty({ description: 'Date from which the offer is valid', example: '2025-06-01T00:00:00.000Z' })
+  @ApiProperty({
+    description: 'Date from which the offer is valid',
+    example: '2025-06-01T00:00:00.000Z',
+  })
   @IsDate()
   @Type(() => Date)
   validFrom: Date;
 
-  @ApiProperty({ description: 'Date until which the offer is valid', example: '2025-08-31T23:59:59.000Z' })
+  @ApiProperty({
+    description: 'Date until which the offer is valid',
+    example: '2025-08-31T23:59:59.000Z',
+  })
   @IsDate()
   @Type(() => Date)
   validTo: Date;
 
-  @ApiProperty({ description: 'Terms and conditions for the offer', example: 'Valid for new customers only. Cannot be combined with other offers.' })
+  @ApiProperty({
+    description: 'Terms and conditions for the offer',
+    example: 'Valid for new customers only. Cannot be combined with other offers.',
+  })
   @IsString()
   @IsNotEmpty()
   termsConditions: string;
 
-  @ApiProperty({ description: 'Whether the offer is currently active', example: true, default: true })
+  @ApiProperty({
+    description: 'Whether the offer is currently active',
+    example: true,
+    default: true,
+  })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean = true;

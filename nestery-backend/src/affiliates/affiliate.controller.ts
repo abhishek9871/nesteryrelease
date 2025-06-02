@@ -5,11 +5,15 @@ import {
   Get,
   Param,
   Query,
+  Put,
+  Delete,
   UseGuards,
   Req,
   Res,
   HttpStatus,
   NotFoundException,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,9 +27,13 @@ import { Response as ExpressResponse } from 'express';
 import { PartnerService } from './services/partner.service';
 import { AffiliateOfferService } from './services/affiliate-offer.service';
 import { TrackableLinkService } from './services/trackable-link.service';
+import { AffiliateEarningService } from './services/affiliate-earning.service';
 import { CreatePartnerDto } from './dto/create-partner.dto';
+import { UpdatePartnerDto } from './dto/update-partner.dto';
 import { CreateOfferDto } from './dto/create-offer.dto';
+import { UpdateOfferDto } from './dto/update-offer.dto';
 import { PartnerResponseDto } from './dto/partner.response.dto';
+import { PartnerDashboardDto } from './dto/partner-dashboard.dto';
 import { OfferResponseDto } from './dto/offer.response.dto';
 import { GeneratedAffiliateLinkResponseDto } from './dto/link.response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,6 +41,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
+// import { EarningStatusEnum } from './enums/earning-status.enum';
 
 @ApiTags('affiliates')
 @Controller('affiliates')
@@ -41,6 +50,7 @@ export class AffiliateController {
     private readonly partnerService: PartnerService,
     private readonly affiliateOfferService: AffiliateOfferService,
     private readonly trackableLinkService: TrackableLinkService,
+    private readonly affiliateEarningService: AffiliateEarningService,
   ) {}
 
   @Post('partners/register')
@@ -48,7 +58,11 @@ export class AffiliateController {
   @Roles('admin') // Or a specific partner management role
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Register a new affiliate partner' })
-  @ApiResponse({ status: 201, description: 'Partner registered successfully', type: PartnerResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Partner registered successfully',
+    type: PartnerResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -81,15 +95,23 @@ export class AffiliateController {
   @ApiBearerAuth() // Remove if Public()
   @ApiOperation({ summary: 'Generate a trackable affiliate link for an offer' })
   @ApiParam({ name: 'offerId', description: 'ID of the affiliate offer' })
-  @ApiQuery({ name: 'userId', description: 'Optional ID of the user generating the link', required: false })
-  @ApiResponse({ status: 200, description: 'Trackable link generated', type: GeneratedAffiliateLinkResponseDto })
+  @ApiQuery({
+    name: 'userId',
+    description: 'Optional ID of the user generating the link',
+    required: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Trackable link generated',
+    type: GeneratedAffiliateLinkResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Offer not found or inactive' })
   async generateTrackableLink(
     @Param('offerId') offerId: string,
     @Query('userId') userId?: string,
     @Req() req?: AuthenticatedRequest, // If not public, use req.user.id if userId query param is not provided
   ): Promise<GeneratedAffiliateLinkResponseDto> {
-    const actualUserId = userId || (req?.user?.id);
+    const actualUserId = userId || req?.user?.id;
     const result = await this.trackableLinkService.generateAffiliateLink(offerId, actualUserId);
     return {
       linkEntity: result.linkEntity,
@@ -108,9 +130,7 @@ export class AffiliateController {
     @Param('uniqueCode') uniqueCode: string,
     @Res() res: ExpressResponse,
   ): Promise<void> {
-    const originalUrl = await this.trackableLinkService.handleLinkRedirectAndTrackClick(
-      uniqueCode,
-    );
+    const originalUrl = await this.trackableLinkService.handleLinkRedirectAndTrackClick(uniqueCode);
     if (originalUrl) {
       res.redirect(HttpStatus.FOUND, originalUrl);
     } else {
@@ -128,5 +148,218 @@ export class AffiliateController {
     const offer = await this.affiliateOfferService.getOfferById(offerId);
     if (!offer) throw new NotFoundException('Offer not found');
     return OfferResponseDto.fromEntity(offer);
+  }
+
+  // ===== PARTNER MANAGEMENT ENDPOINTS =====
+
+  @Get('partners')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all partners with pagination and filtering' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({ name: 'category', required: false, description: 'Filter by partner category' })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filter by active status',
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    description: 'Filter by partner name (partial match)',
+  })
+  @ApiResponse({ status: 200, description: 'Partners retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async getAllPartners(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('category') category?: string,
+    @Query('isActive') isActive?: boolean,
+    @Query('name') name?: string,
+  ) {
+    const filters = { category, isActive, name };
+    return this.partnerService.findAll(page, limit, filters);
+  }
+
+  @Get('partners/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get partner by ID' })
+  @ApiParam({ name: 'id', description: 'Partner ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Partner retrieved successfully',
+    type: PartnerResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Partner not found' })
+  async getPartnerById(@Param('id') id: string): Promise<PartnerResponseDto> {
+    const partner = await this.partnerService.findById(id);
+    return PartnerResponseDto.fromEntity(partner);
+  }
+
+  @Put('partners/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update partner information' })
+  @ApiParam({ name: 'id', description: 'Partner ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Partner updated successfully',
+    type: PartnerResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Partner not found' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async updatePartner(
+    @Param('id') id: string,
+    @Body() updatePartnerDto: UpdatePartnerDto,
+  ): Promise<PartnerResponseDto> {
+    const partner = await this.partnerService.update(id, updatePartnerDto);
+    return PartnerResponseDto.fromEntity(partner);
+  }
+
+  @Delete('partners/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Soft delete partner' })
+  @ApiParam({ name: 'id', description: 'Partner ID' })
+  @ApiResponse({ status: 204, description: 'Partner deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Partner not found' })
+  async deletePartner(@Param('id') id: string): Promise<void> {
+    await this.partnerService.delete(id);
+  }
+
+  @Get('partners/:id/dashboard')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'partner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get partner dashboard analytics' })
+  @ApiParam({ name: 'id', description: 'Partner ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard data retrieved successfully',
+    type: PartnerDashboardDto,
+  })
+  @ApiResponse({ status: 404, description: 'Partner not found' })
+  async getPartnerDashboard(@Param('id') id: string): Promise<PartnerDashboardDto> {
+    return this.partnerService.getDashboardData(id);
+  }
+
+  // ===== OFFER MANAGEMENT ENDPOINTS =====
+
+  @Get('offers')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'partner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all offers with pagination and filtering' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({ name: 'partnerId', required: false, description: 'Filter by partner ID' })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filter by active status',
+  })
+  @ApiQuery({
+    name: 'title',
+    required: false,
+    description: 'Filter by offer title (partial match)',
+  })
+  @ApiQuery({
+    name: 'currentlyValid',
+    required: false,
+    type: Boolean,
+    description: 'Filter by current validity',
+  })
+  @ApiResponse({ status: 200, description: 'Offers retrieved successfully' })
+  async getAllOffers(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('partnerId') partnerId?: string,
+    @Query('isActive') isActive?: boolean,
+    @Query('title') title?: string,
+    @Query('currentlyValid') currentlyValid?: boolean,
+  ) {
+    const filters = { partnerId, isActive, title, currentlyValid };
+    return this.affiliateOfferService.findAll(page, limit, filters);
+  }
+
+  @Get('offers/active')
+  @Public()
+  @ApiOperation({ summary: 'Get all currently active offers' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiResponse({ status: 200, description: 'Active offers retrieved successfully' })
+  async getActiveOffers(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.affiliateOfferService.findAllActive(page, limit);
+  }
+
+  @Put('offers/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update an existing offer' })
+  @ApiParam({ name: 'id', description: 'Offer ID' })
+  @ApiResponse({ status: 200, description: 'Offer updated successfully', type: OfferResponseDto })
+  @ApiResponse({ status: 404, description: 'Offer not found' })
+  @ApiResponse({ status: 400, description: 'Bad Request - FRS validation failed' })
+  async updateOffer(
+    @Param('id') id: string,
+    @Body() updateOfferDto: UpdateOfferDto,
+  ): Promise<OfferResponseDto> {
+    const offer = await this.affiliateOfferService.update(id, updateOfferDto);
+    return OfferResponseDto.fromEntity(offer);
+  }
+
+  @Delete('offers/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Soft delete an offer' })
+  @ApiParam({ name: 'id', description: 'Offer ID' })
+  @ApiResponse({ status: 204, description: 'Offer deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Offer not found' })
+  async deleteOffer(@Param('id') id: string): Promise<void> {
+    await this.affiliateOfferService.delete(id);
   }
 }

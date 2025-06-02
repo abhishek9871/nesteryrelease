@@ -9,7 +9,7 @@ export interface AuditLogInput {
   entityId?: string;
   entityType?: string;
   actionType: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -53,9 +53,11 @@ export class AuditService {
       });
 
       const savedLog = await this.auditLogRepository.save(auditLog);
-      
-      this.logger.log(`Audit log created: ${input.actionType} for ${input.entityType || 'unknown'} ${input.entityId || 'N/A'}`);
-      
+
+      this.logger.log(
+        `Audit log created: ${input.actionType} for ${input.entityType || 'unknown'} ${input.entityId || 'N/A'}`,
+      );
+
       return savedLog;
     } catch (error) {
       this.logger.error(`Failed to create audit log: ${error.message}`, error.stack);
@@ -78,7 +80,7 @@ export class AuditService {
     };
 
     // Build where conditions
-    const whereConditions: any = {};
+    const whereConditions: Record<string, unknown> = {};
 
     if (query.userId) {
       whereConditions.userId = query.userId;
@@ -151,7 +153,7 @@ export class AuditService {
     actionsByType: Record<string, number>;
     recentActions: AuditLogEntity[];
   }> {
-    const whereConditions: any = { partnerId };
+    const whereConditions: Record<string, unknown> = { partnerId };
 
     if (startDate && endDate) {
       whereConditions.timestamp = Between(startDate, endDate);
@@ -179,7 +181,7 @@ export class AuditService {
 
     const actionTypeCounts = await actionTypeQuery.getRawMany();
     const actionsByType: Record<string, number> = {};
-    
+
     actionTypeCounts.forEach(item => {
       actionsByType[item.actionType] = parseInt(item.count, 10);
     });
@@ -213,9 +215,9 @@ export class AuditService {
       .execute();
 
     const deletedCount = result.affected || 0;
-    
+
     this.logger.log(`Cleaned up ${deletedCount} audit logs older than ${olderThanDays} days`);
-    
+
     return deletedCount;
   }
 
@@ -225,9 +227,9 @@ export class AuditService {
   async logPartnerAction(
     partnerId: string,
     actionType: string,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
     userId?: string,
-    request?: any,
+    request?: unknown,
   ): Promise<AuditLogEntity> {
     return this.logAction({
       userId,
@@ -236,8 +238,8 @@ export class AuditService {
       entityType: 'partner',
       actionType,
       details,
-      ipAddress: request?.ip || request?.connection?.remoteAddress,
-      userAgent: request?.get?.('User-Agent') || request?.headers?.['user-agent'],
+      ipAddress: (request as any)?.ip || (request as any)?.connection?.remoteAddress,
+      userAgent: (request as any)?.get?.('User-Agent') || (request as any)?.headers?.['user-agent'],
     });
   }
 
@@ -248,9 +250,9 @@ export class AuditService {
     offerId: string,
     partnerId: string,
     actionType: string,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
     userId?: string,
-    request?: any,
+    request?: unknown,
   ): Promise<AuditLogEntity> {
     return this.logAction({
       userId,
@@ -259,8 +261,8 @@ export class AuditService {
       entityType: 'affiliate_offer',
       actionType,
       details,
-      ipAddress: request?.ip || request?.connection?.remoteAddress,
-      userAgent: request?.get?.('User-Agent') || request?.headers?.['user-agent'],
+      ipAddress: (request as any)?.ip || (request as any)?.connection?.remoteAddress,
+      userAgent: (request as any)?.get?.('User-Agent') || (request as any)?.headers?.['user-agent'],
     });
   }
 
@@ -271,9 +273,9 @@ export class AuditService {
     earningId: string,
     partnerId: string,
     actionType: string,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
     userId?: string,
-    request?: any,
+    request?: unknown,
   ): Promise<AuditLogEntity> {
     return this.logAction({
       userId,
@@ -282,8 +284,8 @@ export class AuditService {
       entityType: 'affiliate_earning',
       actionType,
       details,
-      ipAddress: request?.ip || request?.connection?.remoteAddress,
-      userAgent: request?.get?.('User-Agent') || request?.headers?.['user-agent'],
+      ipAddress: (request as any)?.ip || (request as any)?.connection?.remoteAddress,
+      userAgent: (request as any)?.get?.('User-Agent') || (request as any)?.headers?.['user-agent'],
     });
   }
 
@@ -294,9 +296,9 @@ export class AuditService {
     payoutId: string,
     partnerId: string,
     actionType: string,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
     userId?: string,
-    request?: any,
+    request?: unknown,
   ): Promise<AuditLogEntity> {
     return this.logAction({
       userId,
@@ -305,8 +307,8 @@ export class AuditService {
       entityType: 'affiliate_payout',
       actionType,
       details,
-      ipAddress: request?.ip || request?.connection?.remoteAddress,
-      userAgent: request?.get?.('User-Agent') || request?.headers?.['user-agent'],
+      ipAddress: (request as any)?.ip || (request as any)?.connection?.remoteAddress,
+      userAgent: (request as any)?.get?.('User-Agent') || (request as any)?.headers?.['user-agent'],
     });
   }
 }

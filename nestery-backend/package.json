@@ -114,10 +114,10 @@
       "node_modules/(?!(nanoid)/)"
     ],
     "extensionsToTreatAsEsm": [".ts"],
-    "globals": {
-      "ts-jest": {
+    "transform": {
+      "^.+\\.(t|j)s$": ["ts-jest", {
         "useESM": true
-      }
+      }]
     }
   }
 }

@@ -25,21 +25,24 @@ export class AffiliateEarningEntity {
   @Column({ type: 'uuid' })
   partnerId: string;
 
-  @ManyToOne(() => PartnerEntity, (partner) => partner.earnings, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PartnerEntity, partner => partner.earnings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'partnerId' })
   partner: PartnerEntity;
 
   @Column({ type: 'uuid' })
   offerId: string;
 
-  @ManyToOne(() => AffiliateOfferEntity, (offer) => offer.earnings, { onDelete: 'CASCADE' })
+  @ManyToOne(() => AffiliateOfferEntity, offer => offer.earnings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'offerId' })
   offer: AffiliateOfferEntity;
 
   @Column({ type: 'uuid', nullable: true })
   linkId?: string | null;
 
-  @ManyToOne(() => AffiliateLinkEntity, (link) => link.earnings, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => AffiliateLinkEntity, link => link.earnings, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'linkId' })
   link?: AffiliateLinkEntity | null;
 
@@ -54,7 +57,10 @@ export class AffiliateEarningEntity {
   @Column({ type: 'uuid', nullable: true })
   bookingId?: string | null;
 
-  @ManyToOne(() => BookingEntity, (booking) => booking.affiliateEarnings, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => BookingEntity, booking => booking.affiliateEarnings, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'bookingId' })
   booking?: BookingEntity | null;
 

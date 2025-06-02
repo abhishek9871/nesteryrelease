@@ -23,6 +23,7 @@ import { InvoiceEntity } from './entities/invoice.entity';
 
 import { UserEntity } from '../users/entities/user.entity';
 import { BookingEntity } from '../bookings/entities/booking.entity';
+import { FrsCommissionRateValidator } from './validators/frs-commission.validator';
 
 @Module({
   imports: [
@@ -49,6 +50,11 @@ import { BookingEntity } from '../bookings/entities/booking.entity';
     CommissionCalculationService,
     PayoutService,
     AuditService,
+    // Add the FRS validator as a provider
+    {
+      provide: 'FrsCommissionRateValidator',
+      useClass: FrsCommissionRateValidator,
+    },
   ],
 })
 export class AffiliateModule {}

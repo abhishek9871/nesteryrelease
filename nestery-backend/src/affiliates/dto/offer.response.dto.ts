@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AffiliateOfferEntity } from '../entities/affiliate-offer.entity';
+import { AffiliateOfferEntity, CommissionStructure } from '../entities/affiliate-offer.entity';
 
 export class OfferResponseDto {
   @ApiProperty()
@@ -15,7 +15,7 @@ export class OfferResponseDto {
   description: string;
 
   @ApiProperty({ type: 'object', additionalProperties: true })
-  commissionStructure: any; // JSONB
+  commissionStructure: CommissionStructure; // JSONB
 
   @ApiProperty()
   validFrom: Date;

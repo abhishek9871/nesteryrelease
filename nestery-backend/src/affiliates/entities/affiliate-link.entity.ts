@@ -22,14 +22,17 @@ export class AffiliateLinkEntity {
   @Column({ type: 'uuid' })
   offerId: string;
 
-  @ManyToOne(() => AffiliateOfferEntity, (offer) => offer.links, { onDelete: 'CASCADE' })
+  @ManyToOne(() => AffiliateOfferEntity, offer => offer.links, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'offerId' })
   offer: AffiliateOfferEntity;
 
   @Column({ type: 'uuid', nullable: true })
   userId?: string | null;
 
-  @ManyToOne(() => UserEntity, (user) => user.affiliateLinks, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => UserEntity, user => user.affiliateLinks, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'userId' })
   user?: UserEntity | null;
 
@@ -45,7 +48,7 @@ export class AffiliateLinkEntity {
   @Column({ type: 'integer', default: 0 })
   conversions: number;
 
-  @OneToMany(() => AffiliateEarningEntity, (earning) => earning.link)
+  @OneToMany(() => AffiliateEarningEntity, earning => earning.link)
   earnings: AffiliateEarningEntity[];
 
   @CreateDateColumn({

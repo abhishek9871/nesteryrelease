@@ -32,7 +32,11 @@ export class CreatePartnerDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Category of the partner', enum: PartnerCategoryEnum, example: PartnerCategoryEnum.TOUR_OPERATOR })
+  @ApiProperty({
+    description: 'Category of the partner',
+    enum: PartnerCategoryEnum,
+    example: PartnerCategoryEnum.TOUR_OPERATOR,
+  })
   @IsEnum(PartnerCategoryEnum)
   category: PartnerCategoryEnum;
 
@@ -42,7 +46,11 @@ export class CreatePartnerDto {
   @Type(() => ContactInfoDto)
   contactInfo: ContactInfoDto;
 
-  @ApiProperty({ description: 'Optional override for commission rate (e.g., 0.1 for 10%)', example: 0.15, required: false })
+  @ApiProperty({
+    description: 'Optional override for commission rate (e.g., 0.1 for 10%)',
+    example: 0.15,
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
