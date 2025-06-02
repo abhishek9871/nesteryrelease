@@ -1,0 +1,132 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 50
+      name: "Ramp up load"
+    - duration: 300
+      arrivalRate: 100
+      name: "Sustained load"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      Authorization: 'Bearer {{ $randomString() }}'
+  variables:
+    partnerId:
+      - "partner-1"
+      - "partner-2"
+      - "partner-3"
+    offerId:
+      - "offer-1"
+      - "offer-2"
+      - "offer-3"
+
+scenarios:
+  - name: "Affiliate Link Generation"
+    weight: 30
+    flow:
+      - post:
+          url: "/v1/affiliates/links"
+          json:
+            offerId: "{{ offerId }}"
+            userId: "user-{{ $randomInt(1, 1000) }}"
+          capture:
+            - json: "$.linkEntity.uniqueCode"
+              as: "linkCode"
+      - think: 1
+
+  - name: "Link Click Tracking"
+    weight: 40
+    flow:
+      - get:
+          url: "/v1/affiliates/redirect/{{ $randomString() }}"
+          headers:
+            User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            X-Forwarded-For: "{{ $randomInt(1, 255) }}.{{ $randomInt(1, 255) }}.{{ $randomInt(1, 255) }}.{{ $randomInt(1, 255) }}"
+      - think: 2
+
+  - name: "Commission Calculation"
+    weight: 20
+    flow:
+      - post:
+          url: "/v1/affiliates/commission/calculate"
+          json:
+            partnerId: "{{ partnerId }}"
+            offerId: "{{ offerId }}"
+            bookingValue: "{{ $randomInt(100, 5000) }}"
+            currency: "USD"
+            conversionReferenceId: "booking-{{ $randomString() }}"
+      - think: 1
+
+  - name: "Analytics Retrieval"
+    weight: 10
+    flow:
+      - get:
+          url: "/v1/affiliates/analytics"
+          qs:
+            partnerId: "{{ partnerId }}"
+            startDate: "2025-01-01"
+            endDate: "2025-12-31"
+      - think: 3
+
+# Performance thresholds
+expect:
+  - statusCode: 200
+  - contentType: json
+  - hasProperty: data
+  - maxResponseTime: 2000  # 2 seconds max response time
+
+# Metrics to track
+metrics:
+  - name: "response_time_p95"
+    threshold: 1500  # 95th percentile should be under 1.5 seconds
+  - name: "response_time_p99"
+    threshold: 3000  # 99th percentile should be under 3 seconds
+  - name: "error_rate"
+    threshold: 0.01  # Error rate should be under 1%
+
+# Load testing scenarios for fraud detection
+fraud_detection_test:
+  config:
+    target: 'http://localhost:3000'
+    phases:
+      - duration: 30
+        arrivalRate: 200
+        name: "High velocity test"
+  scenarios:
+    - name: "Rapid Click Simulation"
+      weight: 100
+      flow:
+        - loop:
+            - get:
+                url: "/v1/affiliates/redirect/test-link-code"
+                headers:
+                  User-Agent: "bot/1.0"
+                  X-Forwarded-For: "192.168.1.100"
+            - think: 0.1
+          count: 50
+
+# Payout processing load test
+payout_test:
+  config:
+    target: 'http://localhost:3000'
+    phases:
+      - duration: 60
+        arrivalRate: 20
+        name: "Payout processing test"
+  scenarios:
+    - name: "Payout Request"
+      weight: 100
+      flow:
+        - post:
+            url: "/v1/affiliates/payouts"
+            json:
+              amount: "{{ $randomInt(50, 1000) }}"
+              currency: "USD"
+              paymentMethod: "stripe"
+            headers:
+              Authorization: "Bearer {{ $randomString() }}"
+        - think: 5

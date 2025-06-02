@@ -14,6 +14,9 @@ import { BookingEntity } from '../../bookings/entities/booking.entity';
 import { UserEntity } from '../../users/entities/user.entity';
 import { EarningStatusEnum } from '../enums/earning-status.enum';
 
+// Re-export for convenience
+export { EarningStatusEnum };
+
 @Entity('affiliate_earnings')
 export class AffiliateEarningEntity {
   @PrimaryGeneratedColumn('uuid')
