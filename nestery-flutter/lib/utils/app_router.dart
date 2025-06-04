@@ -16,6 +16,14 @@ import 'package:nestery_flutter/screens/loyalty_dashboard_screen.dart';
 import 'package:nestery_flutter/screens/loyalty_transactions_screen.dart';
 import 'package:nestery_flutter/models/booking.dart';
 import 'package:nestery_flutter/models/enums.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/partner_dashboard_shell.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/dashboard_overview_screen.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/offer_list_screen.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/link_generation_screen.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/earnings_report_screen.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/partner_settings_screen.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/offer_edit_screen.dart';
+import 'package:nestery_flutter/utils/constants.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -23,6 +31,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
+    // TODO: Consider adding /partner-dashboard to publicPaths if it has a separate login or is accessible before main app login.
     initialLocation: '/',
     debugLogDiagnostics: true,
 
@@ -199,6 +208,50 @@ class AppRouter {
             routes: [
               GoRoute(path: 'transactions', builder: (context, state) => const LoyaltyTransactionsScreen()),
             ]
+          ),
+        ],
+      ),
+
+      // Partner Dashboard Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return PartnerDashboardShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Constants.partnerDashboardRoute, // '/partner-dashboard'
+                builder: (context, state) => const DashboardOverviewScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Constants.partnerDashboardOffersRoute, // '/partner-dashboard/offers'
+                builder: (context, state) => const OfferListScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new', // '/partner-dashboard/offers/new'
+                    builder: (context, state) => const OfferEditScreen(),
+                  ),
+                  GoRoute(
+                    path: ':offerId/edit', // '/partner-dashboard/offers/:offerId/edit'
+                    builder: (context, state) => OfferEditScreen(offerId: state.pathParameters['offerId']),
+                  ),
+                ]
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: Constants.partnerDashboardLinksRoute, builder: (context, state) => const LinkGenerationScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: Constants.partnerDashboardEarningsRoute, builder: (context, state) => const EarningsReportScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: Constants.partnerDashboardSettingsRoute, builder: (context, state) => const PartnerSettingsScreen())],
           ),
         ],
       ),

@@ -126,6 +126,12 @@ class Constants {
   static const String forgotPasswordRoute = '/forgot-password';
   static const String resetPasswordRoute = '/reset-password';
   static const String termsConditionsRoute = '/terms-conditions';
+  // Partner Dashboard Routes
+  static const String partnerDashboardRoute = '/partner-dashboard';
+  static const String partnerDashboardOffersRoute = '/partner-dashboard/offers';
+  static const String partnerDashboardLinksRoute = '/partner-dashboard/links';
+  static const String partnerDashboardEarningsRoute = '/partner-dashboard/earnings';
+  static const String partnerDashboardSettingsRoute = '/partner-dashboard/settings';
 
   // Initialize constants from environment variables
   static void initialize() {
