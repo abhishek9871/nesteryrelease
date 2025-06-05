@@ -1,17 +1,104 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/dashboard_helpers.dart';
 
-// Placeholder for dashboard metrics data
-class DashboardMetrics {
-  final double totalRevenue;
-  final double conversionRate;
-  final int activeOffers;
-  final int clicks;
+// Data structure for all dashboard metrics
+class DashboardMetricValues {
+  final RevenueCardData revenue;
+  final MonthlySalesCardData monthlySales;
+  final TrafficQualityCardData trafficQuality;
+  final ConversionRateCardData conversionRate;
 
-  DashboardMetrics({required this.totalRevenue, required this.conversionRate, required this.activeOffers, required this.clicks});
+  DashboardMetricValues({
+    required this.revenue,
+    required this.monthlySales,
+    required this.trafficQuality,
+    required this.conversionRate,
+  });
 }
 
-final dashboardMetricsProvider = FutureProvider<DashboardMetrics>((ref) async {
-  // TODO: Fetch actual metrics from repository
-  await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-  return DashboardMetrics(totalRevenue: 1234.56, conversionRate: 0.15, activeOffers: 10, clicks: 5000);
+class RevenueCardData {
+  final double netEarnings;
+  final double grossRevenueForCalc;
+  final double partnerCommissionRate; // e.g., 0.85 for 85%
+  final double previousPeriodNetEarnings;
+
+  RevenueCardData({
+    required this.netEarnings,
+    required this.grossRevenueForCalc,
+    required this.partnerCommissionRate,
+    required this.previousPeriodNetEarnings,
+  });
+}
+
+class MonthlySalesCardData {
+  final double monthlyGrossSales;
+  final double nesteryCommissionRateForDisplay; // e.g., 0.15 for 15%
+  final double previousPeriodGrossSales;
+
+  MonthlySalesCardData({
+    required this.monthlyGrossSales,
+    required this.nesteryCommissionRateForDisplay,
+    required this.previousPeriodGrossSales,
+  });
+}
+
+class TrafficQualityCardData {
+  final double conversionRateValue; // e.g., 0.125 for 12.5%
+  final double previousPeriodConversionRate;
+  final String qualityLabel;
+  final int totalClicks;
+  final int totalConversions;
+
+  TrafficQualityCardData({
+    required this.conversionRateValue,
+    required this.previousPeriodConversionRate,
+    required this.qualityLabel,
+    required this.totalClicks,
+    required this.totalConversions,
+  });
+}
+
+
+class ConversionRateCardData {
+  final double conversionRateValue; // e.g., 0.08 for 8%
+  final double previousPeriodConversionRate;
+
+  ConversionRateCardData({
+    required this.conversionRateValue,
+    required this.previousPeriodConversionRate,
+  });
+}
+
+final dashboardMetricsProvider = FutureProvider<DashboardMetricValues>((ref) async {
+  // Simulate network delay
+  await Future.delayed(const Duration(seconds: 2));
+
+  const double currentTrafficConversionRate = 0.125;
+  final String trafficQualityLabel = getTrafficQualityInfo(currentTrafficConversionRate).label;
+
+  // Return static sample data
+  return DashboardMetricValues(
+    revenue: RevenueCardData(
+      netEarnings: 1234.56,
+      grossRevenueForCalc: 1452.42,
+      partnerCommissionRate: 0.85,
+      previousPeriodNetEarnings: 1175.00,
+    ),
+    monthlySales: MonthlySalesCardData(
+      monthlyGrossSales: 1452.42,
+      nesteryCommissionRateForDisplay: 0.15,
+      previousPeriodGrossSales: 1417.00,
+    ),
+    trafficQuality: TrafficQualityCardData(
+      conversionRateValue: currentTrafficConversionRate,
+      previousPeriodConversionRate: 0.137,
+      qualityLabel: trafficQualityLabel,
+      totalClicks: 1500,
+      totalConversions: 187,
+    ),
+    conversionRate: ConversionRateCardData(
+      conversionRateValue: 0.08, // 8%
+      previousPeriodConversionRate: 0.075,
+    ),
+  );
 });
