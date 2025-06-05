@@ -1,5 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/chart_data_point.dart';
+import '../models/dashboard_chart_data.dart';
 import '../utils/dashboard_helpers.dart';
+
+enum TimeRangeOption { sevenDays, thirtyDays, ninetyDays }
+
+final selectedTimeRangeProvider = StateProvider<TimeRangeOption>((ref) => TimeRangeOption.thirtyDays);
 
 // Data structure for all dashboard metrics
 class DashboardMetricValues {
@@ -7,12 +15,14 @@ class DashboardMetricValues {
   final MonthlySalesCardData monthlySales;
   final TrafficQualityCardData trafficQuality;
   final ConversionRateCardData conversionRate;
+  final DashboardChartData chartData;
 
   DashboardMetricValues({
     required this.revenue,
     required this.monthlySales,
     required this.trafficQuality,
     required this.conversionRate,
+    required this.chartData,
   });
 }
 
@@ -69,14 +79,70 @@ class ConversionRateCardData {
   });
 }
 
+List<ChartDataPoint> _generatePlaceholderTimeSeriesData(
+  TimeRangeOption range, {
+  required double minValue,
+  required double maxValue,
+  bool isPercentage = false,
+  int? dataPoints,
+}) {
+  final random = Random();
+  int numPoints;
+  switch (range) {
+    case TimeRangeOption.sevenDays:
+      numPoints = dataPoints ?? 7;
+      break;
+    case TimeRangeOption.thirtyDays:
+      numPoints = dataPoints ?? 30;
+      break;
+    case TimeRangeOption.ninetyDays:
+      numPoints = dataPoints ?? 90;
+      break;
+  }
+
+  final List<ChartDataPoint> series = [];
+  final now = DateTime.now();
+
+  // Generate a gentle plausible trend
+  double startValue = minValue + random.nextDouble() * (maxValue - minValue) * 0.4; // Start in lower 40%
+  double endValue = minValue + (maxValue - minValue) * (0.6 + random.nextDouble() * 0.4); // End in upper 40%
+  if (random.nextBool()) { // Occasionally make it a downward trend
+    final temp = startValue;
+    startValue = endValue;
+    endValue = temp;
+  }
+
+  final slope = (endValue - startValue) / numPoints;
+
+  for (int i = 0; i < numPoints; i++) {
+    final date = now.subtract(Duration(days: numPoints - 1 - i));
+    double value = startValue + i * slope + (random.nextDouble() - 0.5) * (maxValue - minValue) * 0.15; // Noise is 15% of range
+    value = value.clamp(minValue, maxValue);
+    series.add(ChartDataPoint(date: date, value: value));
+  }
+  return series;
+}
+
 final dashboardMetricsProvider = FutureProvider<DashboardMetricValues>((ref) async {
   // Simulate network delay
   await Future.delayed(const Duration(seconds: 2));
 
+  final currentTimeRange = ref.watch(selectedTimeRangeProvider);
   const double currentTrafficConversionRate = 0.125;
   final String trafficQualityLabel = getTrafficQualityInfo(currentTrafficConversionRate).label;
 
-  // Return static sample data
+  final netEarningsChartData = _generatePlaceholderTimeSeriesData(
+    currentTimeRange,
+    minValue: 50.0,
+    maxValue: 200.0,
+  );
+  final conversionRateChartData = _generatePlaceholderTimeSeriesData(
+    currentTimeRange,
+    minValue: 0.05,
+    maxValue: 0.15,
+    isPercentage: true,
+  );
+
   return DashboardMetricValues(
     revenue: RevenueCardData(
       netEarnings: 1234.56,
@@ -99,6 +165,10 @@ final dashboardMetricsProvider = FutureProvider<DashboardMetricValues>((ref) asy
     conversionRate: ConversionRateCardData(
       conversionRateValue: 0.08, // 8%
       previousPeriodConversionRate: 0.075,
+    ),
+    chartData: DashboardChartData(
+      netEarningsData: netEarningsChartData,
+      conversionRateData: conversionRateChartData,
     ),
   );
 });
