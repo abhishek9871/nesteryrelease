@@ -24,6 +24,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Response as ExpressResponse } from 'express';
+import { EarningStatusEnum } from './enums/earning-status.enum';
 import { PartnerService } from './services/partner.service';
 import { AffiliateOfferService } from './services/affiliate-offer.service';
 import { TrackableLinkService } from './services/trackable-link.service';
@@ -33,7 +34,7 @@ import { UpdatePartnerDto } from './dto/update-partner.dto';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { UpdateOfferDto } from './dto/update-offer.dto';
 import { PartnerResponseDto } from './dto/partner.response.dto';
-import { PartnerDashboardDto } from './dto/partner-dashboard.dto';
+import { PartnerDashboardDto, PartnerDashboardDataDto } from './dto/partner-dashboard.dto';
 import { OfferResponseDto } from './dto/offer.response.dto';
 import { GeneratedAffiliateLinkResponseDto } from './dto/link.response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -41,7 +42,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
-// import { EarningStatusEnum } from './enums/earning-status.enum';
 
 @ApiTags('affiliates')
 @Controller('affiliates')
@@ -361,5 +361,36 @@ export class AffiliateController {
   @ApiResponse({ status: 404, description: 'Offer not found' })
   async deleteOffer(@Param('id') id: string): Promise<void> {
     await this.affiliateOfferService.delete(id);
+  }
+
+  @Get('dashboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get comprehensive partner dashboard data' })
+  @ApiQuery({
+    name: 'timeRange',
+    required: false,
+    enum: ['7d', '30d', '90d'],
+    description: 'Time range for metrics',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: EarningStatusEnum,
+    description: 'Filter earnings by status',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard data retrieved successfully',
+    type: PartnerDashboardDataDto,
+  })
+  async getDashboardData(
+    @Req() req: AuthenticatedRequest,
+    @Query('timeRange') timeRange = '30d',
+    @Query('status') status?: EarningStatusEnum,
+  ): Promise<PartnerDashboardDataDto> {
+    // Use req.user.partnerId if it exists on the JWT payload, otherwise req.user.id is a fallback.
+    const partnerId = (req.user as any).partnerId || req.user.id;
+    return this.partnerService.getComprehensiveDashboardData(partnerId, { timeRange, status });
   }
 }

@@ -4,7 +4,17 @@ import { Repository } from 'typeorm';
 import { PartnerEntity } from '../entities/partner.entity';
 import { CreatePartnerDto } from '../dto/create-partner.dto';
 import { UpdatePartnerDto } from '../dto/update-partner.dto';
-import { PartnerDashboardDto } from '../dto/partner-dashboard.dto';
+import {
+  DashboardMetricsDto,
+  EarningsReportDataDto,
+  OfferListItemDto,
+  PartnerDashboardDataDto,
+  PartnerDashboardDto,
+} from '../dto/partner-dashboard.dto';
+import { EarningStatusEnum } from '../enums/earning-status.enum';
+import { AffiliateEarningEntity } from '../entities/affiliate-earning.entity';
+import { AffiliateLinkEntity } from '../entities/affiliate-link.entity';
+import { AffiliateOfferEntity } from '../entities/affiliate-offer.entity';
 
 @Injectable()
 export class PartnerService {
@@ -13,6 +23,12 @@ export class PartnerService {
   constructor(
     @InjectRepository(PartnerEntity)
     private readonly partnerRepository: Repository<PartnerEntity>,
+    @InjectRepository(AffiliateEarningEntity)
+    private readonly earningRepository: Repository<AffiliateEarningEntity>,
+    @InjectRepository(AffiliateLinkEntity)
+    private readonly linkRepository: Repository<AffiliateLinkEntity>,
+    @InjectRepository(AffiliateOfferEntity)
+    private readonly offerRepository: Repository<AffiliateOfferEntity>,
   ) {}
 
   async registerPartner(createPartnerDto: CreatePartnerDto): Promise<PartnerEntity> {
@@ -230,5 +246,140 @@ export class PartnerService {
 
     this.logger.log(`Generated dashboard data for partner ${partnerId}`);
     return dashboardData;
+  }
+
+  /**
+   * Get comprehensive dashboard data for a partner, optimized with Promise.all.
+   */
+  async getComprehensiveDashboardData(
+    partnerId: string,
+    filters: { timeRange?: string; status?: EarningStatusEnum },
+  ): Promise<PartnerDashboardDataDto> {
+    const { timeRange, status } = filters;
+    const now = new Date();
+    let daysToSubtract = 30;
+    if (timeRange === '7d') daysToSubtract = 7;
+    if (timeRange === '90d') daysToSubtract = 90;
+
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - daysToSubtract);
+
+    const [dashboardMetrics, earningsReport, partnerOffers] = await Promise.all([
+      this.calculateDashboardMetrics(partnerId, startDate),
+      this.getEarningsReportData(partnerId, status, { start: startDate, end: now }),
+      this.getPartnerOffersList(partnerId),
+    ]);
+
+    return {
+      dashboardMetrics,
+      earningsReport,
+      partnerOffers,
+    };
+  }
+
+  /**
+   * PRIVATE HELPER: Calculate all metrics for the dashboard cards and charts.
+   * This is a placeholder implementation that generates random but plausible data.
+   */
+  private async calculateDashboardMetrics(
+    partnerId: string,
+    startDate: Date,
+  ): Promise<DashboardMetricsDto> {
+    // Placeholder: In a real implementation, you would query and aggregate from the database.
+    const netEarnings = Math.random() * 5000;
+    const previousPeriodNetEarnings = netEarnings * (1 + (Math.random() - 0.5) * 0.2);
+    const conversionRateValue = Math.random() * 0.05;
+
+    const generateChartData = (days: number) => {
+      return Array.from({ length: days }, (_, i) => {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        return { date, value: Math.random() * 100 };
+      });
+    };
+
+    return {
+      revenue: {
+        netEarnings,
+        grossRevenueForCalc: netEarnings / 0.15,
+        partnerCommissionRate: 15,
+        previousPeriodNetEarnings,
+      },
+      monthlySales: {
+        monthlyGrossSales: Math.random() * 20000,
+        nesteryCommissionRateForDisplay: 20,
+        previousPeriodGrossSales: Math.random() * 18000,
+      },
+      trafficQuality: {
+        conversionRateValue,
+        previousPeriodConversionRate: conversionRateValue * (1 + (Math.random() - 0.5) * 0.2),
+        qualityLabel: 'Good',
+        totalClicks: Math.floor(Math.random() * 5000),
+        totalConversions: Math.floor(Math.random() * 250),
+      },
+      conversionRate: {
+        conversionRateValue,
+        previousPeriodConversionRate: conversionRateValue * (1 + (Math.random() - 0.5) * 0.2),
+      },
+      chartData: {
+        netEarningsData: generateChartData(30),
+        conversionRateData: generateChartData(30),
+      },
+    };
+  }
+
+  /**
+   * PRIVATE HELPER: Get data for the earnings report, including summary and recent transactions.
+   */
+  private async getEarningsReportData(
+    partnerId: string,
+    status?: EarningStatusEnum,
+    dateRange?: { start: Date; end: Date },
+  ): Promise<EarningsReportDataDto> {
+    const qb = this.earningRepository
+      .createQueryBuilder('earning')
+      .where('earning.partnerId = :partnerId', { partnerId });
+
+    if (status) {
+      qb.andWhere('earning.status = :status', { status });
+    }
+    if (dateRange) {
+      qb.andWhere('earning.transactionDate BETWEEN :start AND :end', dateRange);
+    }
+
+    const earnings = await qb.orderBy('earning.transactionDate', 'DESC').take(10).getMany();
+
+    // Placeholder for summary data
+    return {
+      summary: {
+        totalEarnings: 12345.67,
+        pendingPayout: 2345.67,
+        thisMonthEarnings: 1234.56,
+        lastPayoutAmount: 5432.1,
+        lastPayoutDate: new Date(),
+        currency: 'USD',
+      },
+      transactions: earnings.map(e => ({ ...e, offerTitle: 'Sample Offer' })), // Mapping to DTO
+    };
+  }
+
+  /**
+   * PRIVATE HELPER: Get a list of the partner's offers.
+   */
+  private async getPartnerOffersList(partnerId: string): Promise<OfferListItemDto[]> {
+    const offers = await this.offerRepository.find({
+      where: { partnerId },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    return offers.map(offer => ({
+      id: offer.id,
+      title: offer.title,
+      status: offer.isActive ? 'ACTIVE' : 'INACTIVE',
+      partnerCategory: offer.partner.category,
+      validFrom: offer.validFrom,
+      validTo: offer.validTo,
+    }));
   }
 }
