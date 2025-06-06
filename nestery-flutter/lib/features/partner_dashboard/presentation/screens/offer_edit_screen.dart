@@ -1,57 +1,257 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/providers/offer_form_provider.dart';
 
 class OfferEditScreen extends ConsumerWidget {
-  final String? offerId; // Null for new offer, non-null for editing
+  final String? offerId;
+  final _formKey = GlobalKey<FormState>();
 
-  const OfferEditScreen({super.key, this.offerId});
+  OfferEditScreen({super.key, this.offerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool isNewOffer = offerId == null || offerId == 'new';
-    final String appBarTitle = isNewOffer ? 'Create New Offer' : 'Offer Details - ID: $offerId';
+    final formProvider = offerFormStateNotifierProvider(offerId);
+    final formState = ref.watch(formProvider);
+    final formNotifier = ref.read(formProvider.notifier);
+    final appBarTitle = formState.isEditing ? 'Edit Offer' : 'Create New Offer';
 
     return Scaffold(
       appBar: AppBar(title: Text(appBarTitle)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                isNewOffer ? 'Create a New Offer' : 'Displaying details for Offer ID: $offerId',
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
+      body: !formState.isInitialized
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildBasicInfoCard(context, formNotifier, formState),
+                    const SizedBox(height: 16),
+                    _buildValidityCard(context, formNotifier, formState),
+                    const SizedBox(height: 16),
+                    _buildMediaCard(context),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: formState.isSubmitting
+                          ? null
+                          : () async {
+                              await formNotifier.saveOffer();
+                              final currentState = ref.read(formProvider);
+                              if (currentState.titleError == null &&
+                                  currentState.commissionRateError == null &&
+                                  currentState.dateError == null) {
+                                if (context.mounted) {
+                                  final offerData = {
+                                    'id': currentState.id,
+                                    'title': currentState.title,
+                                    'description': currentState.description,
+                                    'partnerCategory': currentState.partnerCategory,
+                                    'commissionRate': currentState.commissionRate,
+                                    'validFrom': currentState.validFrom?.toIso8601String(),
+                                    'validTo': currentState.validTo?.toIso8601String(),
+                                  };
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: Colors.green,
+                                      content: Text('Offer Saved (Placeholder): ${jsonEncode(offerData)}'),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      backgroundColor: Colors.red,
+                                      content: Text('Please fix the errors before saving.'),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                      child: formState.isSubmitting
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Save Offer'),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                isNewOffer
-                    ? 'Offer creation form will be implemented in a future LFS.'
-                    : 'Full offer details and editing functionality will be implemented in a future LFS.',
-                textAlign: TextAlign.center,
+            ),
+    );
+  }
+
+  Widget _buildBasicInfoCard(BuildContext context, OfferFormStateNotifier notifier, dynamic state) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Basic Information', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: state.title,
+              decoration: InputDecoration(
+                labelText: 'Offer Title *',
+                errorText: state.titleError,
+                border: const OutlineInputBorder(),
               ),
-              const SizedBox(height: 20),
-              if (!isNewOffer)
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Edit action placeholder for Offer ID: $offerId')),
-                    );
-                  },
-                  child: const Text('Edit Offer (Placeholder Action)'),
-                )
-              else // This is for the 'new' offer case
-                ElevatedButton(
-                  onPressed: () {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Save new offer action placeholder.')),
-                    );
-                  },
-                  child: const Text('Save New Offer (Placeholder)'),
-                )
-            ],
-          ),
+              onChanged: notifier.updateTitle,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: state.description,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              onChanged: notifier.updateDescription,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: state.partnerCategory,
+              decoration: const InputDecoration(
+                labelText: 'Partner Category *',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'TOUR_OPERATOR', child: Text('Tour Operator')),
+                DropdownMenuItem(value: 'ACTIVITY_PROVIDER', child: Text('Activity Provider')),
+                DropdownMenuItem(value: 'RESTAURANT', child: Text('Restaurant')),
+                DropdownMenuItem(value: 'TRANSPORTATION', child: Text('Transportation')),
+                DropdownMenuItem(value: 'ECOMMERCE', child: Text('E-commerce')),
+              ],
+              onChanged: (value) => notifier.updatePartnerCategory(value!),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: state.commissionRate,
+              decoration: InputDecoration(
+                labelText: 'Commission Rate (%) *',
+                errorText: state.commissionRateError,
+                border: const OutlineInputBorder(),
+                suffixText: '%',
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: notifier.updateCommissionRate,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildValidityCard(BuildContext context, OfferFormStateNotifier notifier, dynamic state) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Validity Period', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+            if (state.dateError != null)
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(state.dateError!, style: TextStyle(color: Colors.red.shade700)),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: state.validFrom ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) notifier.updateValidFrom(date);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Valid From *',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      child: Text(
+                        state.validFrom != null
+                            ? DateFormat('dd MMM yyyy').format(state.validFrom!)
+                            : 'Select date',
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: state.validTo ?? DateTime.now().add(const Duration(days: 30)),
+                        firstDate: state.validFrom ?? DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) notifier.updateValidTo(date);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Valid To *',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      child: Text(
+                        state.validTo != null
+                            ? DateFormat('dd MMM yyyy').format(state.validTo!)
+                            : 'Select date',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediaCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Media', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+            Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.image, size: 48, color: Colors.grey),
+                  SizedBox(height: 8),
+                  Text('Image upload placeholder', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

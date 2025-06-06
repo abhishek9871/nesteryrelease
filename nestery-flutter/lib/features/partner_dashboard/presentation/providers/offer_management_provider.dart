@@ -13,19 +13,6 @@ final offerListProvider = FutureProvider<List<PartnerOfferModel>>((ref) async {
   ];
 });
 
-// Placeholder for managing form state for creating/editing offers
-class OfferFormState {
-  // TODO: Define form fields and validation logic
-}
-
-class OfferFormStateNotifier extends StateNotifier<OfferFormState> {
-  OfferFormStateNotifier() : super(OfferFormState());
-}
-
-final offerFormStateNotifierProvider = StateNotifierProvider<OfferFormStateNotifier, OfferFormState>((ref) {
-  return OfferFormStateNotifier();
-});
-
 final partnerOfferListProvider = FutureProvider<List<PartnerOfferListItem>>((ref) async {
   final filter = ref.watch(offerFilterStatusProvider);
 
