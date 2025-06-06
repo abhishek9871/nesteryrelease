@@ -1,16 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/features/partner_dashboard/data/models/partner_offer_model.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/models/partner_offer_list_item.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/providers/offer_filter_provider.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/providers/partner_dashboard_provider.dart';
 
-// Placeholder for offer list
-final offerListProvider = FutureProvider<List<PartnerOfferModel>>((ref) async {
-  // TODO: Fetch actual offers from repository
-  await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-  return [
-    PartnerOfferModel(id: '1', title: 'Sample Offer 1', partnerCategory: 'TOUR_OPERATOR', commissionStructure: {'type': 'percentage', 'value': 0.15}, validFrom: DateTime.now(), validTo: DateTime.now().add(const Duration(days: 30)), isActive: true),
-    PartnerOfferModel(id: '2', title: 'Sample Offer 2', partnerCategory: 'RESTAURANT', commissionStructure: {'type': 'fixed', 'value': 5.0}, validFrom: DateTime.now(), validTo: DateTime.now().add(const Duration(days: 60)), isActive: false),
-  ];
+// Provider for offer list using the new DTO
+final offerListProvider = Provider((ref) {
+  final partnerOffersData = ref.watch(partnerOffersDataProvider);
+
+  return partnerOffersData.when(
+    data: (offers) => AsyncValue.data(offers),
+    loading: () => const AsyncValue.loading(),
+    error: (error, stack) => AsyncValue.error(error, stack),
+  );
 });
 
 final partnerOfferListProvider = FutureProvider<List<PartnerOfferListItem>>((ref) async {
