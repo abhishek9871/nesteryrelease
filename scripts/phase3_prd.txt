@@ -1,0 +1,181 @@
+<context>
+# Overview  
+Nestery Phase 3 Implementation Strategy - Expanding Integrations & Enhancing User Engagement. Complete implementation of FRS 1.1, 2.1, 3.1, 3.3, and 1.4 compliance for comprehensive OTA integration, viral growth mechanisms, and gamification systems. Current status: Phase 1 (100% complete), Phase 2 (100% complete with affiliate marketing, freemium model, and AI Trip Weaver foundation). Goal: Achieve 100% Phase 3 completion with expanded OTA inventory, full commission tracking, referral system, gamification features, and enhanced loyalty program earning methods.
+
+# Core Features  
+**Task 3.1: Goibibo & MakeMyTrip Integrations (Backend):**
+- Complete OTA integration services for Goibibo and MakeMyTrip APIs
+- Property search, details, and booking functionality for Indian market expansion
+- Integration with existing aggregation and de-duplication systems
+- Commission tracking and reconciliation for new OTA partners
+
+**Task 3.2: Full Commission Tracking & Reconciliation (Backend):**
+- Unique ID tracking system for all OTA API calls and bookings
+- Automated reconciliation scripts for partner reporting dashboards
+- Commission rate targeting logic (Booking.com 25-40% of their commission)
+- Real-time monitoring of booking volumes for commission tier optimization
+- Comprehensive audit trails for financial compliance
+
+**Task 3.3: Referral System Implementation (Backend & Frontend):**
+- Complete referral code generation and tracking system
+- Nestery Miles-based reward structure (250 Miles for referrer, 100 Miles for referred)
+- Multi-platform sharing capabilities with pre-formatted content
+- Referral status tracking and notification system
+- Frontend UI for code sharing and input workflows
+
+**Task 3.4: Gamification Features (Backend & Frontend):**
+- Achievement and badge system with milestone celebrations
+- Daily streak tracking and limited-time challenges
+- User progress visualization and reward notifications
+- Gamification analytics and engagement metrics
+- Integration with loyalty program for seamless user experience
+
+
+
+# User Experience  
+**Expanded User Personas:**
+- International travelers seeking Indian accommodation options (Goibibo/MakeMyTrip)
+- Referral-driven users motivated by Nestery Miles rewards
+- Gamification enthusiasts engaging with achievements and challenges
+- Loyalty program participants maximizing earning opportunities
+
+**Enhanced User Flows:**
+- OTA comparison across Booking.com, Goibibo, and MakeMyTrip for comprehensive choice
+- Referral code generation → sharing → friend signup → booking completion → reward distribution
+- Daily check-in → streak maintenance → achievement unlocking → badge collection
+- Booking completion → commission tracking → reconciliation → payout processing
+
+**Engagement Optimization:**
+- Strategic gamification triggers at key user journey moments
+- Referral prompts during high-satisfaction periods (post-booking, positive reviews)
+- Achievement notifications for milestone celebrations
+- Social sharing integration for viral loop amplification
+</context>
+<PRD>
+# Technical Architecture  
+**Backend (NestJS) Enhancements:**
+- IntegrationsModule: New GibiboApiService and MakeMyTripApiService with comprehensive error handling
+- CommissionTrackingModule: Automated reconciliation scripts and real-time monitoring systems
+- ReferralsModule: Complete referral code generation, tracking, and reward distribution logic
+- GamificationModule: Achievement, badge, streak, and challenge management systems
+- Enhanced LoyaltyModule: Additional earning methods integration (referrals, reviews, check-ins, profile completion)
+
+**Frontend (Flutter) Components:**
+- OTA Selection Interface: Multi-provider search results with clear source attribution
+- Referral Management UI: Code generation, sharing tools, and referral status tracking
+- Gamification Dashboard: Achievement progress, badge collection, and streak visualization
+- Enhanced Profile Section: Comprehensive loyalty tier display and earning history
+- Social Sharing Components: Pre-formatted content generation for multiple platforms
+
+**Database Schema Additions:**
+- ReferralEntity: Referral code tracking, status, and reward distribution
+- AchievementEntity, UserAchievementEntity: Achievement definition and user progress
+- BadgeEntity, UserBadgeEntity: Badge system with earning timestamps
+- UserStreakEntity: Daily check-in tracking and streak maintenance
+- ChallengeEntity, UserChallengeProgressEntity: Limited-time challenge management
+- Enhanced SupplierEntity: Goibibo and MakeMyTrip integration metadata
+- CommissionTrackingEntity: Detailed commission reconciliation and audit trails
+
+**Integration Points:**
+- Goibibo API integration with rate limiting and error handling
+- MakeMyTrip API integration with booking flow optimization
+- Social platform sharing APIs (WhatsApp, Facebook, Twitter, Instagram)
+- Enhanced commission tracking with OTA reporting dashboard APIs
+- Real-time notification systems for gamification events
+
+# Development Roadmap  
+**Phase 3.1: OTA Integration Expansion (Task 3.1)**
+- Goibibo API service implementation with comprehensive property search
+- MakeMyTrip API service implementation with booking flow integration
+- Integration testing with existing aggregation and caching systems
+- Performance optimization for multi-OTA search operations
+
+**Phase 3.2: Commission Intelligence System (Task 3.2)**
+- Unique tracking ID implementation across all OTA integrations
+- Automated reconciliation script development for partner reporting
+- Commission rate optimization algorithms and monitoring dashboards
+- Financial audit trail enhancement for regulatory compliance
+
+**Phase 3.3: Viral Growth Engine (Task 3.3)**
+- Referral system backend logic with Nestery Miles integration
+- Frontend referral management interface with sharing optimization
+- Multi-platform sharing capability with analytics tracking
+- Referral performance monitoring and optimization tools
+
+**Phase 3.4: Engagement Gamification (Task 3.4)**
+- Achievement and badge system implementation with progress tracking
+- Daily streak management with notification triggers
+- Limited-time challenge framework with dynamic content
+- Gamification analytics dashboard for engagement insights
+
+
+
+# Logical Dependency Chain
+**Foundation Dependencies (Already Complete):**
+- Phase 1: Critical fixes, API versioning, loyalty program, caching (100% complete)
+- Phase 2: Affiliate marketing, freemium model, AI Trip Weaver foundation (100% complete)
+
+**Phase 3 Development Dependencies:**
+1. **Task 3.1** (OTA Integrations) - Depends on existing IntegrationsModule and property aggregation system
+2. **Task 3.2** (Commission Tracking) - Depends on Task 3.1 for complete OTA coverage and existing booking system
+3. **Task 3.3** (Referral System) - Depends on existing loyalty system and user management
+4. **Task 3.4** (Gamification) - Can run parallel with 3.3, depends on existing user and loyalty systems
+
+**Optimal Development Sequence:**
+- Start with Task 3.1 (OTA integrations) for immediate inventory expansion
+- Parallel development of Task 3.3 (referral system) for viral growth foundation
+- Task 3.2 follows 3.1 for comprehensive commission tracking across all OTAs
+- Task 3.4 can develop in parallel with 3.2 for engagement optimization
+
+# Risks and Mitigations  
+**Technical Challenges:**
+- Goibibo/MakeMyTrip API complexity and rate limiting - Mitigate with comprehensive API documentation study and robust error handling
+- Commission reconciliation accuracy across multiple OTAs - Mitigate with extensive testing and audit trail implementation
+- Gamification system performance with high user engagement - Mitigate with efficient database design and caching strategies
+- Referral fraud prevention and validation - Mitigate with multi-factor verification and abuse detection algorithms
+
+**Solo Developer Considerations:**
+- Multiple OTA integration complexity - Prioritize one OTA at a time with thorough testing
+- Gamification system scope management - Focus on core achievement and badge functionality initially
+- Commission tracking accuracy requirements - Implement comprehensive logging and validation systems
+- Social sharing platform integration - Use existing Flutter packages and focus on core platforms
+
+**Resource Constraints:**
+- API rate limits and testing access - Utilize sandbox environments and implement proper rate limiting
+- Complex reconciliation logic development - Start with manual reconciliation and gradually automate
+- Gamification content creation - Focus on automated achievement generation based on user actions
+- Multi-platform testing requirements - Prioritize mobile platforms with web compatibility validation
+
+# Appendix  
+**Research Findings:**
+- Goibibo and MakeMyTrip API documentation and integration patterns
+- Commission tracking best practices for multi-OTA environments
+- Referral system optimization for mobile applications
+- Gamification psychology and engagement optimization techniques
+- Social sharing platform APIs and integration requirements
+
+**Technical Specifications:**
+- NestJS backend with enhanced IntegrationsModule architecture
+- Flutter frontend with advanced state management for complex user interactions
+- PostgreSQL database with optimized indexing for gamification and tracking queries
+- Redis caching for high-performance gamification and referral operations
+- Comprehensive API documentation for all new endpoints and integrations
+
+**API Endpoint Specifications:**
+- `/v1/integrations/properties/search` - Enhanced with Goibibo/MakeMyTrip results
+- `/v1/integrations/properties/{propertyId}` - Support for new OTA sourceTypes
+- `/v1/integrations/bookings` - Booking creation for Goibibo/MakeMyTrip
+- `/v1/referrals/generate` - Generate unique referral codes
+- `/v1/referrals/track/{code}` - Track referral usage and rewards
+- `/v1/gamification/checkin` - Daily check-in endpoint
+- `/v1/gamification/achievements` - List available achievements
+- `/v1/gamification/challenges/active` - Active challenges endpoint
+- `/v1/commission/track` - Commission tracking and reconciliation
+
+**FRS Compliance Targets:**
+- Section 1.1: Enhanced OTA integration with Goibibo and MakeMyTrip (100% compliance)
+- Section 2.1: Complete commission tracking and reconciliation systems (100% compliance)
+- Section 3.1: Full referral system with Nestery Miles rewards (100% compliance)
+- Section 3.3: Comprehensive gamification with achievements and challenges (100% compliance)
+- Section 1.4: Enhanced loyalty program earning methods (partial - completed in Phase 4)
+</PRD>

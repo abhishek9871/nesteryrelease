@@ -1,0 +1,3 @@
+cd C:\Users\VASU\Desktop\nesteryrelease
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\GenerateSkeletonTree.ps1
