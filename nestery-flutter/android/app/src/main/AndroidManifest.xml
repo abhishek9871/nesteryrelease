@@ -35,7 +35,7 @@
         <!-- TODO: Replace with your real AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="YOUR_TEST_ADMOB_APP_ID_ANDROID"/>
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
 
         <!-- GMA SDK Optimization Flags -->
         <meta-data android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION" android:value="true"/>

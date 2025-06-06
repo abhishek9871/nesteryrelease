@@ -23,6 +23,7 @@ import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/
 import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/earnings_report_screen.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/partner_settings_screen.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/offer_edit_screen.dart';
+import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/screens/affiliate_offers_browser_screen.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 
 class AppRouter {
@@ -195,6 +196,12 @@ class AppRouter {
             ],
           ),
 
+          // Discover tab
+          GoRoute(
+            path: '/discover',
+            builder: (context, state) => const AffiliateOffersBrowserScreen(),
+          ),
+
           // Profile tab
           GoRoute(
             path: '/profile',
@@ -317,6 +324,11 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
             label: 'Bookings',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.explore_outlined),
+            activeIcon: Icon(Icons.explore),
+            label: 'Discover',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
@@ -338,8 +350,11 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
     if (location.startsWith('/bookings')) {
       return 2;
     }
-    if (location.startsWith('/profile')) {
+    if (location.startsWith('/discover')) {
       return 3;
+    }
+    if (location.startsWith('/profile')) {
+      return 4;
     }
     return 0;
   }
@@ -357,6 +372,9 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
         context.go('/bookings');
         break;
       case 3:
+        context.go('/discover');
+        break;
+      case 4:
         context.go('/profile');
         break;
     }
