@@ -240,13 +240,15 @@ class AppRouter {
                     path: ':offerId/edit', // '/partner-dashboard/offers/:offerId/edit'
                     builder: (context, state) => OfferEditScreen(offerId: state.pathParameters['offerId']!),
                   ),
+                  GoRoute(
+                    path: ':offerId/generate-link', // '/partner-dashboard/offers/:offerId/generate-link'
+                    builder: (context, state) => LinkGenerationScreen(offerId: state.pathParameters['offerId']!),
+                  ),
                 ]
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: Constants.partnerDashboardLinksRoute, builder: (context, state) => const LinkGenerationScreen())],
-          ),
+
           StatefulShellBranch(
             routes: [GoRoute(path: Constants.partnerDashboardEarningsRoute, builder: (context, state) => const EarningsReportScreen())],
           ),

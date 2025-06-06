@@ -81,6 +81,7 @@ dev_dependencies:
   build_runner: ^2.4.7
   drift_dev: ^2.15.0 # For Drift code generation
   freezed: ^2.4.7 # For freezed models (dev only)
+  json_serializable: ^6.8.0
   flutter_launcher_icons: ^0.13.1
   integration_test:
     sdk: flutter

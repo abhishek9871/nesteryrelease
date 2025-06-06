@@ -4,6 +4,7 @@ import 'package:nestery_flutter/data/repositories/booking_repository.dart';
 import 'package:nestery_flutter/data/repositories/user_repository.dart';
 import 'package:nestery_flutter/data/repositories/review_repository.dart';
 import 'package:nestery_flutter/data/repositories/loyalty_repository.dart';
+import 'package:nestery_flutter/features/partner_dashboard/data/repositories/partner_dashboard_repository.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/services/api_cache_service.dart';
 
@@ -46,6 +47,12 @@ final loyaltyRepositoryProvider = Provider<LoyaltyRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final apiCacheService = ref.watch(apiCacheServiceProvider);
   return LoyaltyRepository(apiClient: apiClient, apiCacheService: apiCacheService);
+});
+
+/// Partner Dashboard Repository Provider
+final partnerDashboardRepositoryProvider = Provider<PartnerDashboardRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return PartnerDashboardRepositoryImpl(apiClient);
 });
 
 /// ApiCacheService Provider

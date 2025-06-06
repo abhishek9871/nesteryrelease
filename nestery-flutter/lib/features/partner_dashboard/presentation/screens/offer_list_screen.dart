@@ -83,7 +83,21 @@ class OfferListScreen extends ConsumerWidget {
                             Text("Valid: ${DateFormat('dd MMM yyyy').format(item.validFrom)} - ${DateFormat('dd MMM yyyy').format(item.validTo)}"),
                           ],
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.link),
+                              tooltip: 'Generate Link',
+                              onPressed: item.status == OfferStatus.active
+                                  ? () {
+                                      context.go('/partner-dashboard/offers/${item.id}/generate-link');
+                                    }
+                                  : null,
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           context.go('${Constants.partnerDashboardOffersRoute}/${item.id}/edit');
                         },
