@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:nestery_flutter/features/partner_dashboard/presentation/models/partner_offer_list_item.dart'; // For OfferStatus
+
 
 /// Calculates the trend percentage and returns a formatted string.
 /// Example: "+5.0% MoM"
@@ -59,4 +61,18 @@ String formatPercentage(double value, {int decimalDigits = 1}) {
     decimalDigits: decimalDigits,
   );
   return format.format(value);
+}
+
+/// Returns a color based on the offer status.
+Color getStatusColor(OfferStatus status, BuildContext context) {
+  switch (status) {
+    case OfferStatus.active:
+      return Colors.green.shade600;
+    case OfferStatus.pending:
+      return Colors.orange.shade600;
+    case OfferStatus.inactive:
+      return Colors.grey.shade600;
+    case OfferStatus.expired:
+      return Colors.red.shade600;
+  }
 }

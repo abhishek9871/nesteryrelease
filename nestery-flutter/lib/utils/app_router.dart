@@ -234,11 +234,11 @@ class AppRouter {
                 routes: [
                   GoRoute(
                     path: 'new', // '/partner-dashboard/offers/new'
-                    builder: (context, state) => const OfferEditScreen(),
+                    builder: (context, state) => const OfferEditScreen(offerId: 'new'),
                   ),
                   GoRoute(
                     path: ':offerId/edit', // '/partner-dashboard/offers/:offerId/edit'
-                    builder: (context, state) => OfferEditScreen(offerId: state.pathParameters['offerId']),
+                    builder: (context, state) => OfferEditScreen(offerId: state.pathParameters['offerId']!),
                   ),
                 ]
               ),
