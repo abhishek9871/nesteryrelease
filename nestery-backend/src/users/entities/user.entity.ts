@@ -5,10 +5,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { LoyaltyTierEnum } from '../../features/loyalty/enums/loyalty-tier.enum';
 import { AffiliateLinkEntity } from '../../affiliates/entities/affiliate-link.entity';
+import { PartnerEntity } from '../../affiliates/entities/partner.entity';
 
 /**
  * User entity representing the users table in the database
@@ -40,7 +43,7 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'partner'],
     default: 'user',
   })
   role: string;
@@ -98,6 +101,11 @@ export class User {
 
   @OneToMany(() => AffiliateLinkEntity, link => link.user)
   affiliateLinks: AffiliateLinkEntity[];
+
+  // Partner relationship - only exists if user role is 'partner'
+  @OneToOne(() => PartnerEntity, { nullable: true })
+  @JoinColumn({ name: 'partner_id' })
+  partner?: PartnerEntity;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

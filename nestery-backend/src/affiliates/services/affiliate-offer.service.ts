@@ -54,6 +54,50 @@ export class AffiliateOfferService {
     return this.offerRepository.save(offer);
   }
 
+  /**
+   * Create a new offer for a partner (self-service)
+   */
+  async createForPartner(partnerId: string, createOfferDto: CreateOfferDto): Promise<AffiliateOfferEntity> {
+    this.logger.log(`Creating offer for partner ${partnerId}: ${JSON.stringify(createOfferDto)}`);
+
+    // Verify partner exists and is active
+    const partner = await this.partnerRepository.findOneBy({ id: partnerId });
+    if (!partner) {
+      throw new NotFoundException(`Partner with ID ${partnerId} not found.`);
+    }
+
+    if (!partner.isActive) {
+      throw new BadRequestException(`Partner with ID ${partnerId} is not active.`);
+    }
+
+    // Validate date range
+    const validFrom = new Date(createOfferDto.validFrom);
+    const validTo = new Date(createOfferDto.validTo);
+
+    if (validFrom >= validTo) {
+      throw new BadRequestException('validFrom date must be before validTo date.');
+    }
+
+    this.validateCommissionStructure(createOfferDto.commissionStructure as CommissionStructure);
+
+    // FRS Section 1.2 Commission Rate Validation
+    this.validateFrsCommissionCompliance(
+      createOfferDto.commissionStructure as CommissionStructure,
+      partner.category,
+    );
+
+    const offer = this.offerRepository.create({
+      ...createOfferDto,
+      partnerId,
+      partner,
+    });
+
+    const savedOffer = await this.offerRepository.save(offer);
+    this.logger.log(`Successfully created offer ${savedOffer.id} for partner ${partnerId}`);
+
+    return savedOffer;
+  }
+
   async getOfferById(offerId: string): Promise<AffiliateOfferEntity | null> {
     return this.offerRepository.findOne({
       where: { id: offerId },
@@ -216,6 +260,67 @@ export class AffiliateOfferService {
 
     const updatedOffer = await this.offerRepository.save(offer);
     this.logger.log(`Successfully updated offer ${id}`);
+
+    return updatedOffer;
+  }
+
+  /**
+   * Update an existing offer for a partner (self-service with security validation)
+   */
+  async updateForPartner(
+    offerId: string,
+    updateOfferDto: UpdateOfferDto,
+    partnerId: string
+  ): Promise<AffiliateOfferEntity> {
+    this.logger.log(`Partner ${partnerId} updating offer ${offerId} with data: ${JSON.stringify(updateOfferDto)}`);
+
+    const offer = await this.offerRepository.findOne({
+      where: { id: offerId },
+      relations: ['partner'],
+    });
+
+    if (!offer) {
+      throw new NotFoundException(`Offer with ID ${offerId} not found`);
+    }
+
+    // CRITICAL SECURITY CHECK: Ensure the partner owns this offer
+    if (offer.partnerId !== partnerId) {
+      throw new BadRequestException(
+        `Access denied: Partner ${partnerId} is not authorized to update offer ${offerId}. ` +
+        `This offer belongs to partner ${offer.partnerId}.`
+      );
+    }
+
+    // Verify partner is still active
+    if (!offer.partner.isActive) {
+      throw new BadRequestException(`Partner ${partnerId} is not active and cannot update offers.`);
+    }
+
+    // Validate date range if dates are being updated
+    const validFrom = updateOfferDto.validFrom ? new Date(updateOfferDto.validFrom) : offer.validFrom;
+    const validTo = updateOfferDto.validTo ? new Date(updateOfferDto.validTo) : offer.validTo;
+
+    if (validFrom >= validTo) {
+      throw new BadRequestException('validFrom date must be before validTo date.');
+    }
+
+    // Validate commission structure if it's being updated
+    if (updateOfferDto.commissionStructure) {
+      this.validateCommissionStructure(updateOfferDto.commissionStructure as CommissionStructure);
+
+      // FRS Section 1.2 Commission Rate Validation
+      this.validateFrsCommissionCompliance(
+        updateOfferDto.commissionStructure as CommissionStructure,
+        offer.partner.category,
+      );
+    }
+
+    // Update offer
+    Object.assign(offer, updateOfferDto);
+    offer.updatedAt = new Date();
+
+    const updatedOffer = await this.offerRepository.save(offer);
+    this.logger.log(`Successfully updated offer ${offerId} for partner ${partnerId}`);
 
     return updatedOffer;
   }

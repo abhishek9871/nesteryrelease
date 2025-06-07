@@ -41,6 +41,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { GetPartnerId } from '../auth/decorators/get-partner-id.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 @ApiTags('affiliates')
@@ -364,33 +365,39 @@ export class AffiliateController {
   }
 
   @Get('dashboard')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('partner')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get comprehensive partner dashboard data' })
-  @ApiQuery({
-    name: 'timeRange',
-    required: false,
-    enum: ['7d', '30d', '90d'],
-    description: 'Time range for metrics',
-  })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    enum: EarningStatusEnum,
-    description: 'Filter earnings by status',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Dashboard data retrieved successfully',
-    type: PartnerDashboardDataDto,
-  })
-  async getDashboardData(
-    @Req() req: AuthenticatedRequest,
-    @Query('timeRange') timeRange = '30d',
-    @Query('status') status?: EarningStatusEnum,
-  ): Promise<PartnerDashboardDataDto> {
-    // Use req.user.partnerId if it exists on the JWT payload, otherwise req.user.id is a fallback.
-    const partnerId = (req.user as any).partnerId || req.user.id;
-    return this.partnerService.getComprehensiveDashboardData(partnerId, { timeRange, status });
+  @ApiResponse({ status: 200, description: 'Dashboard data retrieved successfully', type: PartnerDashboardDataDto })
+  async getDashboardData(@GetPartnerId() partnerId: string): Promise<PartnerDashboardDataDto> {
+    return this.partnerService.getComprehensiveDashboardData(partnerId);
+  }
+
+  @Post('offers')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('partner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new offer as a partner' })
+  @ApiResponse({ status: 201, type: OfferResponseDto })
+  async createOfferSelfService(
+    @GetPartnerId() partnerId: string,
+    @Body() createOfferDto: CreateOfferDto,
+  ): Promise<OfferResponseDto> {
+    return this.affiliateOfferService.createForPartner(partnerId, createOfferDto);
+  }
+
+  @Put('offers/:offerId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('partner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update an existing offer as a partner' })
+  @ApiResponse({ status: 200, type: OfferResponseDto })
+  async updateOfferSelfService(
+    @GetPartnerId() partnerId: string,
+    @Param('offerId') offerId: string,
+    @Body() updateOfferDto: UpdateOfferDto,
+  ): Promise<OfferResponseDto> {
+    return this.affiliateOfferService.updateForPartner(offerId, updateOfferDto, partnerId);
   }
 }

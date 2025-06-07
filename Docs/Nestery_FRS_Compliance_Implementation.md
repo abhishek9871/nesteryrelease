@@ -738,6 +738,21 @@ With Phase 1 complete, the Nestery application now has a solid technical foundat
         -   **Fixed Issues:**
             -   **AdMob Crash:** Resolved application startup crash by replacing placeholder AdMob App ID with valid sample ID in AndroidManifest.xml.
 
+-   **✅ SUB-TASK COMPLETION: Offer Detail & Link Generation**
+    -   **Task:** Implement the frontend screen for viewing offer details and generating a trackable affiliate link (part of TaskMaster ID 3).
+    -   **Status:** ✅ **COMPLETED** - Successfully implemented the `OfferDetailScreen` and the link generation flow. Users can now navigate from the offer browser to a specific offer and generate a unique link.
+    -   **Features Implemented:**
+        -   **Dynamic Routing:** Implemented a nested GoRouter route (`/discover/offer/:offerId`) to display specific offer details.
+        -   **State Management:** Used `FutureProvider.family` to fetch offer details by ID. Implemented a modern `AsyncNotifier` to handle the `initial`/`loading`/`success`/`error` states of the link generation process.
+        -   **Link Generation UI:** A modal bottom sheet presents the generated link and a QR code (`qr_flutter`). It includes "Copy to Clipboard" and native "Share" (`share_plus`) functionality with robust error handling.
+    -   **Dependencies:** Added `qr_flutter`, `share_plus`, and the Riverpod generator packages to `pubspec.yaml`.
+    -   **FRS Compliance Addressed:**
+        -   **FRS 1.2 (Ancillary Affiliate Marketing):** Delivers the core user action of generating a trackable link, which is central to the affiliate revenue model.
+    -   **Quality Assurance:**
+        -   **Test Status:** All existing Flutter tests pass with zero regressions.
+        -   **Build Status:** Successful production build confirmed.
+        -   **Commit Hash:** `5cec2da` on `mahadev` branch.
+
 -   **Task 2.3: Freemium Model - Subscription Logic (Backend)**
     -   **Rationale/Goal:** FRS requirement 1.3. Implement subscription management.
     -   **Affected Files/Modules:** `nestery-backend/src/features/subscriptions/` (new `SubscriptionService`, `SubscriptionController`), `PremiumSubscriptionEntity`.

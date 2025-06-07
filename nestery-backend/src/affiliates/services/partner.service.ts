@@ -249,11 +249,16 @@ export class PartnerService {
   }
 
   /**
-   * Get comprehensive dashboard data for a partner, optimized with Promise.all.
+   * Get comprehensive dashboard data for a partner with default filters (simplified for partner self-service).
    */
+  async getComprehensiveDashboardData(partnerId: string): Promise<PartnerDashboardDataDto>;
   async getComprehensiveDashboardData(
     partnerId: string,
-    filters: { timeRange?: string; status?: EarningStatusEnum },
+    filters?: { timeRange?: string; status?: EarningStatusEnum },
+  ): Promise<PartnerDashboardDataDto>;
+  async getComprehensiveDashboardData(
+    partnerId: string,
+    filters: { timeRange?: string; status?: EarningStatusEnum } = { timeRange: '30d' },
   ): Promise<PartnerDashboardDataDto> {
     const { timeRange, status } = filters;
     const now = new Date();
