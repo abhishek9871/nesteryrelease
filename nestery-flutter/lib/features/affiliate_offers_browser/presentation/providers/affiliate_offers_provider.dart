@@ -28,3 +28,13 @@ final filteredOffersProvider = Provider<List<OfferCardViewModel>>((ref) {
     orElse: () => [],
   );
 });
+
+final offerDetailProvider = FutureProvider.family<OfferCardViewModel, String>((ref, offerId) async {
+  final allOffers = await ref.watch(affiliateOffersProvider.future);
+  // In a real app, this would be an API call. Here we find from the mock list.
+  try {
+    return allOffers.firstWhere((offer) => offer.offerId == offerId);
+  } catch (e) {
+    throw Exception('Offer not found');
+  }
+});

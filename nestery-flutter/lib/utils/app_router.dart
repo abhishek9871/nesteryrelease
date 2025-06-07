@@ -24,6 +24,7 @@ import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/
 import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/partner_settings_screen.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/screens/offer_edit_screen.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/screens/affiliate_offers_browser_screen.dart';
+import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/screens/offer_detail_screen.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 
 class AppRouter {
@@ -200,6 +201,15 @@ class AppRouter {
           GoRoute(
             path: '/discover',
             builder: (context, state) => const AffiliateOffersBrowserScreen(),
+            routes: [
+              GoRoute(
+                path: 'offer/:offerId',
+                builder: (context, state) {
+                  final offerId = state.pathParameters['offerId']!;
+                  return OfferDetailScreen(offerId: offerId);
+                },
+              ),
+            ],
           ),
 
           // Profile tab

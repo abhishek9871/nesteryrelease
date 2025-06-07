@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/data/models/partner_category.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/domain/entities/offer_card_view_model.dart';
@@ -16,11 +17,13 @@ class OfferCardWidget extends StatelessWidget {
         ? '${offer.commissionRateMin.toStringAsFixed(1)}%'
         : '${offer.commissionRateMin.toStringAsFixed(1)}% - ${offer.commissionRateMax.toStringAsFixed(1)}%';
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
+    return InkWell(
+      onTap: () => context.push('/discover/offer/${offer.offerId}'),
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,6 +77,7 @@ class OfferCardWidget extends StatelessWidget {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

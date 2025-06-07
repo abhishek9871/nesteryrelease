@@ -851,6 +851,7 @@
           - [FILE] `AndroidManifest.xml`
         - **[DIR]** `profile`
           - [FILE] `AndroidManifest.xml`
+      - [FILE] `google-services.json`
     - **[DIR]** `gradle`
       - **[DIR]** `wrapper`
         - [FILE] `gradle-wrapper.jar`
@@ -875,6 +876,17 @@
     - **[DIR]** `data`
       - **[DIR]** `repositories`
     - **[DIR]** `features`
+      - **[DIR]** `affiliate_offers_browser`
+        - **[DIR]** `data`
+          - **[DIR]** `models`
+          - **[DIR]** `repositories`
+        - **[DIR]** `domain`
+          - **[DIR]** `entities`
+          - **[DIR]** `repositories`
+        - **[DIR]** `presentation`
+          - **[DIR]** `providers`
+          - **[DIR]** `screens`
+          - **[DIR]** `widgets`
       - **[DIR]** `earnings_reports`
         - **[DIR]** `data`
           - **[DIR]** `datasources`
@@ -948,6 +960,7 @@
   - [FILE] `.metadata`
   - [FILE] `analysis_options.yaml`
   - [FILE] `devtools_options.yaml`
+  - [FILE] `firebase.json`
   - [FILE] `nestery_flutter.iml`
   - [FILE] `pubspec.lock`
   - [FILE] `pubspec.yaml`
@@ -1038,6 +1051,8 @@
 - [FILE] `.taskmasterconfig`
 - [FILE] `.windsurfrules`
 - [FILE] `file_tree_nesery_release.md`
+- [FILE] `firebase_diagnostic_report.md`
+- [FILE] `prompt.md`
 - [FILE] `random.md`
 - [FILE] `README.md`
 

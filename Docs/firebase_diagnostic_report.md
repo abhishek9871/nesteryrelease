@@ -1,3 +1,85 @@
+# Firebase Diagnostic Report - Nestery Flutter Project
+
+**Project:** nestery-flutter  
+**Branch:** mahadev  
+**Date:** Generated for Firebase startup failure research  
+**Location:** C:\Users\VASU\Desktop\nesteryrelease\nestery-flutter
+
+---
+
+## 1. Android Gradle Plugin Version
+
+**Found in:** `nestery-flutter/android/settings.gradle.kts` (line 21)  
+**Version:** `8.7.0`
+
+```kotlin
+id("com.android.application") version "8.7.0" apply false
+```
+
+---
+
+## 2. Kotlin Gradle Plugin Version
+
+**Found in:** `nestery-flutter/android/settings.gradle.kts` (line 22)  
+**Version:** `2.1.21`
+
+```kotlin
+id("org.jetbrains.kotlin.android") version "2.1.21" apply false
+```
+
+---
+
+## 3. Gradle Distribution Version
+
+**Found in:** `nestery-flutter/android/gradle/wrapper/gradle-wrapper.properties` (line 5)  
+**Full URL:** `https://services.gradle.org/distributions/gradle-8.10.2-all.zip`  
+**Version:** `8.10.2`
+
+---
+
+## 4. Flutter and Dart SDK Versions
+
+**Flutter Version:** `3.29.3` (Channel stable)  
+**Dart Version:** `3.7.2`  
+**Framework Revision:** `ea121f8859` (8 weeks ago, 2025-04-11 19:10:07 +0000)  
+**Engine Revision:** `cf56914b32`  
+**DevTools Version:** `2.42.3`
+
+### Additional Environment Details:
+- **Platform:** Microsoft Windows [Version 10.0.26100.4202]
+- **Android SDK:** 34.0.0
+- **Platform:** android-35, build-tools 34.0.0
+- **Java:** Java(TM) SE Runtime Environment (build 21.0.7+8-LTS-245)
+- **NDK Version:** `27.0.12077973` (from app build.gradle.kts)
+
+### Flutter Doctor Output:
+```
+[√] Flutter (Channel stable, 3.29.3, on Microsoft Windows [Version 10.0.26100.4202], locale en-IN)
+[√] Windows Version (11 Home Single Language 64-bit, 24H2, 2009)
+[√] Android toolchain - develop for Android devices (Android SDK version 34.0.0)
+[√] Chrome - develop for the web
+[√] Visual Studio - develop Windows apps (Visual Studio Community 2022 17.14.0)
+[!] Android Studio (not installed)
+[√] VS Code (version 1.100.3)
+[√] Connected device (4 available)
+[√] Network resources
+```
+
+---
+
+## 5. Key Firebase Dependencies
+
+**Firebase Core:** `^2.24.2`  
+**Firebase Analytics:** `^10.8.0`  
+**Firebase Crashlytics:** `^3.4.9`
+
+**Flutter SDK Constraint:** `>=3.0.0 <4.0.0`
+
+---
+
+## 6. Complete Project Dependencies (pubspec.yaml)
+
+```yaml
 name: nestery_flutter
 description: Nestery mobile application for hotel booking and management
 publish_to: 'none'
@@ -72,7 +154,6 @@ dependencies:
   # Code generation (needed at runtime)
   freezed_annotation: ^2.4.4
   json_annotation: ^4.8.1
-  riverpod_annotation: ^2.3.5
 
 dev_dependencies:
   flutter_test:
@@ -86,7 +167,6 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   integration_test:
     sdk: flutter
-  riverpod_generator: ^2.4.0
 
 flutter:
   uses-material-design: true
@@ -108,3 +188,16 @@ flutter_native_splash:
   image: assets/images/splash_logo.png
   android: true
   ios: true
+```
+
+---
+
+## Summary
+
+This is a Flutter 3.29.3 project using:
+- **Android Gradle Plugin:** 8.7.0
+- **Kotlin:** 2.1.21  
+- **Gradle:** 8.10.2
+- **Firebase Core:** 2.24.2
+
+All version information extracted from the current `mahadev` branch state for Firebase startup failure research.
