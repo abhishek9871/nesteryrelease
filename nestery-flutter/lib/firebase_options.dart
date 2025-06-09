@@ -59,4 +59,5 @@ class DefaultFirebaseOptions {
     projectId: 'nestery-dev',
     storageBucket: 'nestery-dev.firebasestorage.app',
   );
+
 }

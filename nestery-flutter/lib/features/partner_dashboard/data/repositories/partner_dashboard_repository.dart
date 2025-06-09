@@ -4,6 +4,7 @@ import 'package:nestery_flutter/features/partner_dashboard/data/models/partner_d
 import 'package:nestery_flutter/utils/either.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 
 abstract class PartnerDashboardRepository {
   // Future<Either<ApiException, List<PartnerOfferModel>>> getOffers();
@@ -76,5 +77,5 @@ class PartnerDashboardRepositoryImpl implements PartnerDashboardRepository {
 
 // Provider for the repository
 final partnerDashboardRepositoryProvider = Provider<PartnerDashboardRepository>((ref) {
-  return PartnerDashboardRepositoryImpl(ApiClient());
+  return PartnerDashboardRepositoryImpl(ref.watch(apiClientProvider));
 });

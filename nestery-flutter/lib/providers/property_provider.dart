@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/property_repository.dart';
 import 'package:nestery_flutter/models/property.dart';
 import 'package:nestery_flutter/models/search_dtos.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 
 // Property search state
 class PropertySearchState {
@@ -446,10 +446,6 @@ class TrendingDestinationsNotifier extends StateNotifier<TrendingDestinationsSta
 }
 
 // Providers
-final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient();
-});
-
 final propertyRepositoryProvider = Provider<PropertyRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return PropertyRepository(apiClient: apiClient);

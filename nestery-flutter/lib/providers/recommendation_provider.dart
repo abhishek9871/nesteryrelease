@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 
 // Recommendation state
 class RecommendationState {
@@ -269,10 +270,6 @@ class PricePredictionNotifier extends StateNotifier<PricePredictionState> {
 }
 
 // Providers
-final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient();
-});
-
 final recommendationProvider = StateNotifierProvider<RecommendationNotifier, RecommendationState>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return RecommendationNotifier(apiClient: apiClient);

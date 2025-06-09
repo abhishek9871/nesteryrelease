@@ -36,6 +36,7 @@ class Constants {
 
   // Storage Keys
   static const String tokenKey = 'auth_token';
+  static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
 
   // API Endpoints

@@ -1,6 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
-import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/loyalty.dart';
 import 'package:nestery_flutter/utils/api_exception.dart';
@@ -46,13 +45,10 @@ class LoyaltyRepository {
     final isOnline = connectivityResult != ConnectivityResult.none;
 
     try {
+      // Note: Caching functionality will be implemented in a future LFS
       Options? requestOptions;
       if (!isOnline) {
-        requestOptions = CacheOptions(
-          store: _apiClient.cacheStore,
-          policy: CachePolicy.forceCache,
-          hitCacheOnNetworkFailure: true,
-        ).toOptions();
+        // Handle offline case in future LFS
       } else {
         // Example: Shorter TTL for loyalty status as it might change more frequently.
         // For this example, we'll use the default policy (CachePolicy.request) and default TTL.

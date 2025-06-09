@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:nestery_flutter/data/repositories/auth_repository.dart';
-import 'package:nestery_flutter/providers/repository_providers.dart';
+import 'package:nestery_flutter/core/auth/auth_repository.dart';
 import 'package:nestery_flutter/models/auth_dtos.dart';
 import 'package:nestery_flutter/models/user.dart';
 
@@ -92,66 +91,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading);
 
     // Check if tokens exist
-    final hasTokens = await _authRepository.hasValidTokens();
+    final accessToken = await _authRepository.getAccessToken();
+    final refreshToken = await _authRepository.getRefreshToken();
+
     if (!mounted) return;
-    if (!hasTokens) {
+    if (accessToken == null || refreshToken == null) {
       state = state.copyWith(status: AuthStatus.unauthenticated);
       return;
     }
 
-    // Try to get current user
-    final result = await _authRepository.getCurrentUser();
-    if (!mounted) return;
-    result.fold(
-      (failure) async {
-        // If 401, try to refresh token
-        if (failure.statusCode == 401) {
-          final refreshResult = await _authRepository.attemptTokenRefresh();
-          if (!mounted) return;
-          refreshResult.fold(
-            (refreshFailure) async {
-              // Refresh failed, clear tokens and set unauthenticated
-              await _authRepository.clearTokens();
-              if (!mounted) return;
-              state = state.copyWith(status: AuthStatus.unauthenticated);
-            },
-            (authResponse) async {
-              // Refresh successful, store new tokens and set authenticated
-              await _authRepository.storeTokens(
-                accessToken: authResponse.accessToken,
-                refreshToken: authResponse.refreshToken,
-              );
-              if (!mounted) return;
-              state = state.copyWith(
-                status: AuthStatus.authenticated,
-                user: authResponse.user,
-                accessToken: authResponse.accessToken,
-                refreshToken: authResponse.refreshToken,
-              );
-            },
-          );
-        } else {
-          // Other error, clear tokens and set unauthenticated
-          await _authRepository.clearTokens();
-          if (!mounted) return;
-          state = state.copyWith(
-            status: AuthStatus.error,
-            errorMessage: failure.message,
-          );
-        }
-      },
-      (user) async {
-        // Successfully got user, set authenticated
-        final accessToken = await _authRepository.getAccessToken();
-        final refreshToken = await _authRepository.getRefreshToken();
-        if (!mounted) return;
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          user: user,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        );
-      },
+    // For now, just set authenticated if tokens exist
+    // In a future LFS, we'll add user profile fetching
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
     );
   }
 
@@ -159,71 +113,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
 
-    final loginDto = LoginDto(email: email, password: password);
-    final result = await _authRepository.login(loginDto);
-
-    return result.fold(
-      (failure) {
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: failure.message,
-        );
-        return false;
-      },
-      (authResponse) async {
-        // Store tokens
-        await _authRepository.storeTokens(
-          accessToken: authResponse.accessToken,
-          refreshToken: authResponse.refreshToken,
-        );
-
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          user: authResponse.user,
-          accessToken: authResponse.accessToken,
-          refreshToken: authResponse.refreshToken,
-        );
-        return true;
-      },
+    // Placeholder for future LFS implementation
+    // For now, just simulate a failed login
+    state = state.copyWith(
+      status: AuthStatus.error,
+      errorMessage: 'Login functionality will be implemented in a future LFS',
     );
+    return false;
   }
 
   /// Register a new user
   Future<bool> register(String firstName, String lastName, String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
 
-    final registerDto = RegisterDto(
-      email: email,
-      password: password,
-      firstName: firstName,
-      lastName: lastName,
+    // Placeholder for future LFS implementation
+    // For now, just simulate a failed registration
+    state = state.copyWith(
+      status: AuthStatus.error,
+      errorMessage: 'Registration functionality will be implemented in a future LFS',
     );
-    final result = await _authRepository.register(registerDto);
-
-    return result.fold(
-      (failure) {
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: failure.message,
-        );
-        return false;
-      },
-      (authResponse) async {
-        // Store tokens
-        await _authRepository.storeTokens(
-          accessToken: authResponse.accessToken,
-          refreshToken: authResponse.refreshToken,
-        );
-
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          user: authResponse.user,
-          accessToken: authResponse.accessToken,
-          refreshToken: authResponse.refreshToken,
-        );
-        return true;
-      },
-    );
+    return false;
   }
 
   /// Logout user and clear all tokens
@@ -252,24 +161,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> updateProfile(UpdateUserDto updateData) async {
     state = state.copyWith(status: AuthStatus.loading);
 
-    final result = await _authRepository.updateProfile(updateData);
-
-    return result.fold(
-      (failure) {
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: failure.message,
-        );
-        return false;
-      },
-      (updatedUser) {
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          user: updatedUser,
-        );
-        return true;
-      },
+    // Placeholder for future LFS implementation
+    // For now, just simulate a failed update
+    state = state.copyWith(
+      status: AuthStatus.error,
+      errorMessage: 'Profile update functionality will be implemented in a future LFS',
     );
+    return false;
   }
 
   /// Clear error message
@@ -285,17 +183,10 @@ final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage();
 });
 
-/// Provider for AuthRepository
+/// Provider for AuthRepository - now using the new simplified auth repository
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
   final secureStorage = ref.watch(secureStorageProvider);
-  // Import ApiCacheService from repository_providers
-  final apiCacheService = ref.watch(apiCacheServiceProvider);
-  return AuthRepository(
-    apiClient: apiClient,
-    apiCacheService: apiCacheService,
-    secureStorage: secureStorage,
-  );
+  return AuthRepository(secureStorage);
 });
 
 /// Provider for auth state

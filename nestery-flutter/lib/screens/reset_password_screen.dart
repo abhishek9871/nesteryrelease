@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
-import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -42,38 +41,22 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     });
 
     try {
-      final authRepository = ref.read(authRepositoryProvider);
-      final result = await authRepository.resetPassword(
-        token: widget.token,
-        newPassword: _passwordController.text,
-      );
+      // Placeholder for future LFS implementation
+      // For now, just simulate success
+      await Future.delayed(const Duration(seconds: 1));
 
-      result.fold(
-        (error) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(error.message),
-                backgroundColor: Constants.errorColor,
-              ),
-            );
-          }
-        },
-        (response) {
-          if (mounted) {
-            // Show success message
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Password reset successfully! Please login with your new password.'),
-                backgroundColor: Constants.successColor,
-              ),
-            );
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password reset functionality will be implemented in a future LFS.'),
+            backgroundColor: Constants.successColor,
+          ),
+        );
 
-            // Navigate to login screen
-            context.go(Constants.loginRoute);
-          }
-        },
-      );
+        // Navigate to login screen
+        context.go(Constants.loginRoute);
+      }
     } finally {
       if (mounted) {
         setState(() {

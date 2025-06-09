@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/data/repositories/booking_repository.dart';
 import 'package:nestery_flutter/models/booking.dart';
 import 'package:nestery_flutter/models/enums.dart';
 import 'package:nestery_flutter/models/search_dtos.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 
 // Booking state
 class BookingsState {
@@ -401,7 +401,7 @@ class CreateBookingNotifier extends StateNotifier<CreateBookingState> {
 
 // Providers
 final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
-  final apiClient = ref.watch(Provider<ApiClient>((ref) => ApiClient()));
+  final apiClient = ref.watch(apiClientProvider);
   return BookingRepository(apiClient: apiClient);
 });
 

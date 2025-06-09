@@ -1,6 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
-import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/property.dart';
 import 'package:nestery_flutter/models/search_dtos.dart';
@@ -20,20 +19,8 @@ class PropertyRepository {
     final isOnline = connectivityResult != ConnectivityResult.none;
 
     try {
+      // Note: Caching functionality will be implemented in a future LFS
       Options? requestOptions;
-      if (!isOnline) {
-        requestOptions = CacheOptions(
-          store: _apiClient.cacheStore,
-          policy: CachePolicy.forceCache,
-          hitCacheOnNetworkFailure: true,
-        ).toOptions();
-      } else {
-        // Example: Shorter TTL for featured properties list
-        requestOptions = CacheOptions(
-          store: _apiClient.cacheStore,
-          maxStale: Constants.propertyListCacheTTL,
-        ).toOptions();
-      }
 
       final response = await _apiClient.get<Map<String, dynamic>>(
         '${Constants.propertiesEndpoint}/featured',

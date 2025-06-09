@@ -11,7 +11,9 @@ import 'package:nestery_flutter/services/api_cache_service.dart';
 /// Provider for ApiClient (if not already defined in auth_provider.dart or similar)
 /// This ensures ApiClient is available for all repositories.
 /// If ApiClient needs async initialization (like for cache), this might need to be a FutureProvider
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClient(ref);
+});
 
 /// Repository providers for dependency injection
 
@@ -57,6 +59,5 @@ final partnerDashboardRepositoryProvider = Provider<PartnerDashboardRepository>(
 
 /// ApiCacheService Provider
 final apiCacheServiceProvider = Provider<ApiCacheService>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return ApiCacheService(apiClient); // Pass the ApiClient instance
+  return ApiCacheService(); // No longer needs ApiClient
 });

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
-import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -34,26 +33,15 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     });
 
     try {
-      final authRepository = ref.read(authRepositoryProvider);
-      final result = await authRepository.forgotPassword(_emailController.text.trim());
+      // Placeholder for future LFS implementation
+      // For now, just simulate success
+      await Future.delayed(const Duration(seconds: 1));
 
-      result.fold(
-        (error) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(error.message),
-                backgroundColor: Constants.errorColor,
-              ),
-            );
-          }
-        },
-        (response) {
-          setState(() {
-            _emailSent = true;
-          });
-        },
-      );
+      if (mounted) {
+        setState(() {
+          _emailSent = true;
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
