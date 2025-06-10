@@ -79,15 +79,16 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
             'CacheModuleFactory',
           );
 
-          // Create Redis connection URL with proper Upstash authentication format
+          // Create Redis connection URL using OFFICIAL Upstash format (rediss:// with TLS)
           const redisUrl = password
-            ? `redis://default:${password}@${host}:${port}`  // Upstash requires 'default' username
-            : `redis://${host}:${port}`;
+            ? `rediss://:${password}@${host}:${port}`  // Official Upstash format from docs
+            : `rediss://${host}:${port}`;
 
-          // Test connection with timeout and proper Upstash options
+          // Test connection with official Upstash Redis format and TLS
           const keyvOptions = {
             url: redisUrl,
-            // Upstash-specific connection options
+            // TLS is required for Upstash (using rediss://)
+            tls: {},  // Enable TLS as required by Upstash
             connectTimeout: 10000,  // 10 seconds
             lazyConnect: true,      // Don't connect immediately
             retryDelayOnFailover: 100,
