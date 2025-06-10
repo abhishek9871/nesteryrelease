@@ -163,7 +163,7 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
               CommissionBatchEntity,
             ],
             migrations: [__dirname + '/migrations/*{.ts,.js}'],
-            synchronize: nodeEnv !== 'production',
+            synchronize: true, // Enable for initial deployment to create tables
             logging: nodeEnv !== 'production',
             // Simple SSL configuration as per Neon Railway docs
             ssl: nodeEnv === 'production',
@@ -209,7 +209,7 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
               CommissionBatchEntity,
             ],
             migrations: [__dirname + '/migrations/*{.ts,.js}'],
-            synchronize: nodeEnv !== 'production',
+            synchronize: true, // Enable for initial deployment to create tables
             logging: nodeEnv !== 'production',
             ssl: false,
           };
