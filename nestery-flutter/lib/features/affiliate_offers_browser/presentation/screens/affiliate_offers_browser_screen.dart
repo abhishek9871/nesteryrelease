@@ -5,6 +5,8 @@ import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/p
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/providers/offer_filter_provider.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/widgets/offer_card_widget.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/widgets/offer_filter_widgets.dart';
+import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/screens/earnings_history_screen.dart';
+import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/screens/payout_request_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
 class AffiliateOffersBrowserScreen extends ConsumerWidget {
@@ -26,6 +28,28 @@ class AffiliateOffersBrowserScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Discover Offers'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.account_balance_wallet),
+            tooltip: 'Earnings History',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const EarningsHistoryScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.payment),
+            tooltip: 'Payout Requests',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const PayoutRequestScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

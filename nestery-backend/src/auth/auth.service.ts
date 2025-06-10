@@ -143,32 +143,32 @@ export class AuthService {
    * Generate access and refresh tokens for a user
    */
   private generateTokens(user: User) {
-        const payload: JwtPayload = {
-            sub: user.id,
-            email: user.email,
-            role: user.role,
-        };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
 
-        // Add partnerId to payload ONLY if user is a partner
-        if (user.role === 'partner' && user.partner) {
-            payload.partnerId = user.partner.id;
-        }
-
-        const accessToken = this.jwtService.sign(payload, {
-            secret: process.env.JWT_ACCESS_SECRET,
-            expiresIn: process.env.JWT_ACCESS_EXPIRATION,
-        });
-
-        const refreshToken = this.jwtService.sign(payload, {
-            secret: process.env.JWT_REFRESH_SECRET,
-            expiresIn: process.env.JWT_REFRESH_EXPIRATION,
-        });
-
-        return {
-            accessToken,
-            refreshToken,
-        };
+    // Add partnerId to payload ONLY if user is a partner
+    if (user.role === 'partner' && user.partner) {
+      payload.partnerId = user.partner.id;
     }
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRATION,
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: process.env.JWT_REFRESH_EXPIRATION,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
 
   /**
    * Generate access token for a user

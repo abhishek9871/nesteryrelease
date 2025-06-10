@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart';
 import 'package:nestery_flutter/core/auth/auth_repository.dart';
+import 'package:nestery_flutter/core/network/api_client.dart';
 import 'package:nestery_flutter/models/auth_dtos.dart';
 import 'package:nestery_flutter/models/user.dart';
+import 'package:nestery_flutter/utils/api_exception.dart';
+import 'package:nestery_flutter/providers/repository_providers.dart';
 
 /// Authentication status enum
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
@@ -76,10 +80,13 @@ class AuthState {
 /// Auth provider to manage authentication state and operations
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
+  final ApiClient _apiClient;
 
   AuthNotifier({
     required AuthRepository authRepository,
+    required ApiClient apiClient,
   })  : _authRepository = authRepository,
+        _apiClient = apiClient,
         super(const AuthState()) {
     // Check if user is already authenticated on initialization
     tryAutoLogin();
@@ -111,28 +118,154 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Login user with email and password
   Future<bool> login(String email, String password) async {
+    if (!mounted) return false;
     state = state.copyWith(status: AuthStatus.loading);
 
-    // Placeholder for future LFS implementation
-    // For now, just simulate a failed login
-    state = state.copyWith(
-      status: AuthStatus.error,
-      errorMessage: 'Login functionality will be implemented in a future LFS',
-    );
-    return false;
+    try {
+      final loginDto = LoginDto(
+        email: email,
+        password: password,
+      );
+
+      final response = await _apiClient.post(
+        '/auth/login',
+        data: loginDto.toJson(),
+      );
+
+      if (!mounted) return false;
+
+      if (response.statusCode == 200) {
+        final authResponse = AuthResponse.fromJson(response.data);
+
+        // Store tokens
+        await _authRepository.storeTokens(
+          accessToken: authResponse.accessToken,
+          refreshToken: authResponse.refreshToken,
+        );
+
+        // Update state with authenticated user
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: authResponse.user,
+          accessToken: authResponse.accessToken,
+          refreshToken: authResponse.refreshToken,
+          errorMessage: null,
+        );
+
+        return true;
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Login failed',
+      );
+      return false;
+    } on DioException catch (e) {
+      if (!mounted) return false;
+
+      String errorMessage = 'Login failed';
+      if (e.response?.statusCode == 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = e.response?.data['message'] ?? 'Invalid login data';
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+                 e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'Connection timeout. Please check your internet connection';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Unable to connect to server. Please try again later';
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: errorMessage,
+      );
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'An unexpected error occurred',
+      );
+      return false;
+    }
   }
 
   /// Register a new user
   Future<bool> register(String firstName, String lastName, String email, String password) async {
+    if (!mounted) return false;
     state = state.copyWith(status: AuthStatus.loading);
 
-    // Placeholder for future LFS implementation
-    // For now, just simulate a failed registration
-    state = state.copyWith(
-      status: AuthStatus.error,
-      errorMessage: 'Registration functionality will be implemented in a future LFS',
-    );
-    return false;
+    try {
+      final registerDto = RegisterDto(
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+      );
+
+      final response = await _apiClient.post(
+        '/auth/register',
+        data: registerDto.toJson(),
+      );
+
+      if (!mounted) return false;
+
+      if (response.statusCode == 201) {
+        final authResponse = AuthResponse.fromJson(response.data);
+
+        // Store tokens
+        await _authRepository.storeTokens(
+          accessToken: authResponse.accessToken,
+          refreshToken: authResponse.refreshToken,
+        );
+
+        // Update state with authenticated user
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: authResponse.user,
+          accessToken: authResponse.accessToken,
+          refreshToken: authResponse.refreshToken,
+          errorMessage: null,
+        );
+
+        return true;
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Registration failed',
+      );
+      return false;
+    } on DioException catch (e) {
+      if (!mounted) return false;
+
+      String errorMessage = 'Registration failed';
+      if (e.response?.statusCode == 409) {
+        errorMessage = 'User with this email already exists';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = e.response?.data['message'] ?? 'Invalid registration data';
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+                 e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'Connection timeout. Please check your internet connection';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Unable to connect to server. Please try again later';
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: errorMessage,
+      );
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'An unexpected error occurred',
+      );
+      return false;
+    }
   }
 
   /// Logout user and clear all tokens
@@ -192,5 +325,6 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// Provider for auth state
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository: authRepository);
+  final apiClient = ref.watch(apiClientProvider);
+  return AuthNotifier(authRepository: authRepository, apiClient: apiClient);
 });

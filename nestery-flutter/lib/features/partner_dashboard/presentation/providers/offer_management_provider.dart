@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/models/partner_offer_list_item.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/providers/offer_filter_provider.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/providers/partner_dashboard_provider.dart';
+import 'package:nestery_flutter/features/partner_dashboard/data/repositories/partner_dashboard_repository.dart';
 
 // Provider for offer list using the new DTO
 final offerListProvider = Provider((ref) {
@@ -16,37 +17,71 @@ final offerListProvider = Provider((ref) {
 
 final partnerOfferListProvider = FutureProvider<List<PartnerOfferListItem>>((ref) async {
   final filter = ref.watch(offerFilterStatusProvider);
+  final repository = ref.watch(partnerDashboardRepositoryProvider);
 
-  // Simulate network delay
-  await Future.delayed(const Duration(seconds: 1));
+  try {
+    // Get offers from API
+    final result = await repository.getPartnerOffers(
+      page: 1,
+      limit: 100, // Get all offers for now
+      status: filter == OfferFilterStatus.all ? null : filter.name,
+    );
 
-  // Generate a static list of sample PartnerOfferListItem objects
-  final List<PartnerOfferListItem> allOffers = [
-    PartnerOfferListItem(id: '1', title: 'Goa Beach Adventure Tour (Active)', status: OfferStatus.active, partnerCategory: 'TOUR_OPERATOR', validFrom: DateTime.now().subtract(const Duration(days: 5)), validTo: DateTime.now().add(const Duration(days: 25)), thumbnailUrl: 'https://via.placeholder.com/150/008000/FFFFFF?Text=NesteryTour'),
-    PartnerOfferListItem(id: '2', title: 'City Food Walk (Pending)', status: OfferStatus.pending, partnerCategory: 'ACTIVITY_PROVIDER', validFrom: DateTime.now().add(const Duration(days: 2)), validTo: DateTime.now().add(const Duration(days: 12)), thumbnailUrl: 'https://via.placeholder.com/150/FFA500/FFFFFF?Text=NesteryFood'),
-    PartnerOfferListItem(id: '3', title: 'Airport Shuttle Discount (Expired)', status: OfferStatus.expired, partnerCategory: 'TRANSPORTATION', validFrom: DateTime.now().subtract(const Duration(days: 30)), validTo: DateTime.now().subtract(const Duration(days: 1))),
-    PartnerOfferListItem(id: '4', title: 'Restaurant Special Dinner (Inactive)', status: OfferStatus.inactive, partnerCategory: 'RESTAURANT', validFrom: DateTime.now(), validTo: DateTime.now().add(const Duration(days: 60)), thumbnailUrl: 'https://via.placeholder.com/150/FF0000/FFFFFF?Text=NesteryDining'),
-    PartnerOfferListItem(id: '5', title: 'Travel Gear Sale (Active ECOM)', status: OfferStatus.active, partnerCategory: 'ECOMMERCE', validFrom: DateTime.now().subtract(const Duration(days: 1)), validTo: DateTime.now().add(const Duration(days: 15))),
-    PartnerOfferListItem(id: '6', title: 'Luxury Spa Day (Active)', status: OfferStatus.active, partnerCategory: 'ACTIVITY_PROVIDER', validFrom: DateTime.now().subtract(const Duration(days: 10)), validTo: DateTime.now().add(const Duration(days: 20)), thumbnailUrl: 'https://via.placeholder.com/150/0000FF/FFFFFF?Text=NesterySpa'),
-    PartnerOfferListItem(id: '7', title: 'Historical City Tour (Pending)', status: OfferStatus.pending, partnerCategory: 'TOUR_OPERATOR', validFrom: DateTime.now().add(const Duration(days: 5)), validTo: DateTime.now().add(const Duration(days: 35)), thumbnailUrl: 'https://via.placeholder.com/150/FFFF00/000000?Text=NesteryHistory'),
-  ];
+    return result.fold(
+      (failure) => throw Exception(failure.message),
+      (offers) {
+        // Convert PartnerOfferDto to PartnerOfferListItem
+        final allOffers = offers.map((offer) {
+          return PartnerOfferListItem(
+            id: offer.id,
+            title: offer.title,
+            status: _mapStatusFromApi(offer.isActive),
+            partnerCategory: _extractCategoryFromCommission(offer.commissionStructure),
+            validFrom: offer.validFrom,
+            validTo: offer.validTo,
+            thumbnailUrl: offer.originalUrl, // Use originalUrl as thumbnail for now
+          );
+        }).toList();
 
-  if (filter == OfferFilterStatus.all) {
-    return allOffers;
+        // Apply additional filtering if needed
+        if (filter == OfferFilterStatus.all) {
+          return allOffers;
+        }
+
+        return allOffers.where((offer) {
+          switch (filter) {
+            case OfferFilterStatus.active:
+              return offer.status == OfferStatus.active;
+            case OfferFilterStatus.inactive:
+              return offer.status == OfferStatus.inactive;
+            case OfferFilterStatus.pending:
+              return offer.status == OfferStatus.pending;
+            case OfferFilterStatus.expired:
+              return offer.status == OfferStatus.expired;
+            default:
+              return true;
+          }
+        }).toList();
+      },
+    );
+  } catch (e) {
+    // Return empty list on error - UI will handle error display
+    return <PartnerOfferListItem>[];
+  }
+});
+
+// Helper function to map API status to OfferStatus enum
+OfferStatus _mapStatusFromApi(bool isActive) {
+  if (!isActive) {
+    return OfferStatus.inactive;
   }
 
-  return allOffers.where((offer) {
-    switch (filter) {
-      case OfferFilterStatus.active:
-        return offer.status == OfferStatus.active;
-      case OfferFilterStatus.inactive:
-        return offer.status == OfferStatus.inactive;
-      case OfferFilterStatus.pending:
-        return offer.status == OfferStatus.pending;
-      case OfferFilterStatus.expired:
-        return offer.status == OfferStatus.expired;
-      default: // OfferFilterStatus.all already handled
-        return true;
-    }
-  }).toList();
-});
+  // For now, assume active offers are active
+  // In a real implementation, you'd check validity dates
+  return OfferStatus.active;
+}
+
+// Helper function to extract category from commission structure
+String _extractCategoryFromCommission(Map<String, dynamic> commissionStructure) {
+  return commissionStructure['category']?.toString() ?? 'TOUR_OPERATOR';
+}

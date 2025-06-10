@@ -165,7 +165,8 @@ describe('AuthService', () => {
       const registerDto = {
         email: 'new@example.com',
         password: 'password123',
-        name: 'New User',
+        firstName: 'New',
+        lastName: 'User',
       };
 
       const newUser = {
@@ -203,7 +204,8 @@ describe('AuthService', () => {
       const registerDto = {
         email: 'existing@example.com',
         password: 'password123',
-        name: 'Existing User',
+        firstName: 'Existing',
+        lastName: 'User',
       };
 
       mockUsersService.findByEmail.mockResolvedValue(mockUser);

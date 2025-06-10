@@ -66,7 +66,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (mounted) {
       if (success) {
         // Navigate to home screen on successful registration
-        Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
+        context.go('/home');
       } else {
         // Show error message
         final authState = ref.read(authProvider);
@@ -265,7 +265,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         const Text('Already have an account?'),
                         TextButton(
                           onPressed: () {
-                            Navigator.of(context).pushReplacementNamed(Constants.loginRoute);
+                            context.go('/login');
                           },
                           child: const Text('Login'),
                         ),

@@ -19,5 +19,6 @@ class OfferFormState with _$OfferFormState {
     String? titleError,
     String? commissionRateError,
     String? dateError,
+    String? submitError,
   }) = _OfferFormState;
 }

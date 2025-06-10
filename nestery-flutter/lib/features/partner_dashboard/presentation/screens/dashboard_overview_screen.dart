@@ -6,7 +6,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import '../providers/dashboard_metrics_provider.dart';
+import '../providers/revenue_analytics_provider.dart';
 import '../widgets/metric_card.dart';
+import '../widgets/revenue_metrics_card.dart';
+import '../widgets/revenue_trends_chart.dart';
+import '../widgets/commission_batch_widget.dart';
 import '../utils/dashboard_helpers.dart';
 import '../models/chart_data_point.dart';
 
@@ -122,6 +126,26 @@ class DashboardOverviewScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 24),
+
+              // New Revenue Analytics Section
+              const RevenueMetricsCard(),
+              const SizedBox(height: 16),
+
+              const RevenueTrendsChart(),
+              const SizedBox(height: 16),
+
+              // Commission Batch Widget (admin only - will handle visibility internally)
+              const CommissionBatchWidget(),
+              const SizedBox(height: 24),
+
+              // Original charts section (kept for backward compatibility)
+              Text(
+                'Legacy Charts',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
               _TimeRangeToggleButtons(
                 selectedOption: selectedTimeRange,
                 onOptionSelected: (option) {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 
@@ -61,10 +62,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
     if (authState.isAuthenticated) {
       // User is authenticated, navigate to home screen
-      Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
+      context.go('/home');
     } else {
       // User is not authenticated, navigate to login screen
-      Navigator.of(context).pushReplacementNamed(Constants.loginRoute);
+      context.go('/login');
     }
   }
 

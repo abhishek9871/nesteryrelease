@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/screens/splash_screen.dart';
 import 'package:nestery_flutter/screens/login_screen.dart';
 import 'package:nestery_flutter/screens/register_screen.dart';
+import 'package:nestery_flutter/screens/forgot_password_screen.dart';
+import 'package:nestery_flutter/screens/reset_password_screen.dart';
+import 'package:nestery_flutter/screens/terms_conditions_screen.dart';
 import 'package:nestery_flutter/screens/home_screen.dart';
 import 'package:nestery_flutter/screens/property_details_screen.dart';
 import 'package:nestery_flutter/screens/booking_screen.dart';
@@ -43,7 +46,7 @@ class AppRouter {
       final isLoggedIn = authState.isAuthenticated;
 
       // Paths that don't require authentication
-      final publicPaths = ['/login', '/register', '/'];
+      final publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/terms-conditions', '/'];
 
       // If the user is not logged in and trying to access a protected route
       if (!isLoggedIn && !publicPaths.contains(state.matchedLocation)) {
@@ -75,6 +78,21 @@ class AppRouter {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return ResetPasswordScreen(token: token);
+        },
+      ),
+      GoRoute(
+        path: '/terms-conditions',
+        builder: (context, state) => const TermsConditionsScreen(),
       ),
 
       // Main app shell with bottom navigation

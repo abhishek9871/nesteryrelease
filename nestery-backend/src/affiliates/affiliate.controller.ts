@@ -24,7 +24,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Response as ExpressResponse } from 'express';
-import { EarningStatusEnum } from './enums/earning-status.enum';
 import { PartnerService } from './services/partner.service';
 import { AffiliateOfferService } from './services/affiliate-offer.service';
 import { TrackableLinkService } from './services/trackable-link.service';
@@ -369,7 +368,11 @@ export class AffiliateController {
   @Roles('partner')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get comprehensive partner dashboard data' })
-  @ApiResponse({ status: 200, description: 'Dashboard data retrieved successfully', type: PartnerDashboardDataDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard data retrieved successfully',
+    type: PartnerDashboardDataDto,
+  })
   async getDashboardData(@GetPartnerId() partnerId: string): Promise<PartnerDashboardDataDto> {
     return this.partnerService.getComprehensiveDashboardData(partnerId);
   }

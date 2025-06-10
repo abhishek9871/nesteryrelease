@@ -57,7 +57,10 @@ export class AffiliateOfferService {
   /**
    * Create a new offer for a partner (self-service)
    */
-  async createForPartner(partnerId: string, createOfferDto: CreateOfferDto): Promise<AffiliateOfferEntity> {
+  async createForPartner(
+    partnerId: string,
+    createOfferDto: CreateOfferDto,
+  ): Promise<AffiliateOfferEntity> {
     this.logger.log(`Creating offer for partner ${partnerId}: ${JSON.stringify(createOfferDto)}`);
 
     // Verify partner exists and is active
@@ -270,9 +273,11 @@ export class AffiliateOfferService {
   async updateForPartner(
     offerId: string,
     updateOfferDto: UpdateOfferDto,
-    partnerId: string
+    partnerId: string,
   ): Promise<AffiliateOfferEntity> {
-    this.logger.log(`Partner ${partnerId} updating offer ${offerId} with data: ${JSON.stringify(updateOfferDto)}`);
+    this.logger.log(
+      `Partner ${partnerId} updating offer ${offerId} with data: ${JSON.stringify(updateOfferDto)}`,
+    );
 
     const offer = await this.offerRepository.findOne({
       where: { id: offerId },
@@ -287,7 +292,7 @@ export class AffiliateOfferService {
     if (offer.partnerId !== partnerId) {
       throw new BadRequestException(
         `Access denied: Partner ${partnerId} is not authorized to update offer ${offerId}. ` +
-        `This offer belongs to partner ${offer.partnerId}.`
+          `This offer belongs to partner ${offer.partnerId}.`,
       );
     }
 
@@ -297,7 +302,9 @@ export class AffiliateOfferService {
     }
 
     // Validate date range if dates are being updated
-    const validFrom = updateOfferDto.validFrom ? new Date(updateOfferDto.validFrom) : offer.validFrom;
+    const validFrom = updateOfferDto.validFrom
+      ? new Date(updateOfferDto.validFrom)
+      : offer.validFrom;
     const validTo = updateOfferDto.validTo ? new Date(updateOfferDto.validTo) : offer.validTo;
 
     if (validFrom >= validTo) {

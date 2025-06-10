@@ -47,6 +47,7 @@ import { PartnerEntity } from './affiliates/entities/partner.entity';
 import { AffiliateOfferEntity } from './affiliates/entities/affiliate-offer.entity';
 import { AffiliateLinkEntity } from './affiliates/entities/affiliate-link.entity';
 import { AffiliateEarningEntity } from './affiliates/entities/affiliate-earning.entity';
+import { CommissionBatchEntity } from './affiliates/entities/commission-batch.entity';
 
 // import { PciSecurityMiddleware } from './middleware/pci-security.middleware'; // Removed as per redirect model for Booking.com
 
@@ -145,6 +146,7 @@ import { AffiliateEarningEntity } from './affiliates/entities/affiliate-earning.
           AffiliateOfferEntity,
           AffiliateLinkEntity,
           AffiliateEarningEntity,
+          CommissionBatchEntity,
         ],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: configService.get('NODE_ENV') !== 'production',

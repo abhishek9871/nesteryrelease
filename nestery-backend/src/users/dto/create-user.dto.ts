@@ -26,13 +26,22 @@ export class CreateUserDto {
   password: string;
 
   @ApiProperty({
-    description: 'User full name',
-    example: 'John Doe',
+    description: 'User first name',
+    example: 'John',
   })
   @IsString()
-  @MinLength(2, { message: 'Name must be at least 2 characters long' })
-  @MaxLength(100, { message: 'Name must not exceed 100 characters' })
-  name: string;
+  @MinLength(2, { message: 'First name must be at least 2 characters long' })
+  @MaxLength(50, { message: 'First name must not exceed 50 characters' })
+  firstName: string;
+
+  @ApiProperty({
+    description: 'User last name',
+    example: 'Doe',
+  })
+  @IsString()
+  @MinLength(2, { message: 'Last name must be at least 2 characters long' })
+  @MaxLength(50, { message: 'Last name must not exceed 50 characters' })
+  lastName: string;
 
   @ApiProperty({
     description: 'User role',

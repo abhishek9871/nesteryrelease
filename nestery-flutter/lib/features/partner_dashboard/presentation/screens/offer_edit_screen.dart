@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -34,34 +33,57 @@ class OfferEditScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     _buildMediaCard(context),
                     const SizedBox(height: 24),
+                    if (formState.submitError != null)
+                      Container(
+                        padding: const EdgeInsets.all(12.0),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          border: Border.all(color: Colors.red),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error, color: Colors.red.shade700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Error: ${formState.submitError}',
+                                style: TextStyle(color: Colors.red.shade700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ElevatedButton(
                       onPressed: formState.isSubmitting
                           ? null
                           : () async {
                               await formNotifier.saveOffer();
                               final currentState = ref.read(formProvider);
-                              if (currentState.titleError == null &&
+
+                              if (currentState.submitError == null &&
+                                  currentState.titleError == null &&
                                   currentState.commissionRateError == null &&
-                                  currentState.dateError == null) {
+                                  currentState.dateError == null &&
+                                  !currentState.isSubmitting) {
                                 if (context.mounted) {
-                                  final offerData = {
-                                    'id': currentState.id,
-                                    'title': currentState.title,
-                                    'description': currentState.description,
-                                    'partnerCategory': currentState.partnerCategory,
-                                    'commissionRate': currentState.commissionRate,
-                                    'validFrom': currentState.validFrom?.toIso8601String(),
-                                    'validTo': currentState.validTo?.toIso8601String(),
-                                  };
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       backgroundColor: Colors.green,
-                                      content: Text('Offer Saved (Placeholder): ${jsonEncode(offerData)}'),
-                                      duration: const Duration(seconds: 3),
+                                      content: Text(currentState.isEditing
+                                          ? 'Offer updated successfully!'
+                                          : 'Offer created successfully!'),
+                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
+                                  // Navigate back to offer list
+                                  Navigator.of(context).pop();
                                 }
-                              } else {
+                              } else if (currentState.submitError == null &&
+                                        (currentState.titleError != null ||
+                                         currentState.commissionRateError != null ||
+                                         currentState.dateError != null)) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(

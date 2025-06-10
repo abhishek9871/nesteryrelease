@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/models/offer_form_state.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/providers/offer_management_provider.dart';
 import 'package:nestery_flutter/features/partner_dashboard/presentation/utils/validators.dart';
+import 'package:nestery_flutter/features/partner_dashboard/data/models/partner_offer_dto.dart';
+import 'package:nestery_flutter/features/partner_dashboard/data/repositories/partner_dashboard_repository.dart';
 
 final offerFormStateNotifierProvider = StateNotifierProvider.family<
     OfferFormStateNotifier, OfferFormState, String?>(
@@ -82,20 +84,73 @@ class OfferFormStateNotifier extends StateNotifier<OfferFormState> {
   }
 
   Future<void> saveOffer() async {
-    state = state.copyWith(isSubmitting: true);
+    state = state.copyWith(isSubmitting: true, submitError: null);
     updateTitle(state.title);
     updateCommissionRate(state.commissionRate);
     if (state.validFrom == null || state.validTo == null || state.validTo!.isBefore(state.validFrom!)) {
        state = state.copyWith(dateError: 'Please select a valid date range.');
     }
-    
+
     if(state.titleError != null || state.commissionRateError != null || state.dateError != null) {
        state = state.copyWith(isSubmitting: false);
        return;
     }
 
-    // In a real app, here you would call your repository to save the data.
-    await Future.delayed(const Duration(seconds: 1)); 
-    state = state.copyWith(isSubmitting: false);
+    try {
+      final repository = _ref.read(partnerDashboardRepositoryProvider);
+
+      if (state.isEditing && state.id.isNotEmpty) {
+        // Update existing offer
+        final updateDto = UpdatePartnerOfferDto(
+          title: state.title,
+          description: state.description,
+          commissionStructure: _buildCommissionStructure(),
+          validFrom: state.validFrom,
+          validTo: state.validTo,
+          termsConditions: 'Standard terms and conditions', // TODO: Add to form
+        );
+
+        final result = await repository.updateOffer(state.id, updateDto);
+        result.fold(
+          (failure) => throw Exception(failure.message),
+          (offer) {
+            state = state.copyWith(isSubmitting: false);
+            // Success - the UI will handle navigation
+          },
+        );
+      } else {
+        // Create new offer
+        final createDto = CreatePartnerOfferDto(
+          title: state.title,
+          description: state.description,
+          commissionStructure: _buildCommissionStructure(),
+          validFrom: state.validFrom!,
+          validTo: state.validTo!,
+          termsConditions: 'Standard terms and conditions', // TODO: Add to form
+        );
+
+        final result = await repository.createOffer(createDto);
+        result.fold(
+          (failure) => throw Exception(failure.message),
+          (offer) {
+            state = state.copyWith(isSubmitting: false);
+            // Success - the UI will handle navigation
+          },
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: e.toString(),
+      );
+    }
+  }
+
+  Map<String, dynamic> _buildCommissionStructure() {
+    return {
+      'type': 'percentage',
+      'rate': double.parse(state.commissionRate),
+      'category': state.partnerCategory,
+    };
   }
 }

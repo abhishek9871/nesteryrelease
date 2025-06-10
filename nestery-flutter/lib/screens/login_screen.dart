@@ -41,7 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (mounted) {
       if (success) {
         // Navigate to home screen on successful login
-        Navigator.of(context).pushReplacementNamed(Constants.homeRoute);
+        context.go('/home');
       } else {
         // Show error message
         final authState = ref.read(authProvider);
@@ -187,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const Text("Don't have an account?"),
                         TextButton(
                           onPressed: () {
-                            Navigator.of(context).pushReplacementNamed(Constants.registerRoute);
+                            context.go('/register');
                           },
                           child: const Text('Register'),
                         ),

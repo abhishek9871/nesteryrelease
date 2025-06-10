@@ -343,7 +343,9 @@ describe('PartnerService', () => {
       ];
 
       // Spy on private methods
-      jest.spyOn(service as any, 'calculateDashboardMetrics').mockResolvedValue(mockDashboardMetrics);
+      jest
+        .spyOn(service as any, 'calculateDashboardMetrics')
+        .mockResolvedValue(mockDashboardMetrics);
       jest.spyOn(service as any, 'getEarningsReportData').mockResolvedValue(mockEarningsReport);
       jest.spyOn(service as any, 'getPartnerOffersList').mockResolvedValue(mockPartnerOffers);
 
@@ -357,7 +359,10 @@ describe('PartnerService', () => {
       expect(result.partnerOffers).toEqual(mockPartnerOffers);
 
       // Verify that private methods were called with correct parameters
-      expect(service['calculateDashboardMetrics']).toHaveBeenCalledWith(partnerId, expect.any(Date));
+      expect(service['calculateDashboardMetrics']).toHaveBeenCalledWith(
+        partnerId,
+        expect.any(Date),
+      );
       expect(service['getEarningsReportData']).toHaveBeenCalledWith(
         partnerId,
         EarningStatusEnum.CONFIRMED,
@@ -375,7 +380,9 @@ describe('PartnerService', () => {
 
       // Mock the private helper methods
       jest.spyOn(service as any, 'calculateDashboardMetrics').mockResolvedValue({});
-      jest.spyOn(service as any, 'getEarningsReportData').mockResolvedValue({ summary: {}, transactions: [] });
+      jest
+        .spyOn(service as any, 'getEarningsReportData')
+        .mockResolvedValue({ summary: {}, transactions: [] });
       jest.spyOn(service as any, 'getPartnerOffersList').mockResolvedValue([]);
 
       await service.getComprehensiveDashboardData(partnerId, filters);

@@ -16,6 +16,7 @@ export const AppDataSource = new DataSource({
   database: configService.get('DATABASE_NAME', 'nestery_dev'),
   entities: ['src/**/*.entity{.ts,.js}'],
   migrations: ['src/migrations/*{.ts,.js}'],
-  synchronize: false,
-  logging: true,
+  synchronize: configService.get('DATABASE_SYNCHRONIZE', 'false') === 'true',
+  logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
+  ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
 });
