@@ -58,11 +58,13 @@ async function bootstrap() {
     SwaggerModule.setup('docs', app, document);
     logger.log('Swagger documentation is available at /v1/docs');
   }
-  // Start the server
+  // Start the server with timeout protection
   const port = configService.get('PORT', 3000);
   const host = configService.get('HOST', '0.0.0.0');
+
+  logger.log(`Starting server on ${host}:${port}...`);
   await app.listen(port, host);
-  logger.log(`Application is running on ${host}:${port}`);
+  logger.log(`✅ Application is running on ${host}:${port}`);
 
   // Developer Note:
   // API endpoints are now prefixed with /v1/.

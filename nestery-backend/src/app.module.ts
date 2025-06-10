@@ -70,6 +70,7 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
       useFactory: async (configService: ConfigService, logger: LoggerService) => {
         const host = configService.get<string>('CACHE_HOST');
         const port = configService.get<number>('CACHE_PORT');
+        const password = configService.get<string>('CACHE_PASSWORD');
         const ttlInMilliseconds = configService.get<number>('CACHE_TTL_DEFAULT_SECONDS', 60) * 1000;
 
         try {
@@ -78,12 +79,23 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
             'CacheModuleFactory',
           );
 
-          // Create Redis connection URL
-          const redisUrl = `redis://${host}:${port}`;
+          // Create Redis connection URL with authentication for Upstash
+          const redisUrl = password
+            ? `redis://:${password}@${host}:${port}`
+            : `redis://${host}:${port}`;
 
-          // Test connection by creating a temporary Keyv instance
+          // Test connection with timeout to prevent hanging
           const testKeyv = createKeyv(redisUrl);
-          await testKeyv.set('test-connection', 'ok', 1000);
+
+          // Add timeout to prevent hanging
+          const connectionTest = Promise.race([
+            testKeyv.set('test-connection', 'ok', 1000),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Redis connection timeout')), 5000)
+            )
+          ]);
+
+          await connectionTest;
           await testKeyv.delete('test-connection');
 
           logger.log(`Redis connection test successful to ${host}:${port}`, 'CacheModuleFactory');

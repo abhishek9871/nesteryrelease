@@ -48,5 +48,6 @@ export const configValidationSchema = Joi.object({
   // Cache
   CACHE_HOST: Joi.string().default('localhost'),
   CACHE_PORT: Joi.number().default(6379),
+  CACHE_PASSWORD: Joi.string().optional(), // For Redis authentication (Upstash)
   CACHE_TTL_DEFAULT_SECONDS: Joi.number().default(60),
 });
