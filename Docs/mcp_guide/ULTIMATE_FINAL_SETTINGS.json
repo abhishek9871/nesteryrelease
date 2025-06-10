@@ -1,0 +1,78 @@
+{
+    "workbench.editor.empty.hint": "hidden",
+    "github.copilot.enable": {
+        "*": false
+    },
+    "augment.chat.userGuidelines": "**Always use commands for windows powershell when working in the terminal for any command**\n\n**Use web search for package information mentioned in a task and make sure they are compatible with our project. Use Tavily MCP as of June 2, 2025 to be absolutely sure about everything. There must be no build failure on things like these after your comprehensive web research about the task that you are given in any chat thread. You will use comprehensive web searches for absolute surety on things you are not 100% confident about. Do not depend on you AI training data for doing things. Always find things using tavily MCP server that are as of 3rd June, 2025 and also things which will be perefct from a future perspective. You can use context 7 mcp as well in synchronisation with the web searches and then cross verify that information before implementing to be 1000% sure.**",
+    "editor.inlineSuggest.syntaxHighlightingEnabled": true,
+    "zencoder.shellTool.allowedCommands": [
+        "whoami",
+        "find",
+        "sort",
+        "cd",
+        "echo",
+        "ls",
+        "pwd",
+        "cat",
+        "head",
+        "tail",
+        "uname",
+        "id",
+        "env",
+        "printenv",
+        "df",
+        "free",
+        "ps",
+        "grep",
+        "uniq",
+        "wc",
+        "diff",
+        "dir",
+        "tree",
+        "chdir",
+        "type",
+        "help",
+        "ver",
+        "systeminfo",
+        "ipconfig",
+        "tasklist",
+        "hostname",
+        "netstat",
+        "which",
+        "awk",
+        "git status",
+        "git diff",
+        "git log",
+        "git branch",
+        "git"
+    ],
+    "redhat.telemetry.enabled": true,
+    "augment.advanced": {
+        "mcpServers": [
+            {
+                "name": "filesystem",
+                "command": "C:/PROGRA~1/nodejs/node.exe",
+                "args": ["C:/PROGRA~1/nodejs/node_modules/npm/bin/npx-cli.js", "-y", "@modelcontextprotocol/server-filesystem", "C:/Users/VASU/Desktop/nesteryrelease"]
+            },
+            {
+                "name": "vectorsearch",
+                "command": "c:/users/vasu/.local/bin/uvx.exe",
+                "args": ["mcp-server-qdrant"],
+                "env": {
+                    "QDRANT_URL": "http://localhost:6333",
+                    "COLLECTION_NAME": "nesteryrelease-collection",
+                    "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+                    "PATH": "C:/Program Files/Git/cmd;C:/Program Files/nodejs;c:/users/vasu/.local/bin"
+                }
+            },
+            {
+                "name": "serena",
+                "command": "C:/Users/VASU/AppData/Local/Programs/Python/Python313/Scripts/uv.exe",
+                "args": ["run", "--directory", "C:/Users/VASU/serena", "serena-mcp-server"],
+                "env": {
+                    "PATH": "C:/Program Files/Git/cmd;C:/Program Files/nodejs;c:/users/vasu/.local/bin"
+                }
+            }
+        ]
+    }
+}

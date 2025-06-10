@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/providers/link_generation_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 class LinkGenerationBottomSheet extends StatelessWidget {
-  final GeneratedLink generatedLink;
-  const LinkGenerationBottomSheet({super.key, required this.generatedLink});
+  final String trackableUrl;
+  final String? qrCodeDataUrl;
+  final String uniqueCode;
+
+  const LinkGenerationBottomSheet({
+    super.key,
+    required this.trackableUrl,
+    this.qrCodeDataUrl,
+    required this.uniqueCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +40,7 @@ class LinkGenerationBottomSheet extends StatelessWidget {
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: QrImageView(
-              data: generatedLink.qrData,
+              data: qrCodeDataUrl ?? trackableUrl,
               version: QrVersions.auto,
               size: 200.0,
               errorCorrectionLevel: QrErrorCorrectLevel.H,
@@ -49,10 +56,10 @@ class LinkGenerationBottomSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Expanded(child: Text(generatedLink.trackableUrl, style: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'), overflow: TextOverflow.ellipsis,)),
+                Expanded(child: Text(trackableUrl, style: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'), overflow: TextOverflow.ellipsis,)),
                 IconButton(
                   onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: generatedLink.trackableUrl));
+                    await Clipboard.setData(ClipboardData(text: trackableUrl));
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Link copied to clipboard!')),
@@ -74,7 +81,7 @@ class LinkGenerationBottomSheet extends StatelessWidget {
               final box = context.findRenderObject() as RenderBox?;
               try {
                 await Share.share(
-                  generatedLink.trackableUrl,
+                  trackableUrl,
                   sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
                 );
               } catch (e) {

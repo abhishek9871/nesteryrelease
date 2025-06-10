@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/providers/affiliate_offers_provider.dart';
+import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/providers/affiliate_offers_state.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/providers/offer_filter_provider.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/widgets/offer_card_widget.dart';
 import 'package:nestery_flutter/features/affiliate_offers_browser/presentation/widgets/offer_filter_widgets.dart';
@@ -11,30 +12,58 @@ class AffiliateOffersBrowserScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final offersAsync = ref.watch(affiliateOffersProvider);
+    final offersState = ref.watch(affiliateOffersProvider);
     final filteredOffers = ref.watch(filteredOffersProvider);
+
+    // Initialize offers loading on first build
+    if (offersState == const AffiliateOffersState.loading()) {
+      Future.microtask(() {
+        ref.read(affiliateOffersProvider.notifier).loadOffers();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Discover Offers'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.read(affiliateOffersProvider.notifier).refreshOffers();
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
           const OfferFilterWidgets(),
           Expanded(
-            child: offersAsync.when(
+            child: offersState.when(
               loading: () => _buildLoadingShimmer(),
-              error: (error, stackTrace) => _buildErrorWidget(context, ref, error),
-              data: (_) {
+              error: (message, cachedOffers) => _buildErrorWidget(context, ref, message),
+              success: (offers, currentPage, hasMore, totalCount) {
                 if (filteredOffers.isEmpty) {
                   return _buildEmptyState(context, ref);
                 }
-                return ListView.builder(
-                  itemCount: filteredOffers.length,
-                  itemBuilder: (context, index) {
-                    final offer = filteredOffers[index];
-                    return OfferCardWidget(offer: offer);
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await ref.read(affiliateOffersProvider.notifier).refreshOffers();
                   },
+                  child: ListView.builder(
+                    itemCount: filteredOffers.length + (hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == filteredOffers.length) {
+                        // Load more indicator
+                        ref.read(affiliateOffersProvider.notifier).loadMoreOffers();
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final offer = filteredOffers[index];
+                      return OfferCardWidget(offer: offer);
+                    },
+                  ),
                 );
               },
             ),
@@ -94,7 +123,7 @@ class AffiliateOffersBrowserScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorWidget(BuildContext context, WidgetRef ref, Object error) {
+  Widget _buildErrorWidget(BuildContext context, WidgetRef ref, String error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),

@@ -13,33 +13,34 @@ class OfferDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final offerAsync = ref.watch(offerDetailProvider(offerId));
-    
-    ref.listen<AsyncValue<GeneratedLink?>>(linkGenerationProvider, (previous, next) {
+    final offerState = ref.watch(offerDetailProvider(offerId));
+
+    ref.listen(linkGenerationProvider, (previous, next) {
       next.when(
-        data: (generatedLink) {
-          if (generatedLink != null) {
-            showModalBottomSheet(
-              context: context,
-              builder: (_) => LinkGenerationBottomSheet(generatedLink: generatedLink),
-            );
-          }
+        idle: () {},
+        loading: () {},
+        success: (trackableUrl, qrCodeDataUrl, uniqueCode) {
+          showModalBottomSheet(
+            context: context,
+            builder: (_) => LinkGenerationBottomSheet(
+              trackableUrl: trackableUrl,
+              qrCodeDataUrl: qrCodeDataUrl,
+              uniqueCode: uniqueCode,
+            ),
+          );
         },
-        error: (error, stack) => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating link: $error')),
+        error: (message) => ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating link: $message')),
         ),
-        loading: () {
-          // Optionally show a loading indicator, but button will be disabled.
-        },
       );
     });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Offer Details')),
-      body: offerAsync.when(
+      body: offerState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        data: (offer) => _buildOfferDetailContent(context, ref, offer),
+        error: (message) => Center(child: Text('Error: $message')),
+        success: (offer) => _buildOfferDetailContent(context, ref, offer),
       ),
     );
   }
@@ -67,11 +68,25 @@ class OfferDetailScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                   ),
-                  onPressed: linkState.isLoading ? null : () {
-                    ref.read(linkGenerationProvider.notifier).generateLink(offer.offerId);
-                  },
+                  onPressed: linkState.when(
+                    idle: () => () {
+                      ref.read(linkGenerationProvider.notifier).generateLink(offer.offerId);
+                    },
+                    loading: () => null,
+                    success: (_, __, ___) => () {
+                      ref.read(linkGenerationProvider.notifier).generateLink(offer.offerId);
+                    },
+                    error: (_) => () {
+                      ref.read(linkGenerationProvider.notifier).generateLink(offer.offerId);
+                    },
+                  ),
                   icon: const Icon(Icons.qr_code_2),
-                  label: Text(linkState.isLoading ? 'Generating...' : 'Generate Link'),
+                  label: Text(linkState.when(
+                    idle: () => 'Generate Link',
+                    loading: () => 'Generating...',
+                    success: (_, __, ___) => 'Generate New Link',
+                    error: (_) => 'Retry Generate Link',
+                  )),
                 ),
               ],
             ),
