@@ -15,10 +15,33 @@ class ApiClient {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'User-Agent': 'Nestery-Flutter/1.0.0', // Identify Flutter app to backend
           },
         )) {
     dio.interceptors.addAll([
       AuthInterceptor(ref),
+      // Railway backend logging interceptor
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (kDebugMode) {
+            print('🚀 API Request: ${options.method} ${options.uri}');
+          }
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            print('✅ API Response: ${response.statusCode} ${response.requestOptions.uri}');
+          }
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          if (kDebugMode) {
+            print('❌ API Error: ${error.response?.statusCode} ${error.requestOptions.uri}');
+            print('Error message: ${error.message}');
+          }
+          handler.next(error);
+        },
+      ),
       if (kDebugMode)
         LogInterceptor(
           requestBody: true,

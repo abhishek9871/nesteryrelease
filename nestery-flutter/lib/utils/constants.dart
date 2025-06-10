@@ -40,6 +40,7 @@ class Constants {
   static const String refreshTokenKey = 'refresh_token';
 
   // API Endpoints
+  static const String healthEndpoint = '/health'; // Railway backend health check
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
   static const String refreshTokenEndpoint = '/auth/refresh-token';
@@ -56,6 +57,12 @@ class Constants {
   static const String socialSharingEndpoint = '/social';
   static const String recommendationsEndpoint = '/recommendations';
   static const String pricePredictionEndpoint = '/price-prediction';
+
+  // Affiliate System Endpoints (Tasks 1-4 implemented)
+  static const String affiliatePartnersEndpoint = '/affiliates/partners';
+  static const String affiliateOffersEndpoint = '/affiliates/offers';
+  static const String affiliateDashboardEndpoint = '/affiliates/dashboard';
+  static const String revenueAnalyticsEndpoint = '/revenue/analytics';
 
   // Pagination
   static const int defaultPageSize = 20;
@@ -137,7 +144,8 @@ class Constants {
   // Initialize constants from environment variables
   static void initialize() {
     try {
-      apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/v1';
+      // Use Railway backend URL from environment, fallback to production Railway URL
+      apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'https://nesteryrelease-production.up.railway.app/v1';
       googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
       stripePublishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
       bookingComApiKey = dotenv.env['BOOKING_COM_API_KEY'] ?? '';
@@ -145,10 +153,10 @@ class Constants {
       oyoPartnerId = dotenv.env['OYO_PARTNER_ID'] ?? '';
       hotelbedsApiKey = dotenv.env['HOTELBEDS_API_KEY'] ?? '';
       hotelbedsApiSecret = dotenv.env['HOTELBEDS_API_SECRET'] ?? '';
-      environment = dotenv.env['ENVIRONMENT'] ?? 'development';
+      environment = dotenv.env['ENVIRONMENT'] ?? 'production';
     } catch (e) {
-      // If dotenv is not initialized (e.g., in tests), use default values
-      apiBaseUrl = 'http://localhost:3000/v1';
+      // If dotenv is not initialized (e.g., in tests), use Railway production URL
+      apiBaseUrl = 'https://nesteryrelease-production.up.railway.app/v1';
       googleMapsApiKey = '';
       stripePublishableKey = '';
       bookingComApiKey = '';
