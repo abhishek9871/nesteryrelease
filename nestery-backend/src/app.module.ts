@@ -79,19 +79,28 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
             'CacheModuleFactory',
           );
 
-          // Create Redis connection URL with authentication for Upstash
+          // Create Redis connection URL with proper Upstash authentication format
           const redisUrl = password
-            ? `redis://:${password}@${host}:${port}`
+            ? `redis://default:${password}@${host}:${port}`  // Upstash requires 'default' username
             : `redis://${host}:${port}`;
 
-          // Test connection with timeout to prevent hanging
-          const testKeyv = createKeyv(redisUrl);
+          // Test connection with timeout and proper Upstash options
+          const keyvOptions = {
+            url: redisUrl,
+            // Upstash-specific connection options
+            connectTimeout: 10000,  // 10 seconds
+            lazyConnect: true,      // Don't connect immediately
+            retryDelayOnFailover: 100,
+            maxRetriesPerRequest: 3,
+          };
 
-          // Add timeout to prevent hanging
+          const testKeyv = createKeyv(keyvOptions);
+
+          // Add timeout to prevent hanging (reduced to 8 seconds for faster fallback)
           const connectionTest = Promise.race([
             testKeyv.set('test-connection', 'ok', 1000),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Redis connection timeout')), 5000)
+              setTimeout(() => reject(new Error('Redis connection timeout')), 8000)
             )
           ]);
 
@@ -100,9 +109,9 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
 
           logger.log(`Redis connection test successful to ${host}:${port}`, 'CacheModuleFactory');
 
-          // Return configuration with Redis store
+          // Return configuration with Redis store using optimized options
           return {
-            stores: [createKeyv(redisUrl)],
+            stores: [createKeyv(keyvOptions)],
             ttl: ttlInMilliseconds, // Global TTL for CacheModule in milliseconds
           };
         } catch (error) {
