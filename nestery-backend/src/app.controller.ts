@@ -9,13 +9,13 @@ export class AppController {
 
   @Get()
   @ApiOperation({ summary: 'Health check endpoint' })
-  getHealth(): { status: string; version: string } {
+  async getHealth(): Promise<{ status: string; version: string; database?: string; timestamp: string }> {
     return this.appService.getHealth();
   }
 
   @Get('health')
   @ApiOperation({ summary: 'Health check endpoint (legacy)' })
-  getHealthLegacy(): { status: string; version: string } {
+  async getHealthLegacy(): Promise<{ status: string; version: string; database?: string; timestamp: string }> {
     return this.appService.getHealth();
   }
 }

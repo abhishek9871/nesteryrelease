@@ -9,6 +9,7 @@ export const configValidationSchema = Joi.object({
   FRONTEND_URL: Joi.string().default('http://localhost:3000'),
 
   // Database
+  DATABASE_URL: Joi.string().optional(), // For Neon PostgreSQL connection string
   DATABASE_HOST: Joi.string().default('localhost'),
   DATABASE_PORT: Joi.number().default(5432),
   DATABASE_USERNAME: Joi.string().default('postgres'),

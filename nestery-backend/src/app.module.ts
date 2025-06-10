@@ -106,14 +106,16 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
       },
     }),
 
-    // Database
+    // Database - Following official Neon Railway integration guide
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const databaseUrl = configService.get('DATABASE_URL');
+        const nodeEnv = configService.get('NODE_ENV');
+
         if (databaseUrl) {
-          // Use connection string if available
+          // Use connection string for Neon PostgreSQL (official Railway integration approach)
           return {
             type: 'postgres',
             url: databaseUrl,
@@ -149,12 +151,13 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
               CommissionBatchEntity,
             ],
             migrations: [__dirname + '/migrations/*{.ts,.js}'],
-            synchronize: configService.get('NODE_ENV') !== 'production',
-            logging: configService.get('NODE_ENV') !== 'production',
-            ssl: { rejectUnauthorized: false },
+            synchronize: nodeEnv !== 'production',
+            logging: nodeEnv !== 'production',
+            // Simple SSL configuration as per Neon Railway docs
+            ssl: nodeEnv === 'production',
           };
         } else {
-          // Fallback to individual parameters
+          // Fallback to individual parameters for local development
           return {
             type: 'postgres',
             host: configService.get('DATABASE_HOST'),
@@ -194,9 +197,9 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
               CommissionBatchEntity,
             ],
             migrations: [__dirname + '/migrations/*{.ts,.js}'],
-            synchronize: configService.get('NODE_ENV') !== 'production',
-            logging: configService.get('NODE_ENV') !== 'production',
-            ssl: { rejectUnauthorized: false },
+            synchronize: nodeEnv !== 'production',
+            logging: nodeEnv !== 'production',
+            ssl: false,
           };
         }
       },

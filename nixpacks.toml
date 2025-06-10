@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ['nodejs_20', 'npm']
+
+[phases.build]
+cmds = [
+  'cd nestery-backend',
+  'npm ci',
+  'npm run build'
+]
+
+[start]
+cmd = 'cd nestery-backend && npm run start:prod'
