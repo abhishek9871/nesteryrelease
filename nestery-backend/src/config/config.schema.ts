@@ -24,12 +24,12 @@ export const configValidationSchema = Joi.object({
   JWT_ACCESS_EXPIRATION: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
 
-  // External APIs
-  BOOKING_COM_API_KEY: Joi.string().required(),
-  BOOKING_COM_API_SECRET: Joi.string().required(),
-  BOOKING_COM_API_URL: Joi.string().required(),
-  GOOGLE_MAPS_API_KEY: Joi.string().required(),
-  GOOGLE_MAPS_API_URL: Joi.string().required(),
+  // External APIs (optional for deployment testing)
+  BOOKING_COM_API_KEY: Joi.string().default('placeholder_booking_api_key'),
+  BOOKING_COM_API_SECRET: Joi.string().default('placeholder_booking_api_secret'),
+  BOOKING_COM_API_URL: Joi.string().default('https://distribution-xml.booking.com/3.1'),
+  GOOGLE_MAPS_API_KEY: Joi.string().default('placeholder_google_maps_api_key'),
+  GOOGLE_MAPS_API_URL: Joi.string().default('https://maps.googleapis.com/maps/api/geocode/json'),
 
   // Rate Limiting
   THROTTLE_TTL: Joi.number().default(60),
