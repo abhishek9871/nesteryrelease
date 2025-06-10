@@ -4,21 +4,22 @@ export const configValidationSchema = Joi.object({
   // Application
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   PORT: Joi.number().default(3000),
+  HOST: Joi.string().default('0.0.0.0'),
   API_PREFIX: Joi.string().default('v1'),
-  FRONTEND_URL: Joi.string().required(),
+  FRONTEND_URL: Joi.string().default('http://localhost:3000'),
 
   // Database
-  DATABASE_HOST: Joi.string().required(),
+  DATABASE_HOST: Joi.string().default('localhost'),
   DATABASE_PORT: Joi.number().default(5432),
-  DATABASE_USERNAME: Joi.string().required(),
-  DATABASE_PASSWORD: Joi.string().required(),
-  DATABASE_NAME: Joi.string().required(),
+  DATABASE_USERNAME: Joi.string().default('postgres'),
+  DATABASE_PASSWORD: Joi.string().default('password'),
+  DATABASE_NAME: Joi.string().default('nestery'),
   DATABASE_SCHEMA: Joi.string().default('public'),
   DATABASE_SYNCHRONIZE: Joi.boolean().default(false),
   DATABASE_LOGGING: Joi.boolean().default(true),
 
   // JWT Authentication
-  JWT_SECRET: Joi.string().required(),
+  JWT_SECRET: Joi.string().default('default-secret-for-development-only'),
   JWT_ACCESS_EXPIRATION: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
 

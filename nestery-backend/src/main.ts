@@ -58,8 +58,9 @@ async function bootstrap() {
   }
   // Start the server
   const port = configService.get('PORT', 3000);
-  await app.listen(port);
-  logger.log(`Application is running on port ${port}`);
+  const host = configService.get('HOST', '0.0.0.0');
+  await app.listen(port, host);
+  logger.log(`Application is running on ${host}:${port}`);
 
   // Developer Note:
   // API endpoints are now prefixed with /v1/.
