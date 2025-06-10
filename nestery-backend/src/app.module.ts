@@ -110,49 +110,96 @@ import { CommissionBatchEntity } from './affiliates/entities/commission-batch.en
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DATABASE_HOST'),
-        port: configService.get('DATABASE_PORT'),
-        username: configService.get('DATABASE_USERNAME'),
-        password: configService.get('DATABASE_PASSWORD'),
-        database: configService.get('DATABASE_NAME'),
-        entities: [
-          // Core entities
-          User,
-          Property,
-          PropertyAvailability,
-          NesteryMasterProperty,
-          Booking,
-          Supplier,
-          SupplierProperty,
-          // Loyalty entities
-          LoyaltyTierDefinitionEntity,
-          LoyaltyTransactionEntity,
-          LoyaltyReward,
-          LoyaltyRedemption,
-          LoyaltyPointsLedger,
-          // Feature entities
-          PricePrediction,
-          UserRecommendation,
-          Referral,
-          Review,
-          SocialShare,
-          PremiumSubscription,
-          Itinerary,
-          ItineraryItem,
-          // Affiliate Entities
-          PartnerEntity,
-          AffiliateOfferEntity,
-          AffiliateLinkEntity,
-          AffiliateEarningEntity,
-          CommissionBatchEntity,
-        ],
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production',
-        logging: configService.get('NODE_ENV') !== 'production',
-        ssl: configService.get('DB_SSL') === 'true',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const databaseUrl = configService.get('DATABASE_URL');
+        if (databaseUrl) {
+          // Use connection string if available
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [
+              // Core entities
+              User,
+              Property,
+              PropertyAvailability,
+              NesteryMasterProperty,
+              Booking,
+              Supplier,
+              SupplierProperty,
+              // Loyalty entities
+              LoyaltyTierDefinitionEntity,
+              LoyaltyTransactionEntity,
+              LoyaltyReward,
+              LoyaltyRedemption,
+              LoyaltyPointsLedger,
+              // Feature entities
+              PricePrediction,
+              UserRecommendation,
+              Referral,
+              Review,
+              SocialShare,
+              PremiumSubscription,
+              Itinerary,
+              ItineraryItem,
+              // Affiliate Entities
+              PartnerEntity,
+              AffiliateOfferEntity,
+              AffiliateLinkEntity,
+              AffiliateEarningEntity,
+              CommissionBatchEntity,
+            ],
+            migrations: [__dirname + '/migrations/*{.ts,.js}'],
+            synchronize: configService.get('NODE_ENV') !== 'production',
+            logging: configService.get('NODE_ENV') !== 'production',
+            ssl: { rejectUnauthorized: false },
+          };
+        } else {
+          // Fallback to individual parameters
+          return {
+            type: 'postgres',
+            host: configService.get('DATABASE_HOST'),
+            port: configService.get('DATABASE_PORT'),
+            username: configService.get('DATABASE_USERNAME'),
+            password: configService.get('DATABASE_PASSWORD'),
+            database: configService.get('DATABASE_NAME'),
+            entities: [
+              // Core entities
+              User,
+              Property,
+              PropertyAvailability,
+              NesteryMasterProperty,
+              Booking,
+              Supplier,
+              SupplierProperty,
+              // Loyalty entities
+              LoyaltyTierDefinitionEntity,
+              LoyaltyTransactionEntity,
+              LoyaltyReward,
+              LoyaltyRedemption,
+              LoyaltyPointsLedger,
+              // Feature entities
+              PricePrediction,
+              UserRecommendation,
+              Referral,
+              Review,
+              SocialShare,
+              PremiumSubscription,
+              Itinerary,
+              ItineraryItem,
+              // Affiliate Entities
+              PartnerEntity,
+              AffiliateOfferEntity,
+              AffiliateLinkEntity,
+              AffiliateEarningEntity,
+              CommissionBatchEntity,
+            ],
+            migrations: [__dirname + '/migrations/*{.ts,.js}'],
+            synchronize: configService.get('NODE_ENV') !== 'production',
+            logging: configService.get('NODE_ENV') !== 'production',
+            ssl: { rejectUnauthorized: false },
+          };
+        }
+      },
     }),
 
     // HTTP
