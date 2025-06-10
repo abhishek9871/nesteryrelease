@@ -19,8 +19,10 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = app.get(LoggerService);
   logger.setContext('Bootstrap');
-  // Set global prefix to v1
-  app.setGlobalPrefix('v1');
+  // Set global prefix to v1, but exclude health endpoints for Railway
+  app.setGlobalPrefix('v1', {
+    exclude: ['/health', '/'],
+  });
   // Enable CORS
   app.enableCors({
     origin: configService.get('CORS_ORIGIN', '*'),
