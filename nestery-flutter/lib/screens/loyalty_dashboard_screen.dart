@@ -6,6 +6,7 @@ import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/section_title.dart';
+import 'package:nestery_flutter/widgets/animated_miles_counter.dart';
 import 'package:go_router/go_router.dart';
 
 class LoyaltyDashboardScreen extends ConsumerStatefulWidget {
@@ -69,27 +70,83 @@ class _LoyaltyDashboardScreenState extends ConsumerState<LoyaltyDashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Miles Balance Card
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(Constants.largePadding),
-              child: Column(
-                children: [
-                  Text(
-                    'Your Miles Balance',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: Constants.smallPadding),
-                  Text(
-                    '${status.loyaltyMilesBalance} Miles',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
+          // Animated Miles Balance Card with Shimmer
+          ShimmerMilesCard(
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
+              child: Container(
+                padding: const EdgeInsets.all(Constants.largePadding),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Constants.primaryColor.withValues(alpha: 0.1),
+                      Constants.secondaryColor.withValues(alpha: 0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.stars,
+                          color: Constants.accentColor,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Your Miles Balance',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: Constants.mediumPadding),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        AnimatedMilesCounter(
+                          miles: status.loyaltyMilesBalance,
+                          textStyle: theme.textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Constants.primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Miles',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: Constants.largePadding),
+
+          // Animated Circular Tier Progress
+          Center(
+            child: AnimatedTierProgress(
+              progress: progress.clamp(0.0, 1.0),
+              color: Constants.primaryColor,
+              size: 220,
+              tierName: status.tierName,
+              miles: status.loyaltyMilesBalance,
+              milesToNext: status.milesToNextTier,
             ),
           ),
           const SizedBox(height: Constants.largePadding),
