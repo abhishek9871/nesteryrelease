@@ -5,6 +5,7 @@ import 'package:nestery_flutter/providers/property_provider.dart';
 
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
+import 'package:nestery_flutter/widgets/empty_state.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/property_card.dart';
 
@@ -610,51 +611,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No Results Found',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Try adjusting your search criteria or filters to find more properties.',
-              style: TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _searchController.clear();
-                  _location = '';
-                  _selectedPropertyType = 'All';
-                  _selectedAmenities = [];
-                  _priceRange = const RangeValues(0, 1000);
-                  _minRating = 0;
-                });
-                _performSearch();
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Reset Filters'),
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      type: EmptyStateType.noResults,
+      onAction: () {
+        setState(() {
+          _searchController.clear();
+          _location = '';
+          _selectedPropertyType = 'All';
+          _selectedAmenities.clear();
+          _priceRange = const RangeValues(0, 1000);
+          _minRating = 0;
+        });
+        _performSearch();
+      },
     );
   }
 
