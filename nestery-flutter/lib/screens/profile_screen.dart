@@ -622,7 +622,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               onChanged: (value) {
                 ref.read(themeProvider.notifier).toggleTheme();
               },
-              activeColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary,
             ),
           ),
           _buildSettingItem(
@@ -660,7 +660,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               onChanged: (value) {
                 // Handle push notifications toggle
               },
-              activeColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary,
             ),
           ),
           _buildSettingItem(
@@ -672,7 +672,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               onChanged: (value) {
                 // Handle email notifications toggle
               },
-              activeColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary,
             ),
           ),
           _buildSettingItem(
@@ -684,7 +684,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               onChanged: (value) {
                 // Handle marketing communications toggle
               },
-              activeColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary,
             ),
           ),
 
@@ -704,7 +704,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               onChanged: (value) {
                 // Handle location services toggle
               },
-              activeColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary,
             ),
           ),
           _buildSettingItem(
@@ -716,7 +716,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               onChanged: (value) {
                 // Handle data collection toggle
               },
-              activeColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary,
             ),
           ),
 

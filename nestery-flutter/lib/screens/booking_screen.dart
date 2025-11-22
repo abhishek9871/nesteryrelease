@@ -759,17 +759,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 ],
               ),
             ),
-            Radio<String>(
-              value: value,
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedPaymentMethod = value;
-                  });
-                }
-              },
-              activeColor: theme.colorScheme.primary,
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ],
         ),

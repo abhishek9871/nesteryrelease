@@ -515,7 +515,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _sortBy,
+                  initialValue: _sortBy,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -551,7 +551,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
               const SizedBox(width: 16),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _sortOrder,
+                  initialValue: _sortOrder,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

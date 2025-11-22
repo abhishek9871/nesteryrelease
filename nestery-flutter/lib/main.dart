@@ -20,8 +20,14 @@ Future<void> main() async {
   // Load environment variables
   await dotenv.load(fileName: ".env");
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase (optional - gracefully handle if not configured)
+  try {
+    await Firebase.initializeApp();
+    debugPrint('✅ Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('⚠️  Firebase initialization skipped: $e');
+    debugPrint('   App will continue without Firebase Analytics/Crashlytics');
+  }
 
   // Initialize app constants
   Constants.initialize();
@@ -92,7 +98,7 @@ class NesteryApp extends ConsumerWidget {
             vertical: 16,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -135,7 +141,7 @@ class NesteryApp extends ConsumerWidget {
             vertical: 16,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
