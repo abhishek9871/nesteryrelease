@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/screens/splash_screen.dart';
+import 'package:nestery_flutter/screens/onboarding_screen.dart';
 import 'package:nestery_flutter/screens/login_screen.dart';
 import 'package:nestery_flutter/screens/register_screen.dart';
 import 'package:nestery_flutter/screens/home_screen.dart';
@@ -32,7 +33,7 @@ class AppRouter {
       final isLoggedIn = authState.isAuthenticated;
 
       // Paths that don't require authentication
-      final publicPaths = ['/login', '/register', '/'];
+      final publicPaths = ['/login', '/register', '/onboarding', '/'];
 
       // If the user is not logged in and trying to access a protected route
       if (!isLoggedIn && !publicPaths.contains(state.matchedLocation)) {
@@ -54,6 +55,12 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const SplashScreen(),
+      ),
+
+      // Onboarding route
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
 
       // Authentication routes

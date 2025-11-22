@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 
@@ -51,9 +52,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     super.dispose();
   }
 
-  // Check authentication status and navigate accordingly
+  // Check onboarding and authentication status, then navigate accordingly
   Future<void> _checkAuthAndNavigate() async {
     if (!mounted) return;
+
+    // Check if onboarding has been completed
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+
+    if (!mounted) return;
+
+    // If onboarding not completed, show onboarding first
+    if (!onboardingCompleted) {
+      Navigator.of(context).pushReplacementNamed('/onboarding');
+      return;
+    }
 
     final authState = ref.read(authProvider);
 
