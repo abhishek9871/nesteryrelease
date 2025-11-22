@@ -16,6 +16,7 @@ import 'package:nestery_flutter/providers/auth_provider.dart';
 import 'package:nestery_flutter/screens/loyalty_dashboard_screen.dart';
 import 'package:nestery_flutter/screens/loyalty_transactions_screen.dart';
 import 'package:nestery_flutter/screens/referral_screen.dart';
+import 'package:nestery_flutter/screens/subscription_screen.dart';
 import 'package:nestery_flutter/models/booking.dart';
 import 'package:nestery_flutter/models/enums.dart';
 
@@ -213,6 +214,12 @@ class AppRouter {
           GoRoute(
             path: '/referrals',
             builder: (context, state) => const ReferralScreen(),
+          ),
+
+          // Subscription/Premium Route
+          GoRoute(
+            path: '/subscription',
+            builder: (context, state) => const SubscriptionScreen(),
           ),
         ],
       ),
