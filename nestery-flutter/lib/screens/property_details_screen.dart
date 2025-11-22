@@ -5,6 +5,7 @@ import 'package:nestery_flutter/providers/property_provider.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
+import 'package:nestery_flutter/widgets/skeleton_widgets.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -78,11 +79,11 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
     final property = propertyDetails.property;
 
     return Scaffold(
-      body: LoadingOverlay(
-        isLoading: propertyDetails.isLoading,
-        child: property == null && !propertyDetails.isLoading
-            ? _buildErrorState(propertyDetails.error ?? 'Property not found')
-            : CustomScrollView(
+      body: propertyDetails.isLoading
+          ? const PropertyDetailsSkeleton()
+          : property == null
+              ? _buildErrorState(propertyDetails.error ?? 'Property not found')
+              : CustomScrollView(
                 slivers: [
                   // App Bar with property images
                   SliverAppBar(

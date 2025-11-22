@@ -6,6 +6,7 @@ import 'package:nestery_flutter/providers/missing_providers.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
+import 'package:nestery_flutter/widgets/skeleton_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -58,11 +59,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           ],
         ),
       ),
-      body: LoadingOverlay(
-        isLoading: bookingsState.isLoading,
-        child: TabBarView(
-          controller: _tabController,
-          children: [
+      body: TabBarView(
+        controller: _tabController,
+        children: [
             // Upcoming bookings
             _buildBookingsList(
               context,
@@ -110,11 +109,15 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     String emptyMessage,
     VoidCallback onRetry,
   ) {
+    if (isLoading) {
+      return const BookingsListSkeleton();
+    }
+
     if (error != null) {
       return _buildErrorState(error, onRetry);
     }
 
-    if (bookings.isEmpty && !isLoading) {
+    if (bookings.isEmpty) {
       return _buildEmptyState(emptyTitle, emptyMessage);
     }
 

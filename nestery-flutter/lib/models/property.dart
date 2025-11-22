@@ -257,4 +257,43 @@ class Property {
       reviews: reviews ?? this.reviews,
     );
   }
+
+  /// Create a placeholder property for skeleton loading
+  static Property placeholder() {
+    return Property(
+      id: 'placeholder',
+      name: 'Loading Property Name Here',
+      description: 'Loading description text that will be replaced with actual content soon.',
+      address: '123 Loading Street, Building 1',
+      city: 'Loading City',
+      state: 'Loading State',
+      country: 'Loading Country',
+      zipCode: '12345',
+      latitude: 0.0,
+      longitude: 0.0,
+      propertyType: 'Hotel',
+      starRating: 4.5,
+      basePrice: 150.0,
+      currency: 'USD',
+      maxGuests: 2,
+      bedrooms: 1,
+      bathrooms: 1,
+      amenities: ['WiFi', 'Air Conditioning', 'TV', 'Parking'],
+      thumbnailImage: null,
+      sourceType: 'Nestery',
+      externalId: 'placeholder-id',
+      externalUrl: null,
+      metadata: null,
+      images: null,
+      area: 45.0,
+      host: null,
+      smokingAllowed: false,
+      petsAllowed: false,
+      partiesAllowed: false,
+      checkInTime: '14:00',
+      checkOutTime: '11:00',
+      cancellationPolicy: 'Free cancellation up to 24 hours before check-in',
+      reviews: null,
+    );
+  }
 }

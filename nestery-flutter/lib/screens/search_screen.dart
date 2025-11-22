@@ -8,6 +8,7 @@ import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/empty_state.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/property_card.dart';
+import 'package:nestery_flutter/widgets/skeleton_widgets.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -579,30 +580,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             Expanded(
               child: searchResults.error != null
                   ? _buildErrorState(searchResults.error!, () => _performSearch())
-                  : searchResults.properties.isEmpty && !searchResults.isLoading
-                      ? _buildEmptyState()
-                      : RefreshIndicator(
-                          onRefresh: () async {
-                            _performSearch();
-                          },
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: searchResults.properties.length,
-                            itemBuilder: (context, index) {
-                              final property = searchResults.properties[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: PropertyCard(
-                                  property: property,
-                                  isHorizontal: true,
-                                  onTap: () {
-                                    context.go('/property/${property.id}');
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                  : searchResults.isLoading
+                      ? const SearchResultsSkeleton()
+                      : searchResults.properties.isEmpty
+                          ? _buildEmptyState()
+                          : RefreshIndicator(
+                              onRefresh: () async {
+                                _performSearch();
+                              },
+                              child: ListView.builder(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: searchResults.properties.length,
+                                itemBuilder: (context, index) {
+                                  final property = searchResults.properties[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: PropertyCard(
+                                      property: property,
+                                      isHorizontal: true,
+                                      onTap: () {
+                                        context.go('/property/${property.id}');
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
             ),
           ],
         ),

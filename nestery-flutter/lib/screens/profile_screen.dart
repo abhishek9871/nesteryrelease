@@ -12,6 +12,7 @@ import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/custom_text_field.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/section_title.dart';
+import 'package:nestery_flutter/widgets/skeleton_widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -173,11 +174,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
         ],
       ),
-      body: LoadingOverlay(
-        isLoading: profileState.isLoading || profileState.isUpdating,
-        child: user == null && !profileState.isLoading
-            ? _buildErrorState(profileState.error ?? loyaltyState.error ?? 'Failed to load profile')
-            : Column(
+      body: profileState.isLoading
+          ? const ProfileSkeleton()
+          : user == null
+              ? _buildErrorState(profileState.error ?? loyaltyState.error ?? 'Failed to load profile')
+              : LoadingOverlay(
+                  isLoading: profileState.isUpdating,
+                  child: Column(
                 children: [
                   // Profile header
                   _buildProfileHeader(user, theme),
@@ -215,6 +218,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                   ),
                 ],
               ),
+                ),
       ),
     );
   }
