@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nestery_flutter/models/property.dart';
 import 'package:nestery_flutter/utils/constants.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PropertyCard extends ConsumerWidget {
   final Property property;
@@ -26,6 +28,8 @@ class PropertyCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: onTap ?? () {
+        // Add haptic feedback for better UX
+        HapticFeedback.lightImpact();
         // Navigate to property details
         context.go('/home/property/${property.id}');
       },
@@ -283,25 +287,75 @@ class PropertyCard extends ConsumerWidget {
   }
 
   Widget _buildPropertyImage() {
-    return property.thumbnailImage != null
-        ? CachedNetworkImage(
-            imageUrl: property.thumbnailImage!,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
+    // Wrap with Hero for smooth page transitions
+    return Hero(
+      tag: 'property-image-${property.id}',
+      child: property.thumbnailImage != null
+          ? CachedNetworkImage(
+              imageUrl: property.thumbnailImage!,
+              fit: BoxFit.cover,
+              // Optimize memory usage
+              memCacheWidth: 800,
+              memCacheHeight: 450,
+              maxWidthDiskCache: 1200,
+              // Smooth fade-in animation
+              fadeInDuration: const Duration(milliseconds: 300),
+              fadeOutDuration: const Duration(milliseconds: 100),
+              placeholderFadeInDuration: const Duration(milliseconds: 200),
+              // Enhanced placeholder with shimmer effect
+              placeholder: (context, url) => Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                period: const Duration(milliseconds: 1500),
+                child: Container(
+                  color: Colors.grey[300],
+                ),
+              ),
+              // Better error widget
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey[300],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_not_supported,
+                      size: isHorizontal ? 30 : 40,
+                      color: Colors.grey[500],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Image unavailable',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Progressive loading indicator
+              progressIndicatorBuilder: (context, url, progress) => Container(
+                color: Colors.grey[300],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: progress.progress,
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Constants.primaryColor.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : Container(
               color: Colors.grey[300],
-              child: const Center(
-                child: CircularProgressIndicator(),
+              child: Icon(
+                Icons.image,
+                size: isHorizontal ? 30 : 40,
+                color: Colors.grey[500],
               ),
             ),
-            errorWidget: (context, url, error) => Container(
-              color: Colors.grey[300],
-              child: const Icon(Icons.error),
-            ),
-          )
-        : Container(
-            color: Colors.grey[300],
-            child: const Icon(Icons.image, size: 40),
-          );
+    );
   }
 
   Widget _buildSourceBadge(ThemeData theme, {bool small = false}) {

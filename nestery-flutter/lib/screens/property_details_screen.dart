@@ -577,7 +577,7 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
       itemCount: images.length,
       itemBuilder: (context, index) {
         final imageUrl = images[index];
-        return CachedNetworkImage(
+        final imageWidget = CachedNetworkImage(
           imageUrl: imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
@@ -593,6 +593,14 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
             ),
           ),
         );
+
+        // Wrap first image with Hero for smooth transition from property card
+        return index == 0
+            ? Hero(
+                tag: 'property-image-${property.id}',
+                child: imageWidget,
+              )
+            : imageWidget;
       },
     );
   }
