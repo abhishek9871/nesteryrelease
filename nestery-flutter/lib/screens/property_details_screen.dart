@@ -6,6 +6,7 @@ import 'package:nestery_flutter/utils/constants.dart';
 import 'package:nestery_flutter/widgets/custom_button.dart';
 import 'package:nestery_flutter/widgets/loading_overlay.dart';
 import 'package:nestery_flutter/widgets/skeleton_widgets.dart';
+import 'package:nestery_flutter/services/share_service.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -126,7 +127,9 @@ class _PropertyDetailsScreenState extends ConsumerState<PropertyDetailsScreen> w
                         child: IconButton(
                           icon: const Icon(Icons.share, color: Colors.white),
                           onPressed: () {
-                            // Share property
+                            if (property != null) {
+                              ShareService.shareProperty(property);
+                            }
                           },
                         ),
                       ),
